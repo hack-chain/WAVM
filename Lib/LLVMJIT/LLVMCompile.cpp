@@ -103,7 +103,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 	llvm::legacy::FunctionPassManager fpm(&llvmModule);
 	fpm.add(llvm::createPromoteMemoryToRegisterPass());
-	fpm.add(llvm::createInstructionNamerPass());
+	fpm.add(llvm::createInstructionCombiningPass());
 	fpm.add(llvm::createCFGSimplificationPass());
 	fpm.add(llvm::createJumpThreadingPass());
 	fpm.add(llvm::createConstantPropagationPass());
