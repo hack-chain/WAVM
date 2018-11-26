@@ -21,7 +21,6 @@
 #include "WAVM/Logging/Logging.h"
 #include "WAVM/Runtime/Linker.h"
 #include "WAVM/Runtime/Runtime.h"
-#include "WAVM/ThreadTest/ThreadTest.h"
 #include "WAVM/WASM/WASM.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
@@ -216,12 +215,6 @@ static int run(const CommandLineOptions& options)
 			rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
 			rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
 		}
-	}
-
-	if(options.enableThreadTest)
-	{
-		ModuleInstance* threadTestInstance = ThreadTest::instantiate(compartment);
-		rootResolver.moduleNameToInstanceMap.set("threadTest", threadTestInstance);
 	}
 
 	LinkResult linkResult = linkModule(irModule, rootResolver);
