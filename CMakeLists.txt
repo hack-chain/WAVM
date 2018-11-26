@@ -232,7 +232,6 @@ add_subdirectory(Lib/Platform)
 add_subdirectory(Lib/RegExp)
 add_subdirectory(Lib/WASM)
 add_subdirectory(Lib/WASTParse)
-add_subdirectory(Lib/WASTPrint)
 add_subdirectory(ThirdParty/dtoa)
 
 if(WAVM_ENABLE_RUNTIME)
