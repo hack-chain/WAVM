@@ -274,11 +274,6 @@ static std::vector<DFAState> convertToDFA(Builder* builder)
 		maxDFANextStates = std::max(maxDFANextStates, (Uptr)uniqueLocalNextStateSets.size());
 	};
 
-	Timing::logTimer("translated NFA->DFA", timer);
-	std::cout << "  translated NFA with %" PRIuPTR " states to DFA with %" PRIuPTR " states\n" << Uptr(builder->nfaStates.size()) << Uptr(dfaStates.size());
-	std::cout <<  "  maximum number of states following a NFA state set: %" PRIuPTR "\n" << maxLocalStates;
-	std::cout << "  maximum number of states following a DFA state: %" PRIuPTR "\n" << maxDFANextStates;
-
 	return dfaStates;
 }
 
@@ -389,8 +384,6 @@ NFA::Machine::Machine(Builder* builder)
 	for(Uptr charIndex = 0; charIndex < 256; ++charIndex)
 	{ charToOffsetMap[charIndex] = U32(numStates * characterToClassMap[charIndex]); }
 
-	Timing::logTimer("reduced DFA character classes", timer);
-	std::cout <<  "  reduced DFA character classes to %" PRIuPTR "\n", numClasses;
 }
 
 NFA::Machine::~Machine()

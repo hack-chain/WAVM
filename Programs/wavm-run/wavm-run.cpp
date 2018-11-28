@@ -54,7 +54,6 @@ struct RootResolver : Resolver
 				}
 			}
 		}
-		std::cout << "Generated stub for missing import %s.%s : %s\n" << moduleName.c_str() << exportName.c_str() << asString(type).c_str();
 		outObject = getStubObject(exportName, type);
 		return true;
 	}
@@ -309,7 +308,6 @@ static int run(const CommandLineOptions& options)
 	// Invoke the function.
 	Timing::Timer executionTimer;
 	IR::ValueTuple functionResults = invokeFunctionChecked(context, function, invokeArgs);
-	Timing::logTimer("Invoked function", executionTimer);
 
 	if(options.functionName)
 	{

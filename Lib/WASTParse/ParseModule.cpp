@@ -936,11 +936,6 @@ void WAST::parseModuleBody(CursorState* cursor, IR::Module& outModule)
 		wavmAssert(outModule.memories.size() == moduleState.disassemblyNames.memories.size());
 		wavmAssert(outModule.globals.size() == moduleState.disassemblyNames.globals.size());
 		IR::setDisassemblyNames(outModule, moduleState.disassemblyNames);
-
-        dumpHashMapSpaceAnalysis(moduleState.functionNameToIndexMap, "functionNameToIndexMap");
-        dumpHashMapSpaceAnalysis(moduleState.globalNameToIndexMap, "globalNameToIndexMap");
-        dumpHashMapSpaceAnalysis(moduleState.functionTypeToIndexMap, "functionTypeToIndexMap");
-        dumpHashMapSpaceAnalysis(moduleState.typeNameToIndexMap, "typeNameToIndexMap");
 	}
 	catch(RecoverParseException)
 	{
@@ -997,8 +992,6 @@ bool WAST::parseModule(const char* string,
 	// Free the tokens and line info.
 	freeTokens(tokens);
 	freeLineInfo(lineInfo);
-
-	Timing::logRatePerSecond("lexed and parsed WAST", timer, stringLength / 1024.0 / 1024.0, "MB");
 
 	return outErrors.size() == 0;
 }

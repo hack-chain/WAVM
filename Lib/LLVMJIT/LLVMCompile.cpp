@@ -110,14 +110,6 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	fpm.doInitialization();
 	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
 	{ fpm.run(*functionIt); }
-
-	if(shouldLogMetrics)
-	{
-		Timing::logRatePerSecond("Optimized LLVM module", optimizationTimer, (F64)llvmModule.size(), "functions");
-	}
-
-	// Dump the optimized module if desired.
-	if(shouldLogMetrics && DUMP_OPTIMIZED_MODULE) { printModule(llvmModule, "llvmOptimizedDump"); }
 }
 
 std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
@@ -139,21 +131,6 @@ std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
 	// Get a target machine object for this host, and set the module to use its data layout.
 	llvmModule.setDataLayout(targetMachine->createDataLayout());
 
-	// Dump the module if desired.
-	if(shouldLogMetrics && DUMP_UNOPTIMIZED_MODULE) { printModule(llvmModule, "llvmDump"); }
-
-	// Verify the module.
-	if(shouldLogMetrics && VERIFY_MODULE)
-	{
-		std::string verifyOutputString;
-		llvm::raw_string_ostream verifyOutputStream(verifyOutputString);
-		if(llvm::verifyModule(llvmModule, &verifyOutputStream))
-		{
-			verifyOutputStream.flush();
-			Errors::fatalf("LLVM verification errors:\n%s", verifyOutputString.c_str());
-		}
-	}
-
 	// Optimize the module;
 	optimizeLLVMModule(llvmModule, shouldLogMetrics);
 
@@ -167,24 +144,6 @@ std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
 		errorUnless(!targetMachine->addPassesToEmitMC(passManager, mcContext, objectStream));
 		passManager.run(llvmModule);
 		objectBytes = objectStream.getOutput();
-	}
-	if(shouldLogMetrics)
-	{
-		Timing::logRatePerSecond(
-			"Generated machine code", machineCodeTimer, (F64)llvmModule.size(), "functions");
-	}
-
-	if(shouldLogMetrics && DUMP_OBJECT)
-	{
-		// Dump the object file.
-		std::error_code errorCode;
-		static Uptr dumpedObjectId = 0;
-		std::string augmentedFilename
-			= std::string("jitObject") + std::to_string(dumpedObjectId++) + ".o";
-		llvm::raw_fd_ostream dumpFileStream(
-			augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_None);
-		dumpFileStream.write((const char*)objectBytes.data(), objectBytes.size());
-		std::cout << "Dumped object file to: %s\n", augmentedFilename.c_str();
 	}
 
 	return objectBytes;

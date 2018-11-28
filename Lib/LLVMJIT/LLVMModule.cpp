@@ -515,11 +515,6 @@ Module::Module(const std::vector<U8>& inObjectBytes,
 		Lock<Platform::Mutex> addressToModuleMapLock(addressToModuleMapMutex);
 		addressToModuleMap.emplace(moduleEndAddress, this);
 	}
-
-	if(shouldLogMetrics)
-	{
-		Timing::logRatePerSecond("Loaded object", loadObjectTimer, (F64)objectBytes.size() / 1024.0 / 1024.0, "MB");
-	}
 }
 
 Module::~Module()

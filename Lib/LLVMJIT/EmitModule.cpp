@@ -228,6 +228,4 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 
 	// Finalize the debug info.
 	moduleContext.diBuilder.finalize();
-
-	Timing::logRatePerSecond("Emitted LLVM IR", emitTimer, (F64)outLLVMModule.size(), "functions");
 }

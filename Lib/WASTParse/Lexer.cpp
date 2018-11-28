@@ -163,8 +163,6 @@ StaticData::StaticData()
 		std::string dfaGraphVizString = nfaMachine.dumpDFAGraphViz().c_str();
 		errorUnless(saveFile("dfaGraph.dot", dfaGraphVizString.data(), dfaGraphVizString.size()));
 	}
-
-	Timing::logTimer("built lexer tables", timer);
 }
 
 inline bool isRecoveryPointChar(char c)
@@ -330,9 +328,6 @@ Token* WAST::lex(const char* string, Uptr stringLength, LineInfo*& outLineInfo)
 
 	// Create the LineInfo object that encapsulates the line start information.
 	outLineInfo = new LineInfo{lineStarts, U32(numLineStarts)};
-
-	Timing::logRatePerSecond("lexed WAST file", timer, stringLength / 1024.0 / 1024.0, "MB");
-	std::cout << "lexer produced %" PRIuPTR " tokens (%.1fMB)\n" << numTokens << numTokens * sizeof(Token) / 1024.0 / 1024.0;
 
 	return tokens;
 }
