@@ -120,9 +120,6 @@ static bool loadModule(const char* filename, IR::Module& outModule)
 	std::vector<U8> fileBytes;
 	if(!loadFile(filename, fileBytes)) { return false; }
 
-	// If the file starts with the WASM binary magic number, load it as a binary irModule.
-	static const U8 wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
-    // Make sure the WAST file is null terminated.
     fileBytes.push_back(0);
 
     // Load it as a text irModule.
@@ -308,7 +305,6 @@ static int run(const CommandLineOptions& options)
 static void showHelp() {
 	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
-				"  in.wast|in.wasm       Specify program file (.wast/.wasm)\n"
 				"  -c|--check            Exit after checking that the program is valid\n"
 				"  -f|--function name    Specify function name to run in module rather than main\n"
 				"  -h|--help             Display this message\n"
