@@ -10,7 +10,6 @@
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/LLVMJIT/LLVMJIT.h"
 #include "iostream"
 #include "WAVM/Platform/Defines.h"
@@ -98,9 +97,6 @@ private:
 
 static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 {
-	// Run some optimization on the module's functions.
-	Timing::Timer optimizationTimer;
-
 	llvm::legacy::FunctionPassManager fpm(&llvmModule);
 	fpm.add(llvm::createPromoteMemoryToRegisterPass());
 	fpm.add(llvm::createInstructionNamerPass());
@@ -134,8 +130,6 @@ std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
 	// Optimize the module;
 	optimizeLLVMModule(llvmModule, shouldLogMetrics);
 
-	// Generate machine code for the module.
-	Timing::Timer machineCodeTimer;
 	std::vector<U8> objectBytes;
 	{
 		llvm::legacy::PassManager passManager;

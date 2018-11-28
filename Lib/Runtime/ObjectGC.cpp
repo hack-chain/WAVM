@@ -10,7 +10,6 @@
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashSet.h"
 #include "WAVM/Inline/Lock.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/Platform/Mutex.h"
 #include "WAVM/Runtime/Runtime.h"
 
@@ -172,8 +171,6 @@ struct GCState
 static bool collectGarbageImpl(Compartment* compartment)
 {
 	Lock<Platform::Mutex> compartmentLock(compartment->mutex);
-	Timing::Timer timer;
-
 	GCState state(compartment);
 
 	// Initialize the GC state from the compartment's various sets of objects.

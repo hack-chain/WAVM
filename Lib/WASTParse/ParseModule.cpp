@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "Lexer.h"
 #include "Parse.h"
@@ -17,7 +18,6 @@
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
 using namespace WAVM;
@@ -950,7 +950,6 @@ bool WAST::parseModule(const char* string,
 					   IR::Module& outModule,
 					   std::vector<Error>& outErrors)
 {
-	Timing::Timer timer;
 
 	// Lex the string.
 	LineInfo* lineInfo = nullptr;

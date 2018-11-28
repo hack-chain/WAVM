@@ -10,7 +10,6 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/CLI.h"
 #include "WAVM/Inline/Errors.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/NFA/NFA.h"
 #include "WAVM/RegExp/RegExp.h"
 #include "WAVM/WASTParse/WASTParse.h"
@@ -125,8 +124,6 @@ StaticData::StaticData()
 #undef VISIT_OPERATOR_TOKEN
 		};
 
-	Timing::Timer timer;
-
 	NFA::Builder* nfaBuilder = NFA::createBuilder();
 
 	for(auto regexpTokenPair : regexpTokenPairs)
@@ -187,8 +184,6 @@ Token* WAST::lex(const char* string, Uptr stringLength, LineInfo*& outLineInfo)
 	errorUnless(string[stringLength - 1] == 0);
 
 	static StaticData staticData;
-
-	Timing::Timer timer;
 
 	if(stringLength > UINT32_MAX)
 	{ Errors::fatalf("cannot lex strings with more than %u characters", UINT32_MAX); }

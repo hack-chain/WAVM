@@ -7,7 +7,6 @@
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Lock.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/Platform/Memory.h"
 #include "WAVM/Platform/Mutex.h"
 #include "WAVM/Runtime/Runtime.h"
@@ -61,8 +60,6 @@ Compartment* Runtime::createCompartment() { return new Compartment; }
 
 Compartment* Runtime::cloneCompartment(const Compartment* compartment)
 {
-	Timing::Timer timer;
-
 	Compartment* newCompartment = new Compartment;
 	Lock<Platform::Mutex> compartmentLock(compartment->mutex);
 
@@ -106,7 +103,6 @@ Compartment* Runtime::cloneCompartment(const Compartment* compartment)
 		wavmAssert(newModuleInstance->id == moduleInstance->id);
 	}
 
-	Timing::logTimer("Cloned compartment", timer);
 	return newCompartment;
 }
 

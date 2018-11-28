@@ -18,7 +18,6 @@
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/Serialization.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/Runtime/Linker.h"
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/WASTParse/WASTParse.h"
@@ -283,8 +282,6 @@ static int run(const CommandLineOptions& options)
 		}
 	}
 
-	// Invoke the function.
-	Timing::Timer executionTimer;
 	IR::ValueTuple functionResults = invokeFunctionChecked(context, function, invokeArgs);
 
 	if(options.functionName)

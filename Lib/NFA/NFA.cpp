@@ -11,7 +11,6 @@
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/HashSet.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/NFA/NFA.h"
 #include <iostream>
 
@@ -95,8 +94,6 @@ struct DFAState
 
 static std::vector<DFAState> convertToDFA(Builder* builder)
 {
-	Timing::Timer timer;
-
 	std::vector<DFAState> dfaStates;
 	HashMap<StateSet, StateIndex> nfaStateSetToDFAStateMap;
 	std::vector<StateSet> dfaStateToNFAStateSetMap;
@@ -330,8 +327,6 @@ NFA::Machine::Machine(Builder* builder)
 	std::vector<DFAState> dfaStates = convertToDFA(builder);
 	wavmAssert(dfaStates.size() <= internalMaxStates);
 	delete builder;
-
-	Timing::Timer timer;
 
 	// Transpose the [state][character] transition map to [character][state].
 	std::vector<StateTransitionsByChar> stateTransitionsByChar;

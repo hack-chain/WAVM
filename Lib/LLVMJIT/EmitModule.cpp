@@ -7,7 +7,6 @@
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Types.h"
 #include "WAVM/Inline/BasicTypes.h"
-#include "WAVM/Inline/Timing.h"
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include "llvm/ADT/Twine.h"
@@ -104,7 +103,6 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 						 LLVMContext& llvmContext,
 						 llvm::Module& outLLVMModule)
 {
-	Timing::Timer emitTimer;
 	EmitModuleContext moduleContext(irModule, llvmContext, &outLLVMModule);
 
 	// Create an external reference to the appropriate exception personality function.

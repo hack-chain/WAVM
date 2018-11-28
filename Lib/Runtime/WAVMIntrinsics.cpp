@@ -9,7 +9,6 @@
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/FloatComponents.h"
-#include "WAVM/Inline/Timing.h"
 #include <iostream>
 #include "WAVM/Runtime/Intrinsics.h"
 #include "WAVM/Runtime/Runtime.h"

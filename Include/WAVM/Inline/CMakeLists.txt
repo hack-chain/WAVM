@@ -17,8 +17,7 @@ set(PublicHeaders
 	Lock.h
 	OptionalStorage.h
 	Serialization.h
-	Timing.h
-	Unicode.h)
+        Unicode.h)
 add_custom_target(Inline SOURCES ${PublicHeaders})
 set_target_properties(Inline PROPERTIES FOLDER Libraries)
 

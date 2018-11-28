@@ -17,7 +17,6 @@
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/Lock.h"
-#include "WAVM/Inline/Timing.h"
 #include "WAVM/LLVMJIT/LLVMJIT.h"
 #include "WAVM/Platform/Exception.h"
 #include "WAVM/Platform/Memory.h"
@@ -287,7 +286,6 @@ Module::Module(const std::vector<U8>& inObjectBytes,
 			   bool shouldLogMetrics)
 : memoryManager(new ModuleMemoryManager()), objectBytes(inObjectBytes)
 {
-	Timing::Timer loadObjectTimer;
 
 	object = cantFail(llvm::object::ObjectFile::createObjectFile(llvm::MemoryBufferRef(
 		llvm::StringRef((const char*)objectBytes.data(), objectBytes.size()), "memory")));
