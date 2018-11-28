@@ -1,9 +1,8 @@
 #pragma once
 
 #include "WAVM/Inline/BasicTypes.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/File.h"
-
+#include <iostream>
 #include <vector>
 
 namespace WAVM {
@@ -13,7 +12,7 @@ namespace WAVM {
 			filename, Platform::FileAccessMode::readOnly, Platform::FileCreateMode::openExisting);
 		if(!file)
 		{
-			Log::printf(Log::error, "Couldn't read %s: couldn't open file.\n", filename);
+			std::cout <<  "Couldn't read %s: couldn't open file.\n" <<  filename;
 			return false;
 		}
 
@@ -21,7 +20,7 @@ namespace WAVM {
 		errorUnless(Platform::seekFile(file, 0, Platform::FileSeekOrigin::end, &numFileBytes64));
 		if(numFileBytes64 > UINTPTR_MAX)
 		{
-			Log::printf(Log::error, "Couldn't read %s: file doesn't fit in memory.\n", filename);
+			std::cout << "Couldn't read %s: file doesn't fit in memory.\n" << filename;
 			errorUnless(Platform::closeFile(file));
 			return false;
 		}
@@ -43,7 +42,7 @@ namespace WAVM {
 			filename, Platform::FileAccessMode::writeOnly, Platform::FileCreateMode::createAlways);
 		if(!file)
 		{
-			Log::printf(Log::error, "Couldn't write %s: couldn't open file.\n", filename);
+			std::cout << "Couldn't write %s: couldn't open file.\n" <<  filename;
 			return false;
 		}
 

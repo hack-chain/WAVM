@@ -10,7 +10,7 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/FloatComponents.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/Logging/Logging.h"
+#include <iostream>
 #include "WAVM/Runtime/Intrinsics.h"
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/Runtime/RuntimeData.h"
@@ -204,10 +204,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 						  debugEnterFunction,
 						  const Function* function)
 {
-	Log::printf(Log::debug,
-				"ENTER: %*s\n",
-				U32(indentLevel * 4 + function->mutableData->debugName.size()),
-				function->mutableData->debugName.c_str());
+	std::cout << "ENTER: %*s\n" << U32(indentLevel * 4 + function->mutableData->debugName.size()) << function->mutableData->debugName.c_str();
 	++indentLevel;
 }
 
@@ -218,15 +215,12 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 						  const Function* function)
 {
 	--indentLevel;
-	Log::printf(Log::debug,
-				"EXIT:  %*s\n",
-				U32(indentLevel * 4 + function->mutableData->debugName.size()),
-				function->mutableData->debugName.c_str());
+	std::cout << "EXIT:  %*s\n" << U32(indentLevel * 4 + function->mutableData->debugName.size()) << function->mutableData->debugName.c_str();
 }
 
 DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "debugBreak", void, debugBreak)
 {
-	Log::printf(Log::debug, "================== wavmIntrinsics.debugBreak\n");
+	std::cout << "================== wavmIntrinsics.debugBreak\n";
 }
 
 void Runtime::dummyReferenceWAVMIntrinsics()

@@ -2,7 +2,6 @@
 
 #include "WAVM/IR/Validate.h"
 #include "WAVM/Inline/BasicTypes.h"
-#include "WAVM/Logging/Logging.h"
 
 namespace WAVM { namespace IR {
 	struct Module;
@@ -21,6 +20,5 @@ namespace WAVM { namespace WASM {
 	// Loads a binary module, catching any exceptions that might be
 	WASM_API bool loadBinaryModule(const void* wasmBytes,
 								   Uptr numBytes,
-								   IR::Module& outModule,
-								   Log::Category errorCategory = Log::error);
+								   IR::Module& outModule);
 }}

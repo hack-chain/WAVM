@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <vector>
+#include <iostream>
 
 #include "RuntimePrivate.h"
 #include "WAVM/IR/Types.h"
@@ -8,7 +9,6 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Lock.h"
 #include "WAVM/LLVMJIT/LLVMJIT.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Intrinsic.h"
 #include "WAVM/Platform/Memory.h"
 #include "WAVM/Platform/Mutex.h"
@@ -526,12 +526,12 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 	Table* table = getTableFromRuntimeData(contextRuntimeData, tableId);
 	if(asObject(function) == getOutOfBoundsElement())
 	{
-		Log::printf(Log::debug, "call_indirect: index %u is out-of-bounds\n", index);
+		std::cout <<  "call_indirect: index %u is out-of-bounds\n" << index;
 		throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
 	}
 	else if(asObject(function) == getUninitializedElement())
 	{
-		Log::printf(Log::debug, "call_indirect: index %u is uninitialized\n", index);
+		std::cout <<  "call_indirect: index %u is uninitialized\n" <<  index;
 		throwException(Exception::uninitializedTableElementType, {table, U64(index)});
 	}
 	else
@@ -539,12 +539,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 		IR::FunctionType expectedSignature{IR::FunctionType::Encoding{expectedTypeEncoding}};
 		std::string ipDescription = "<unknown>";
 		describeInstructionPointer(reinterpret_cast<Uptr>(function->code), ipDescription);
-		Log::printf(Log::debug,
-					"call_indirect: index %u has signature %s (%s), but was expecting %s\n",
-					index,
-					asString(IR::FunctionType{function->encodedType}).c_str(),
-					ipDescription.c_str(),
-					asString(expectedSignature).c_str());
+		std::cout << "call_indirect: index %u has signature %s (%s), but was expecting %s\n" << index << asString(IR::FunctionType{function->encodedType}).c_str() << ipDescription.c_str() << asString(expectedSignature).c_str();
 		throwException(Exception::indirectCallSignatureMismatchType);
 	}
 }

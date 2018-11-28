@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/IR/Module.h"
@@ -18,7 +19,6 @@
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/Serialization.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Runtime/Linker.h"
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/WASM/WASM.h"
@@ -49,22 +49,12 @@ struct RootResolver : Resolver
 				if(isA(outObject, type)) { return true; }
 				else
 				{
-					Log::printf(Log::error,
-								"Resolved import %s.%s to a %s, but was expecting %s\n",
-								moduleName.c_str(),
-								exportName.c_str(),
-								asString(getObjectType(outObject)).c_str(),
-								asString(type).c_str());
+					std::cout << "Resolved import %s.%s to a %s, but was expecting %s\n" << moduleName.c_str() << exportName.c_str() << asString(getObjectType(outObject)).c_str() << asString(type).c_str();
 					return false;
 				}
 			}
 		}
-
-		Log::printf(Log::error,
-					"Generated stub for missing import %s.%s : %s\n",
-					moduleName.c_str(),
-					exportName.c_str(),
-					asString(type).c_str());
+		std::cout << "Generated stub for missing import %s.%s : %s\n" << moduleName.c_str() << exportName.c_str() << asString(type).c_str();
 		outObject = getStubObject(exportName, type);
 		return true;
 	}
@@ -146,7 +136,7 @@ static bool loadModule(const char* filename, IR::Module& outModule)
 		if(!WAST::parseModule(
 			   (const char*)fileBytes.data(), fileBytes.size(), outModule, parseErrors))
 		{
-			Log::printf(Log::error, "Error parsing WebAssembly text file:\n");
+			std::cout <<  "Error parsing WebAssembly text file:\n";
 			WAST::reportParseErrors(filename, parseErrors);
 			return false;
 		}
@@ -191,7 +181,7 @@ static int run(const CommandLineOptions& options)
 
 		if(!precompiledObjectSection)
 		{
-			Log::printf(Log::error, "Input file did not contain 'wavm.precompiled_object' section");
+			std::cout << "Input file did not contain 'wavm.precompiled_object' section";
 			return EXIT_FAILURE;
 		}
 		else
@@ -220,14 +210,10 @@ static int run(const CommandLineOptions& options)
 	LinkResult linkResult = linkModule(irModule, rootResolver);
 	if(!linkResult.success)
 	{
-		Log::printf(Log::error, "Failed to link module:\n");
+		std::cout <<  "Failed to link module:\n";
 		for(auto& missingImport : linkResult.missingImports)
 		{
-			Log::printf(Log::error,
-						"Missing import: module=\"%s\" export=\"%s\" type=\"%s\"\n",
-						missingImport.moduleName.c_str(),
-						missingImport.exportName.c_str(),
-						asString(missingImport.type).c_str());
+			std::cout << "Missing import: module=\"%s\" export=\"%s\" type=\"%s\"\n" << missingImport.moduleName.c_str() << missingImport.exportName.c_str() << asString(missingImport.type).c_str();
 		}
 		return EXIT_FAILURE;
 	}
@@ -255,7 +241,7 @@ static int run(const CommandLineOptions& options)
 		if(!function) { function = asFunctionNullable(getInstanceExport(moduleInstance, "_main")); }
 		if(!function)
 		{
-			Log::printf(Log::error, "Module does not export main function\n");
+			std::cout << "Module does not export main function";
 			return EXIT_FAILURE;
 		}
 	}
@@ -264,7 +250,7 @@ static int run(const CommandLineOptions& options)
 		function = asFunctionNullable(getInstanceExport(moduleInstance, options.functionName));
 		if(!function)
 		{
-			Log::printf(Log::error, "Module does not export '%s'\n", options.functionName);
+			std::cout << "Module does not export '%s'\n" << options.functionName;
 			return EXIT_FAILURE;
 		}
 	}
@@ -278,9 +264,7 @@ static int run(const CommandLineOptions& options)
 		{
 			if(!emscriptenInstance)
 			{
-				Log::printf(
-					Log::error,
-					"Module does not declare a default memory object to put arguments in.\n");
+				std::cout << "Module does not declare a default memory object to put arguments in.\n";
 				return EXIT_FAILURE;
 			}
 			else
@@ -296,10 +280,7 @@ static int run(const CommandLineOptions& options)
 		}
 		else if(functionType.params().size() > 0)
 		{
-			Log::printf(Log::error,
-						"WebAssembly function requires %" PRIu64
-						" argument(s), but only 0 or 2 can be passed!",
-						functionType.params().size());
+			std::cout << "WebAssembly function requires " <<  PRIu64 <<" argument(s), but only 0 or 2 can be passed!" << functionType.params().size();
 			return EXIT_FAILURE;
 		}
 	}
@@ -332,10 +313,7 @@ static int run(const CommandLineOptions& options)
 
 	if(options.functionName)
 	{
-		Log::printf(Log::debug,
-					"%s returned: %s\n",
-					options.functionName,
-					asString(functionResults).c_str());
+		std::cout << options.functionName << " returned: " << asString(functionResults).c_str() << "\n";
 		return EXIT_SUCCESS;
 	}
 	else if(functionResults.size() == 1 && functionResults[0].type == ValueType::i32)
@@ -350,7 +328,7 @@ static int run(const CommandLineOptions& options)
 
 static void showHelp()
 {
-	Log::printf(Log::error,
+	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
 				"  in.wast|in.wasm       Specify program file (.wast/.wasm)\n"
 				"  -c|--check            Exit after checking that the program is valid\n"
@@ -360,7 +338,7 @@ static void showHelp()
 				"  --disable-emscripten  Disable Emscripten intrinsics\n"
 				"  --enable-thread-test  Enable ThreadTest intrinsics\n"
 				"  --precompiled         Use precompiled object code in programfile\n"
-				"  --                    Stop parsing arguments\n");
+				"  --                    Stop parsing arguments\n";
 }
 
 int main(int argc, char** argv)
@@ -384,7 +362,6 @@ int main(int argc, char** argv)
 		}
 		else if(!strcmp(*options.args, "--debug") || !strcmp(*options.args, "-d"))
 		{
-			Log::setCategoryEnabled(Log::debug, true);
 		}
 		else if(!strcmp(*options.args, "--disable-emscripten"))
 		{

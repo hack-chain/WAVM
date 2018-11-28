@@ -11,6 +11,8 @@
 #include <utility>
 #ifndef _WIN32
 #include <sys/uio.h>
+#include <iostream>
+
 #endif
 
 #include "WAVM/Emscripten/Emscripten.h"
@@ -22,7 +24,6 @@
 #include "WAVM/Inline/FloatComponents.h"
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Defines.h"
 #include "WAVM/Runtime/Intrinsics.h"
 #include "WAVM/Runtime/Runtime.h"
@@ -409,7 +410,7 @@ DEFINE_INTRINSIC_FUNCTION(env, "_exit", void, emscripten__exit, I32 code)
 }
 DEFINE_INTRINSIC_FUNCTION(env, "abort", void, emscripten_abort, I32 code)
 {
-	Log::printf(Log::error, "env.abort(%i)\n", code);
+	std::cout << "env.abort(%i)\n", code;
 	throwException(Runtime::Exception::calledAbortType);
 }
 
@@ -670,7 +671,7 @@ Emscripten::Instance* Emscripten::instantiate(Compartment* compartment, const IR
 		}
 		else
 		{
-			Log::printf(Log::error, "module's memory is too small for Emscripten emulation");
+			std::cout <<  "module's memory is too small for Emscripten emulation";
 			return nullptr;
 		}
 	}

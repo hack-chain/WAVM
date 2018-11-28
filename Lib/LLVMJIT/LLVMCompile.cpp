@@ -12,7 +12,7 @@
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Inline/Timing.h"
 #include "WAVM/LLVMJIT/LLVMJIT.h"
-#include "WAVM/Logging/Logging.h"
+#include "iostream"
 #include "WAVM/Platform/Defines.h"
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
@@ -64,7 +64,7 @@ static void printModule(const llvm::Module& llvmModule, const char* filename)
 	llvm::raw_fd_ostream dumpFileStream(
 		augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_Text);
 	llvmModule.print(dumpFileStream, nullptr);
-	Log::printf(Log::debug, "Dumped LLVM module to: %s\n", augmentedFilename.c_str());
+	std::cout << "Dumped LLVM module to: %s\n", augmentedFilename.c_str();
 }
 
 // Define a LLVM raw output stream that can write directly to a std::vector.
@@ -113,8 +113,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 	if(shouldLogMetrics)
 	{
-		Timing::logRatePerSecond(
-			"Optimized LLVM module", optimizationTimer, (F64)llvmModule.size(), "functions");
+		Timing::logRatePerSecond("Optimized LLVM module", optimizationTimer, (F64)llvmModule.size(), "functions");
 	}
 
 	// Dump the optimized module if desired.
@@ -185,7 +184,7 @@ std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
 		llvm::raw_fd_ostream dumpFileStream(
 			augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_None);
 		dumpFileStream.write((const char*)objectBytes.data(), objectBytes.size());
-		Log::printf(Log::Category::debug, "Dumped object file to: %s\n", augmentedFilename.c_str());
+		std::cout << "Dumped object file to: %s\n", augmentedFilename.c_str();
 	}
 
 	return objectBytes;

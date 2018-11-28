@@ -12,8 +12,8 @@
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Inline/HashSet.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/NFA/NFA.h"
+#include <iostream>
 
 using namespace WAVM;
 using namespace WAVM::NFA;
@@ -275,16 +275,9 @@ static std::vector<DFAState> convertToDFA(Builder* builder)
 	};
 
 	Timing::logTimer("translated NFA->DFA", timer);
-	Log::printf(Log::metrics,
-				"  translated NFA with %" PRIuPTR " states to DFA with %" PRIuPTR " states\n",
-				Uptr(builder->nfaStates.size()),
-				Uptr(dfaStates.size()));
-	Log::printf(Log::metrics,
-				"  maximum number of states following a NFA state set: %" PRIuPTR "\n",
-				maxLocalStates);
-	Log::printf(Log::metrics,
-				"  maximum number of states following a DFA state: %" PRIuPTR "\n",
-				maxDFANextStates);
+	std::cout << "  translated NFA with %" PRIuPTR " states to DFA with %" PRIuPTR " states\n" << Uptr(builder->nfaStates.size()) << Uptr(dfaStates.size());
+	std::cout <<  "  maximum number of states following a NFA state set: %" PRIuPTR "\n" << maxLocalStates;
+	std::cout << "  maximum number of states following a DFA state: %" PRIuPTR "\n" << maxDFANextStates;
 
 	return dfaStates;
 }
@@ -397,7 +390,7 @@ NFA::Machine::Machine(Builder* builder)
 	{ charToOffsetMap[charIndex] = U32(numStates * characterToClassMap[charIndex]); }
 
 	Timing::logTimer("reduced DFA character classes", timer);
-	Log::printf(Log::metrics, "  reduced DFA character classes to %" PRIuPTR "\n", numClasses);
+	std::cout <<  "  reduced DFA character classes to %" PRIuPTR "\n", numClasses;
 }
 
 NFA::Machine::~Machine()

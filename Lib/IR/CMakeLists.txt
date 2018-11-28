@@ -17,4 +17,4 @@ set(PublicHeaders
 	${WAVM_INCLUDE_DIR}/IR/Validate.h)
 
 WAVM_ADD_LIBRARY(IR ${Sources} ${PublicHeaders})
-target_link_libraries(IR PRIVATE Logging Platform)
+target_link_libraries(IR PRIVATE Platform)

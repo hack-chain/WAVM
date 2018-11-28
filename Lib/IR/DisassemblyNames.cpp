@@ -4,13 +4,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "WAVM/IR/IR.h"
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Types.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Serialization.h"
-#include "WAVM/Logging/Logging.h"
 
 using namespace WAVM;
 using namespace WAVM::IR;
@@ -125,11 +125,7 @@ static void deserializeNameSubsection(const Module& module,
 			}
 			else
 			{
-				Log::printf(Log::debug,
-							"Invalid WASM binary local name section function index: %u >= %" PRIuPTR
-							"\n",
-							functionIndex,
-							Uptr(outNames.functions.size()));
+				std::cout << "Invalid WASM binary local name section function index: %u >= %" PRIuPTR << "\n" << functionIndex << Uptr(outNames.functions.size());
 				break;
 			}
 		}
@@ -160,11 +156,7 @@ static void deserializeNameSubsection(const Module& module,
 			}
 			else
 			{
-				Log::printf(Log::debug,
-							"Invalid WASM binary label name section function index: %u >= %" PRIuPTR
-							"\n",
-							functionIndex,
-							Uptr(outNames.functions.size()));
+				std::cout <<  "Invalid WASM binary label name section function index: %u >= %" PRIuPTR << "\n" << functionIndex << Uptr(outNames.functions.size());
 				break;
 			}
 		}
@@ -204,7 +196,7 @@ static void deserializeNameSubsection(const Module& module,
 		deserializeNameMap(substream, outNames.globals, outNames.globals.size());
 		break;
 	default:
-		Log::printf(Log::debug, "Unknown WASM binary name subsection type: %u\n", subsectionType);
+		std::cout << "Unknown WASM binary name subsection type: %u\n" << subsectionType;
 		break;
 	};
 }
@@ -249,17 +241,11 @@ void IR::getDisassemblyNames(const Module& module, DisassemblyNames& outNames)
 		}
 		catch(FatalSerializationException exception)
 		{
-			Log::printf(
-				Log::debug,
-				"FatalSerializationException while deserializing WASM user name section: %s\n",
-				exception.message.c_str());
+			std::cout << "FatalSerializationException while deserializing WASM user name section: %s\n" << exception.message.c_str();
 		}
 		catch(std::bad_alloc)
 		{
-			Log::printf(
-				Log::debug,
-				"Memory allocation failed while deserializing WASM user name section. Input is "
-				"likely malformed.");
+			std::cout << "Memory allocation failed while deserializing WASM user name section. Input is " << "likely malformed.";
 		}
 	}
 }

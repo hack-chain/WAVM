@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "EmitFunctionContext.h"
 #include "EmitModuleContext.h"
@@ -14,7 +15,6 @@
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
-#include "WAVM/Logging/Logging.h"
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include "llvm/ADT/SmallVector.h"
@@ -122,11 +122,7 @@ void EmitFunctionContext::logOperator(const std::string& operatorDescription)
 		}
 		if(stack.size() == stackBase) { stackString += "|"; }
 
-		Log::printf(Log::debug,
-					"%-50s %-50s %-50s\n",
-					controlStackString.c_str(),
-					operatorDescription.c_str(),
-					stackString.c_str());
+		std::cout << "%-50s %-50s %-50s\n" << controlStackString.c_str() << operatorDescription.c_str() << stackString.c_str();
 	}
 }
 

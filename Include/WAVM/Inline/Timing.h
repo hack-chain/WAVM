@@ -1,8 +1,7 @@
 #pragma once
 
 #include <chrono>
-
-#include "WAVM/Logging/Logging.h"
+#include "iostream"
 
 namespace WAVM { namespace Timing {
 	// Encapsulates a timer that starts when constructed and stops when read.
@@ -28,18 +27,13 @@ namespace WAVM { namespace Timing {
 	// Helpers for printing timers.
 	inline void logTimer(const char* context, Timer& timer)
 	{
-		Log::printf(Log::metrics, "%s in %.2fms\n", context, timer.getMilliseconds());
+		std::cout <<  "%s in %.2fms\n" << context << timer.getMilliseconds();
 	}
 	inline void logRatePerSecond(const char* context,
 								 Timer& timer,
 								 F64 numerator,
 								 const char* numeratorUnit)
 	{
-		Log::printf(Log::metrics,
-					"%s in %.2fms (%f %s/s)\n",
-					context,
-					timer.getMilliseconds(),
-					numerator / timer.getSeconds(),
-					numeratorUnit);
+		std::cout << "%s in %.2fms (%f %s/s)\n" << context << timer.getMilliseconds() << numerator / timer.getSeconds() << numeratorUnit;
 	}
 }}

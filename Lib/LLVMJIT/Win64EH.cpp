@@ -5,8 +5,8 @@
 #include "LLVMJITPrivate.h"
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Defines.h"
+#include <iostream>
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include "llvm/ADT/StringRef.h"
@@ -158,100 +158,66 @@ void printFunctionSEH(U8* imageBase, const RuntimeFunction& function)
 	U8* unwindInfo = reinterpret_cast<U8*>(imageBase + function.unwindInfoAddress);
 	UnwindInfoPrefix* unwindInfoPrefix = (UnwindInfoPrefix*)unwindInfo;
 
-	Log::printf(
-		Log::debug, "  address: 0x%04x-0x%04x\n", function.beginAddress, function.endAddress);
-	Log::printf(Log::debug, "  unwind info:\n");
-	Log::printf(Log::debug, "   version: %u\n", unwindInfoPrefix->version);
-	Log::printf(Log::debug, "   flags: %x\n", unwindInfoPrefix->flags);
-	Log::printf(Log::debug, "   prolog bytes: %u\n", unwindInfoPrefix->sizeOfProlog);
-	Log::printf(Log::debug,
-				"   frame register: %s\n",
-				getUnwindRegisterName(unwindInfoPrefix->frameRegister));
-	Log::printf(Log::debug, "   frame offset: 0x%x\n", unwindInfoPrefix->frameOffset * 16);
+	std::cout <<  "  address: 0x%04x-0x%04x\n", function.beginAddress, function.endAddress;
+	std::cout <<  "  unwind info:\n";
+	std::cout <<  "   version: %u\n", unwindInfoPrefix->version;
+	std::cout <<  "   flags: %x\n", unwindInfoPrefix->flags;
+	std::cout <<  "   prolog bytes: %u\n", unwindInfoPrefix->sizeOfProlog;
+	std::cout << "   frame register: %s\n" << getUnwindRegisterName(unwindInfoPrefix->frameRegister);
+	std::cout <<   "   frame offset: 0x%x\n", unwindInfoPrefix->frameOffset * 16;
 
 	UnwindCode* const unwindCodes = unwindInfoPrefix->unwindCodes;
 	UnwindCode* unwindCode = unwindCodes;
 	if(unwindInfoPrefix->countOfCodes)
 	{
-		Log::printf(Log::debug, "   prolog unwind codes:\n");
+		std::cout << "   prolog unwind codes:\n";
 		while(unwindCode < unwindCodes + unwindInfoPrefix->countOfCodes)
 		{
 			switch(unwindCode->opcode)
 			{
 			case UWOP_PUSH_NONVOL:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_PUSH_NONVOL %s\n",
-							unwindCode->codeOffset,
-							getUnwindRegisterName(unwindCode->opInfo));
+				std::cout << "    0x%02x UWOP_PUSH_NONVOL %s\n" << unwindCode->codeOffset << getUnwindRegisterName(unwindCode->opInfo);
 				++unwindCode;
 				break;
 			case UWOP_ALLOC_LARGE:
 				if(unwindCode->opInfo == 0)
 				{
-					Log::printf(Log::debug,
-								"    0x%02x UWOP_ALLOC_LARGE 0x%x\n",
-								unwindCode->codeOffset,
-								*(U16*)&unwindCode[1] * 8);
+					std::cout << "    0x%02x UWOP_ALLOC_LARGE 0x%x\n" << unwindCode->codeOffset << *(U16*)&unwindCode[1] * 8;
 					unwindCode += 2;
 				}
 				else
 				{
 					errorUnless(unwindCode->opInfo == 1);
-					Log::printf(Log::debug,
-								"    0x%02x UWOP_ALLOC_LARGE 0x%x\n",
-								unwindCode->codeOffset,
-								*(U32*)&unwindCode[1]);
+					std::cout <<  "    0x%02x UWOP_ALLOC_LARGE 0x%x\n" << unwindCode->codeOffset << *(U32*)&unwindCode[1];
 					unwindCode += 3;
 				}
 				break;
 			case UWOP_ALLOC_SMALL:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_ALLOC_SMALL 0x%x\n",
-							unwindCode->codeOffset,
-							unwindCode->opInfo * 8 + 8);
+				std::cout <<  "    0x%02x UWOP_ALLOC_SMALL 0x%x\n" << unwindCode->codeOffset << unwindCode->opInfo * 8 + 8;
 				++unwindCode;
 				break;
 			case UWOP_SET_FPREG:
-				Log::printf(Log::debug, "    0x%02x UWOP_SET_FPREG\n", unwindCode->codeOffset);
+				std::cout << "    0x%02x UWOP_SET_FPREG\n", unwindCode->codeOffset;
 				++unwindCode;
 				break;
 			case UWOP_SAVE_NONVOL:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_SAVE_NONVOL %s 0x%x\n",
-							unwindCode->codeOffset,
-							getUnwindRegisterName(unwindCode->opInfo),
-							*(U16*)&unwindCode[1] * 8);
+				std::cout << "    0x%02x UWOP_SAVE_NONVOL %s 0x%x\n" << unwindCode->codeOffset << getUnwindRegisterName(unwindCode->opInfo) << *(U16*)&unwindCode[1] * 8;
 				unwindCode += 2;
 				break;
 			case UWOP_SAVE_NONVOL_FAR:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_SAVE_NONVOL_FAR %s 0x%x\n",
-							unwindCode->codeOffset,
-							getUnwindRegisterName(unwindCode->opInfo),
-							*(U32*)&unwindCode[1]);
+				std::cout << "    0x%02x UWOP_SAVE_NONVOL_FAR %s 0x%x\n" << unwindCode->codeOffset << getUnwindRegisterName(unwindCode->opInfo) << *(U32*)&unwindCode[1];
 				unwindCode += 3;
 				break;
 			case UWOP_SAVE_XMM128:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_SAVE_XMM128 xmm%u 0x%x\n",
-							unwindCode->codeOffset,
-							unwindCode->opInfo,
-							*(U16*)&unwindCode[1] * 8);
+				std::cout << "    0x%02x UWOP_SAVE_XMM128 xmm%u 0x%x\n" << unwindCode->codeOffset << unwindCode->opInfo << *(U16*)&unwindCode[1] * 8;
 				unwindCode += 2;
 				break;
 			case UWOP_SAVE_XMM128_FAR:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_SAVE_XMM128_FAR xmm%u 0x%x\n",
-							unwindCode->codeOffset,
-							unwindCode->opInfo,
-							*(U32*)&unwindCode[1]);
+				std::cout << "    0x%02x UWOP_SAVE_XMM128_FAR xmm%u 0x%x\n" << unwindCode->codeOffset << unwindCode->opInfo << *(U32*)&unwindCode[1];
 				unwindCode += 3;
 				break;
 			case UWOP_PUSH_MACHFRAME:
-				Log::printf(Log::debug,
-							"    0x%02x UWOP_PUSH_MACHFRAME %u\n",
-							unwindCode->codeOffset,
-							unwindCode->opInfo);
+				std::cout << "    0x%02x UWOP_PUSH_MACHFRAME %u\n" << unwindCode->codeOffset << unwindCode->opInfo;
 				++unwindCode;
 				break;
 			}
@@ -264,17 +230,14 @@ void printFunctionSEH(U8* imageBase, const RuntimeFunction& function)
 	   || (unwindInfoPrefix->flags & UnwindInfoFlags::UNW_FLAG_UHANDLER))
 	{
 		UnwindInfoSuffix* suffix = (UnwindInfoSuffix*)unwindCode;
-		Log::printf(
-			Log::debug, "   exception handler address: 0x%x\n", suffix->exceptionHandlerAddress);
+		std::cout << "exception handler address: 0x " << suffix->exceptionHandlerAddress << "\n";
 		for(U32 entryIndex = 0; entryIndex < suffix->sehLSDA.numEntries; ++entryIndex)
 		{
 			const SEHLanguageSpecificDataEntry& entry = suffix->sehLSDA.entries[entryIndex];
-			Log::printf(Log::debug, "   LSDA entry %u:\n", entryIndex);
-			Log::printf(
-				Log::debug, "    address: 0x%x-0x%x\n", entry.startAddress, entry.endAddress);
-			Log::printf(
-				Log::debug, "    filterOrFinally address: 0x%x\n", entry.filterOrFinallyAddress);
-			Log::printf(Log::debug, "    landing pad address: 0x%x\n", entry.landingPadAddress);
+			std::cout <<  "   LSDA entry %u:\n", entryIndex;
+			std::cout <<  "    address: 0x%x-0x%x\n", entry.startAddress, entry.endAddress;
+			std::cout <<  "    filterOrFinally address: 0x%x\n", entry.filterOrFinallyAddress;
+			std::cout <<  "    landing pad address: 0x%x\n", entry.landingPadAddress;
 		}
 	}
 }
@@ -304,14 +267,14 @@ void LLVMJIT::processSEHTables(U8* imageBase,
 
 	if(PRINT_SEH_TABLES)
 	{
-		Log::printf(Log::debug, "Win64 SEH function table:\n");
+		std::cout <<  "Win64 SEH function table:\n";
 
 		const RuntimeFunction* functionTable = reinterpret_cast<const RuntimeFunction*>(
 			Uptr(loadedObject.getSectionLoadAddress(pdataSection)));
 		const Uptr numFunctions = pdataNumBytes / sizeof(RuntimeFunction);
 		for(Uptr functionIndex = 0; functionIndex < numFunctions; ++functionIndex)
 		{
-			Log::printf(Log::debug, " Function %" PRIuPTR "\n", functionIndex);
+			std::cout <<  " Function %" PRIuPTR "\n", functionIndex;
 			printFunctionSEH(imageBase, functionTable[functionIndex]);
 		}
 	}

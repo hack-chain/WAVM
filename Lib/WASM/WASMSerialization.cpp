@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "WAVM/IR/IR.h"
 #include "WAVM/IR/Module.h"
@@ -14,7 +15,6 @@
 #include "WAVM/Inline/Serialization.h"
 #include "WAVM/Inline/Timing.h"
 #include "WAVM/Inline/Unicode.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Defines.h"
 #include "WAVM/WASM/WASM.h"
 
@@ -1142,8 +1142,7 @@ void WASM::serialize(Serialization::OutputStream& stream, const Module& module)
 
 bool WASM::loadBinaryModule(const void* wasmBytes,
 							Uptr numBytes,
-							IR::Module& outModule,
-							Log::Category errorCategory)
+							IR::Module& outModule)
 {
 	// Load the module from a binary WebAssembly file.
 	try
@@ -1158,21 +1157,17 @@ bool WASM::loadBinaryModule(const void* wasmBytes,
 	}
 	catch(Serialization::FatalSerializationException exception)
 	{
-		Log::printf(errorCategory,
-					"Error deserializing WebAssembly binary file:\n%s\n",
-					exception.message.c_str());
+		std::cout <<  "Error deserializing WebAssembly binary file:\n%s\n" << exception.message.c_str();
 		return false;
 	}
 	catch(IR::ValidationException exception)
 	{
-		Log::printf(errorCategory,
-					"Error validating WebAssembly binary file:\n%s\n",
-					exception.message.c_str());
+		std::cout << "Error validating WebAssembly binary file:\n%s\n", exception.message.c_str();
 		return false;
 	}
 	catch(std::bad_alloc)
 	{
-		Log::printf(errorCategory, "Memory allocation failed: input is likely malformed\n");
+		std::cout << "Memory allocation failed: input is likely malformed\n";
 		return false;
 	}
 }

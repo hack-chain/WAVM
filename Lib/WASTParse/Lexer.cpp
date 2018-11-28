@@ -11,7 +11,6 @@
 #include "WAVM/Inline/CLI.h"
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/NFA/NFA.h"
 #include "WAVM/RegExp/RegExp.h"
 #include "WAVM/WASTParse/WASTParse.h"
@@ -333,10 +332,7 @@ Token* WAST::lex(const char* string, Uptr stringLength, LineInfo*& outLineInfo)
 	outLineInfo = new LineInfo{lineStarts, U32(numLineStarts)};
 
 	Timing::logRatePerSecond("lexed WAST file", timer, stringLength / 1024.0 / 1024.0, "MB");
-	Log::printf(Log::metrics,
-				"lexer produced %" PRIuPTR " tokens (%.1fMB)\n",
-				numTokens,
-				numTokens * sizeof(Token) / 1024.0 / 1024.0);
+	std::cout << "lexer produced %" PRIuPTR " tokens (%.1fMB)\n" << numTokens << numTokens * sizeof(Token) / 1024.0 / 1024.0;
 
 	return tokens;
 }

@@ -19,11 +19,11 @@
 #include "WAVM/Inline/Lock.h"
 #include "WAVM/Inline/Timing.h"
 #include "WAVM/LLVMJIT/LLVMJIT.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Exception.h"
 #include "WAVM/Platform/Memory.h"
 #include "WAVM/Platform/Mutex.h"
 #include "WAVM/Runtime/RuntimeData.h"
+#include <iostream>
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include "llvm-c/Disassembler.h"
@@ -276,10 +276,7 @@ static void disassembleFunction(U8* bytes, Uptr numBytes)
 		numBytesRemaining -= numInstructionBytes;
 		nextByte += numInstructionBytes;
 
-		Log::printf(Log::output,
-					"\t\t0x%04" PRIxPTR " %s\n",
-					(nextByte - bytes - numInstructionBytes),
-					instructionBuffer);
+		std::cout << "\t\t0x%04" PRIxPTR " %s\n" << (nextByte - bytes - numInstructionBytes) << instructionBuffer;
 	};
 
 	LLVMDisasmDispose(disasmRef);
@@ -493,7 +490,7 @@ Module::Module(const std::vector<U8>& inObjectBytes,
 
 		if(PRINT_DISASSEMBLY && shouldLogMetrics)
 		{
-			Log::printf(Log::output, "Disassembly for function %s\n", name.get().data());
+			std::cout << "Disassembly for function %s\n", name.get().data();
 			disassembleFunction(reinterpret_cast<U8*>(loadedAddress), Uptr(symbolSizePair.second));
 		}
 
@@ -521,8 +518,7 @@ Module::Module(const std::vector<U8>& inObjectBytes,
 
 	if(shouldLogMetrics)
 	{
-		Timing::logRatePerSecond(
-			"Loaded object", loadObjectTimer, (F64)objectBytes.size() / 1024.0 / 1024.0, "MB");
+		Timing::logRatePerSecond("Loaded object", loadObjectTimer, (F64)objectBytes.size() / 1024.0 / 1024.0, "MB");
 	}
 }
 

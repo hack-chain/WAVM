@@ -14,9 +14,9 @@
 #include "WAVM/Inline/Assert.h"
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
+#include "iostream"
 #include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashSet.h"
-#include "WAVM/Logging/Logging.h"
 
 #define ENABLE_LOGGING 0
 
@@ -303,11 +303,7 @@ struct FunctionValidationContext
 			}
 			if(stack.size() == stackBase) { stackString += "|"; }
 
-			Log::printf(Log::debug,
-						"%-50s %-50s %-50s\n",
-						controlStackString.c_str(),
-						operatorDescription.c_str(),
-						stackString.c_str());
+			std::cout << "%-50s %-50s %-50s\n" << controlStackString.c_str() << operatorDescription.c_str() << stackString.c_str();
 		}
 	}
 

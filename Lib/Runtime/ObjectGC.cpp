@@ -2,6 +2,7 @@
 #include <atomic>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "RuntimePrivate.h"
 #include "WAVM/Inline/BasicTypes.h"
@@ -10,7 +11,6 @@
 #include "WAVM/Inline/HashSet.h"
 #include "WAVM/Inline/Lock.h"
 #include "WAVM/Inline/Timing.h"
-#include "WAVM/Logging/Logging.h"
 #include "WAVM/Platform/Mutex.h"
 #include "WAVM/Runtime/Runtime.h"
 
@@ -227,13 +227,7 @@ static bool collectGarbageImpl(Compartment* compartment)
 	compartmentLock.unlock();
 	if(wasCompartmentUnreferenced) { delete compartment; }
 
-	Log::printf(Log::metrics,
-				"Collected garbage in %.2fms: %" PRIuPTR " roots, %" PRIuPTR " objects, %" PRIuPTR
-				" garbage\n",
-				timer.getMilliseconds(),
-				numRoots,
-				numInitialObjects,
-				Uptr(state.unreferencedObjects.size()));
+	std::cout << "Collected garbage in %.2fms: %" PRIuPTR " roots, %" PRIuPTR " objects, %" PRIuPTR << " garbage\n" << numRoots << numInitialObjects << Uptr(state.unreferencedObjects.size());
 
 	return wasCompartmentUnreferenced;
 }
