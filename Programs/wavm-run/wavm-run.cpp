@@ -21,7 +21,6 @@
 #include "WAVM/Inline/Timing.h"
 #include "WAVM/Runtime/Linker.h"
 #include "WAVM/Runtime/Runtime.h"
-#include "WAVM/WASM/WASM.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
 using namespace WAVM;
@@ -123,25 +122,20 @@ static bool loadModule(const char* filename, IR::Module& outModule)
 
 	// If the file starts with the WASM binary magic number, load it as a binary irModule.
 	static const U8 wasmMagicNumber[4] = {0x00, 0x61, 0x73, 0x6d};
-	if(fileBytes.size() >= 4 && !memcmp(fileBytes.data(), wasmMagicNumber, 4))
-	{ return WASM::loadBinaryModule(fileBytes.data(), fileBytes.size(), outModule); }
-	else
-	{
-		// Make sure the WAST file is null terminated.
-		fileBytes.push_back(0);
+    // Make sure the WAST file is null terminated.
+    fileBytes.push_back(0);
 
-		// Load it as a text irModule.
-		std::vector<WAST::Error> parseErrors;
-		if(!WAST::parseModule(
-			   (const char*)fileBytes.data(), fileBytes.size(), outModule, parseErrors))
-		{
-			std::cout <<  "Error parsing WebAssembly text file:\n";
-			WAST::reportParseErrors(filename, parseErrors);
-			return false;
-		}
+    // Load it as a text irModule.
+    std::vector<WAST::Error> parseErrors;
+    if(!WAST::parseModule(
+           (const char*)fileBytes.data(), fileBytes.size(), outModule, parseErrors))
+    {
+        std::cout <<  "Error parsing WebAssembly text file:\n";
+        WAST::reportParseErrors(filename, parseErrors);
+        return false;
+    }
 
-		return true;
-	}
+    return true;
 }
 
 struct CommandLineOptions
@@ -150,8 +144,6 @@ struct CommandLineOptions
 	const char* functionName = nullptr;
 	char** args = nullptr;
 	bool onlyCheck = false;
-	bool enableEmscripten = true;
-	bool enableThreadTest = false;
 	bool precompiled = false;
 };
 
@@ -195,16 +187,14 @@ static int run(const CommandLineOptions& options)
 	RootResolver rootResolver(compartment);
 
 	Emscripten::Instance* emscriptenInstance = nullptr;
-	if(options.enableEmscripten)
-	{
-		emscriptenInstance = Emscripten::instantiate(compartment, irModule);
-		if(emscriptenInstance)
-		{
-			rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
-			rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
-			rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
-		}
-	}
+    emscriptenInstance = Emscripten::instantiate(compartment, irModule);
+    if(emscriptenInstance)
+    {
+        rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
+        rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
+        rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
+    }
+
 
 	LinkResult linkResult = linkModule(irModule, rootResolver);
 	if(!linkResult.success)
@@ -226,11 +216,10 @@ static int run(const CommandLineOptions& options)
 	Function* startFunction = getStartFunction(moduleInstance);
 	if(startFunction) { invokeFunctionChecked(context, startFunction, {}); }
 
-	if(options.enableEmscripten)
-	{
-		// Call the Emscripten global initalizers.
-		Emscripten::initializeGlobals(context, irModule, moduleInstance);
-	}
+
+    // Call the Emscripten global initalizers.
+    Emscripten::initializeGlobals(context, irModule, moduleInstance);
+
 
 	// Look up the function export to call.
 	Function* function;
@@ -261,21 +250,13 @@ static int run(const CommandLineOptions& options)
 	{
 		if(functionType.params().size() == 2)
 		{
-			if(!emscriptenInstance)
-			{
-				std::cout << "Module does not declare a default memory object to put arguments in.\n";
-				return EXIT_FAILURE;
-			}
-			else
-			{
-				std::vector<const char*> argStrings;
-				argStrings.push_back(options.filename);
-				char** args = options.args;
-				while(*args) { argStrings.push_back(*args++); };
+            std::vector<const char*> argStrings;
+            argStrings.push_back(options.filename);
+            char** args = options.args;
+            while(*args) { argStrings.push_back(*args++); };
 
-				wavmAssert(emscriptenInstance);
-				Emscripten::injectCommandArgs(emscriptenInstance, argStrings, invokeArgs);
-			}
+            wavmAssert(emscriptenInstance);
+            Emscripten::injectCommandArgs(emscriptenInstance, argStrings, invokeArgs);
 		}
 		else if(functionType.params().size() > 0)
 		{
@@ -324,16 +305,13 @@ static int run(const CommandLineOptions& options)
 	}
 }
 
-static void showHelp()
-{
+static void showHelp() {
 	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
 				"  in.wast|in.wasm       Specify program file (.wast/.wasm)\n"
 				"  -c|--check            Exit after checking that the program is valid\n"
-				"  -d|--debug            Write additional debug information to stdout\n"
 				"  -f|--function name    Specify function name to run in module rather than main\n"
 				"  -h|--help             Display this message\n"
-				"  --disable-emscripten  Disable Emscripten intrinsics\n"
 				"  --enable-thread-test  Enable ThreadTest intrinsics\n"
 				"  --precompiled         Use precompiled object code in programfile\n"
 				"  --                    Stop parsing arguments\n";
@@ -357,17 +335,6 @@ int main(int argc, char** argv)
 		else if(!strcmp(*options.args, "--check") || !strcmp(*options.args, "-c"))
 		{
 			options.onlyCheck = true;
-		}
-		else if(!strcmp(*options.args, "--debug") || !strcmp(*options.args, "-d"))
-		{
-		}
-		else if(!strcmp(*options.args, "--disable-emscripten"))
-		{
-			options.enableEmscripten = false;
-		}
-		else if(!strcmp(*options.args, "--enable-thread-test"))
-		{
-			options.enableThreadTest = true;
 		}
 		else if(!strcmp(*options.args, "--precompiled"))
 		{

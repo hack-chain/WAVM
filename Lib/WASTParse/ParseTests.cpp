@@ -14,7 +14,6 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Serialization.h"
 #include "WAVM/Runtime/RuntimeData.h"
-#include "WAVM/WASM/WASM.h"
 #include "WAVM/WASTParse/TestScript.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
@@ -154,7 +153,6 @@ static void parseTestScriptModule(CursorState* cursor,
 			{
 				Serialization::MemoryInputStream wasmInputStream(
 					(const U8*)outQuotedModuleString.data(), outQuotedModuleString.size());
-				WASM::serialize(wasmInputStream, outModule);
 			}
 			catch(Serialization::FatalSerializationException exception)
 			{
