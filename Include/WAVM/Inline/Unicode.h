@@ -114,23 +114,5 @@ namespace WAVM {
                 outString += U16((codePoint - 0x10000) & 0x3ff) | 0xdc00;
             }
         }
-
-        template<typename String>
-        const U8 *transcodeUTF8ToUTF16(const U8 *nextChar, const U8 *endChar, String &outString) {
-            U32 codePoint;
-            while (nextChar != endChar && decodeUTF8CodePoint(nextChar, endChar, codePoint)) {
-                encodeUTF16CodePoint(codePoint, outString);
-            };
-            return nextChar;
-        }
-
-        template<typename String>
-        const U16 *transcodeUTF16ToUTF8(const U16 *nextChar, const U16 *endChar, String &outString) {
-            U32 codePoint;
-            while (nextChar != endChar && decodeUTF16CodePoint(nextChar, endChar, codePoint)) {
-                encodeUTF8CodePoint(codePoint, outString);
-            };
-            return nextChar;
-        }
     }
 }

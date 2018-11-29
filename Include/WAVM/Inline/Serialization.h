@@ -266,12 +266,6 @@ namespace WAVM {
             }
         }
 
-        // Helpers for various common LEB128 parameters.
-        template<typename Stream, typename Value>
-        void serializeVarUInt1(Stream &stream, Value &value) {
-            serializeVarInt<Value, 1>(stream, value, 0, 1);
-        }
-
         template<typename Stream, typename Value>
         void serializeVarUInt7(Stream &stream, Value &value) {
             serializeVarInt<Value, 7>(stream, value, 0, 127);
@@ -281,49 +275,6 @@ namespace WAVM {
         void serializeVarUInt32(Stream &stream, Value &value) {
             serializeVarInt<Value, 32>(stream, value, 0, UINT32_MAX);
         }
-
-        template<typename Stream, typename Value>
-        void serializeVarUInt64(Stream &stream, Value &value) {
-            serializeVarInt<Value, 64>(stream, value, 0, UINT64_MAX);
-        }
-
-        template<typename Stream, typename Value>
-        void serializeVarInt7(Stream &stream, Value &value) {
-            serializeVarInt<Value, 7>(stream, value, -64, 63);
-        }
-
-        template<typename Stream, typename Value>
-        void serializeVarInt32(Stream &stream, Value &value) {
-            serializeVarInt<Value, 32>(stream, value, INT32_MIN, INT32_MAX);
-        }
-
-        template<typename Stream, typename Value>
-        void serializeVarInt64(Stream &stream, Value &value) {
-            serializeVarInt<Value, 64>(stream, value, INT64_MIN, INT64_MAX);
-        }
-
-        // Serializes a constant. If deserializing, throws a FatalSerializationException if the
-        // deserialized value doesn't match the constant.
-        template<typename Constant>
-        void serializeConstant(InputStream &stream,
-                               const char *constantMismatchMessage,
-                               Constant constant) {
-            Constant savedConstant;
-            serialize(stream, savedConstant);
-            if (savedConstant != constant) {
-                throw FatalSerializationException(std::string(constantMismatchMessage) + ": loaded "
-                                                  + std::to_string(savedConstant)
-                                                  + " but was expecting " + std::to_string(constant));
-            }
-        }
-
-        template<typename Constant>
-        void serializeConstant(OutputStream &stream,
-                               const char *constantMismatchMessage,
-                               Constant constant) {
-            serialize(stream, constant);
-        }
-
         // Serialize containers.
         template<typename Stream>
         void serialize(Stream &stream, std::string &string) {
