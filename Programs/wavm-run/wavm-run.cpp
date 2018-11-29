@@ -137,7 +137,6 @@ static bool loadModule(const char* filename, IR::Module& outModule)
 struct CommandLineOptions
 {
 	const char* filename = nullptr;
-	const char* functionName = nullptr;
 	char** args = nullptr;
 };
 
@@ -194,77 +193,38 @@ static int run(const CommandLineOptions& options)
 
 	// Look up the function export to call.
 	Function* function;
-	if(!options.functionName)
-	{
-		function = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
-		if(!function) { function = asFunctionNullable(getInstanceExport(moduleInstance, "_main")); }
-		if(!function)
-		{
-			std::cout << "Module does not export main function";
-			return EXIT_FAILURE;
-		}
-	}
-	else
-	{
-		function = asFunctionNullable(getInstanceExport(moduleInstance, options.functionName));
-		if(!function)
-		{
-			std::cout << "Module does not export '%s'\n" << options.functionName;
-			return EXIT_FAILURE;
-		}
-	}
+
+    function = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
+    if(!function) { function = asFunctionNullable(getInstanceExport(moduleInstance, "_main")); }
+    if(!function)
+    {
+        std::cout << "Module does not export main function";
+        return EXIT_FAILURE;
+    }
+
 	FunctionType functionType = getFunctionType(function);
 
 	// Set up the arguments for the invoke.
 	std::vector<Value> invokeArgs;
-	if(!options.functionName)
-	{
-		if(functionType.params().size() == 2)
-		{
-            std::vector<const char*> argStrings;
-            argStrings.push_back(options.filename);
-            char** args = options.args;
-            while(*args) { argStrings.push_back(*args++); };
+    if(functionType.params().size() == 2)
+    {
+        std::vector<const char*> argStrings;
+        argStrings.push_back(options.filename);
+        char** args = options.args;
+        while(*args) { argStrings.push_back(*args++); };
 
-            wavmAssert(emscriptenInstance);
-            Emscripten::injectCommandArgs(emscriptenInstance, argStrings, invokeArgs);
-		}
-		else if(functionType.params().size() > 0)
-		{
-			std::cout << "WebAssembly function requires " <<  PRIu64 <<" argument(s), but only 0 or 2 can be passed!" << functionType.params().size();
-			return EXIT_FAILURE;
-		}
-	}
-	else
-	{
-		for(U32 i = 0; options.args[i]; ++i)
-		{
-			Value value;
-			switch(functionType.params()[i])
-			{
-			case ValueType::i32: value = (U32)atoi(options.args[i]); break;
-			case ValueType::i64: value = (U64)atol(options.args[i]); break;
-			case ValueType::f32: value = (F32)atof(options.args[i]); break;
-			case ValueType::f64: value = atof(options.args[i]); break;
-			case ValueType::v128:
-			case ValueType::anyref:
-			case ValueType::anyfunc:
-				Errors::fatalf("Cannot parse command-line argument for %s function parameter",
-							   asString(functionType.params()[i]));
-			default: Errors::unreachable();
-			}
-			invokeArgs.push_back(value);
-		}
-	}
+        wavmAssert(emscriptenInstance);
+        Emscripten::injectCommandArgs(emscriptenInstance, argStrings, invokeArgs);
+    }
+    else if(functionType.params().size() > 0)
+    {
+        std::cout << "WebAssembly function requires " <<  PRIu64 <<" argument(s), but only 0 or 2 can be passed!" << functionType.params().size();
+        return EXIT_FAILURE;
+    }
 
 	IR::ValueTuple functionResults = invokeFunctionChecked(context, function, invokeArgs);
 
-	if(options.functionName)
-	{
-		std::cout << options.functionName << " returned: " << asString(functionResults).c_str() << "\n";
-		return EXIT_SUCCESS;
-	}
-	else if(functionResults.size() == 1 && functionResults[0].type == ValueType::i32)
+    if(functionResults.size() == 1 && functionResults[0].type == ValueType::i32)
 	{
 		return functionResults[0].i32;
 	}
@@ -289,16 +249,7 @@ int main(int argc, char** argv)
 	options.args = argv;
 	while(*++options.args)
 	{
-		if(!strcmp(*options.args, "--function") || !strcmp(*options.args, "-f"))
-		{
-			if(!*++options.args)
-			{
-				showHelp();
-				return EXIT_FAILURE;
-			}
-			options.functionName = *options.args;
-		}
-		else if(!strcmp(*options.args, "--"))
+	    if(!strcmp(*options.args, "--"))
 		{
 			++options.args;
 			break;
