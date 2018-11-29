@@ -9,17 +9,10 @@
 #include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Operators.h"
-#include "WAVM/IR/Types.h"
 #include "WAVM/IR/Validate.h"
-#include "WAVM/IR/Value.h"
-#include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/CLI.h"
-#include "WAVM/Inline/Errors.h"
-#include "WAVM/Inline/Hash.h"
 #include "WAVM/Inline/HashMap.h"
-#include "WAVM/Inline/Serialization.h"
 #include "WAVM/Runtime/Linker.h"
-#include "WAVM/Runtime/Runtime.h"
 #include "WAVM/WASTParse/WASTParse.h"
 
 using namespace WAVM;
