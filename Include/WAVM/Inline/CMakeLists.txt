@@ -11,7 +11,6 @@ set(PublicHeaders
         HashSet.h HashSetImpl.h HashSet.natvis
         HashTable.h HashTableImpl.h HashTable.natvis
         IndexMap.h
-        IsNameChar.h
         Lock.h
         OptionalStorage.h
         Serialization.h

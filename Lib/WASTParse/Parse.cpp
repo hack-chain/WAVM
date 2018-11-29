@@ -7,7 +7,6 @@
 
 #include "Lexer.h"
 #include "Parse.h"
-#include "WAVM/Inline/IsNameChar.h"
 #include "WAVM/Inline/Unicode.h"
 
 using namespace WAVM;
@@ -164,7 +163,7 @@ FunctionType WAST::parseFunctionType(CursorState *cursor,
     // Parse the function parameters.
     while (tryParseParenthesizedTagged(cursor, t_param, [&] {
         Name parameterName;
-        if (tryParseName(cursor, parameterName)) {
+        if (    tryParseName(cursor, parameterName)) {
             // (param <name> <type>)
             bindName(cursor->parseState, outLocalNameToIndexMap, parameterName, parameters.size());
             parameters.push_back(parseValueType(cursor));
@@ -294,7 +293,7 @@ bool WAST::tryParseName(CursorState *cursor, Name &outName) {
         // Find the first non-name character.
         while (true) {
             const char c = *nextChar;
-            if (isNameChar(c)) { ++nextChar; }
+            if (isalpha(c)) { ++nextChar; }
             else {
                 break;
             }
