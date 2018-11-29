@@ -56,11 +56,6 @@ namespace WAVM {
     inline Hash XXH(const void *data, Uptr numBytes, Hash seed);
 
     template<>
-    inline U32 XXH<U32>(const void *data, Uptr numBytes, U32 seed) {
-        return XXH32(data, numBytes, seed);
-    }
-
-    template<>
     inline U64 XXH<U64>(const void *data, Uptr numBytes, U64 seed) {
         return XXH64(data, numBytes, seed);
     }

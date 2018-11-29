@@ -21,11 +21,6 @@ typedef double F64;
 template<size_t pointerSize>
 struct PointerIntHelper;
 template<>
-struct PointerIntHelper<4> {
-    typedef I32 IntType;
-    typedef U32 UnsignedIntType;
-};
-template<>
 struct PointerIntHelper<8> {
     typedef I64 IntType;
     typedef U64 UnsignedIntType;
@@ -50,7 +45,6 @@ union alignas(16) V128 {
     U8 u8[16];
     I8 i8[16];
 
-    U16 u16[8];
     I16 i16[8];
 
     U32 u32[4];

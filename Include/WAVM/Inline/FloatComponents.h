@@ -18,8 +18,6 @@ namespace WAVM {
             numSignificandHexits = 13,
             canonicalSignificand = 0x8000000000000ull,
 
-            denormalExponent = -1023,
-            minNormalExponent = -1022,
             maxNormalExponent = 1023,
             exponentBias = 1023,
             maxExponentBits = 0x7ff,
@@ -48,8 +46,6 @@ namespace WAVM {
             numSignificandHexits = 6,
             canonicalSignificand = 0x400000,
 
-            denormalExponent = -127,
-            minNormalExponent = -126,
             maxNormalExponent = 127,
             exponentBias = 127,
             maxExponentBits = 0xff,
