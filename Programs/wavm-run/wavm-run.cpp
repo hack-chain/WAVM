@@ -139,7 +139,6 @@ struct CommandLineOptions
 	const char* filename = nullptr;
 	const char* functionName = nullptr;
 	char** args = nullptr;
-	bool precompiled = false;
 };
 
 static int run(const CommandLineOptions& options)
@@ -148,32 +147,10 @@ static int run(const CommandLineOptions& options)
 
 	// Load the module.
 	if(!loadModule(options.filename, irModule)) { return EXIT_FAILURE; }
-	
+
 	// Compile the module.
 	Runtime::ModuleRef module = nullptr;
-	if(!options.precompiled) { module = Runtime::compileModule(irModule); }
-	else
-	{
-		const UserSection* precompiledObjectSection = nullptr;
-		for(const UserSection& userSection : irModule.userSections)
-		{
-			if(userSection.name == "wavm.precompiled_object")
-			{
-				precompiledObjectSection = &userSection;
-				break;
-			}
-		}
-
-		if(!precompiledObjectSection)
-		{
-			std::cout << "Input file did not contain 'wavm.precompiled_object' section";
-			return EXIT_FAILURE;
-		}
-		else
-		{
-			module = Runtime::loadPrecompiledModule(irModule, precompiledObjectSection->data);
-		}
-	}
+    module = Runtime::compileModule(irModule);
 
 	// Link the module with the intrinsic modules.
 	Compartment* compartment = Runtime::createCompartment();
@@ -303,7 +280,6 @@ static void showHelp() {
 				"  -f|--function name    Specify function name to run in module rather than main\n"
 				"  -h|--help             Display this message\n"
 				"  --enable-thread-test  Enable ThreadTest intrinsics\n"
-				"  --precompiled         Use precompiled object code in programfile\n"
 				"  --                    Stop parsing arguments\n";
 }
 
@@ -321,10 +297,6 @@ int main(int argc, char** argv)
 				return EXIT_FAILURE;
 			}
 			options.functionName = *options.args;
-		}
-		else if(!strcmp(*options.args, "--precompiled"))
-		{
-			options.precompiled = true;
 		}
 		else if(!strcmp(*options.args, "--"))
 		{
