@@ -9,17 +9,6 @@ set(POSIXSources
         POSIX/POSIX.S
         POSIX/POSIXPrivate.h)
 
-set(WindowsSources
-        Windows/Diagnostics.cpp
-        Windows/Event.cpp
-        Windows/Exception.cpp
-        Windows/File.cpp
-        Windows/Memory.cpp
-        Windows/Mutex.cpp
-        Windows/Thread.cpp
-        Windows/WindowsPrivate.h
-        Windows/Win32.asm
-        Windows/Win64.asm)
 
 set(PublicHeaders
         ${WAVM_INCLUDE_DIR}/Platform/Defines.h
@@ -53,10 +42,10 @@ else ()
         set_source_files_properties(POSIX/POSIX.S PROPERTIES HEADER_FILE_ONLY TRUE)
     endif ()
 
-    set_source_files_properties(${WindowsSources} PROPERTIES HEADER_FILE_ONLY TRUE)
+    set_source_files_properties(PROPERTIES HEADER_FILE_ONLY TRUE)
 endif ()
 
-WAVM_ADD_LIBRARY(Platform ${WindowsSources} ${POSIXSources} ${PublicHeaders})
+WAVM_ADD_LIBRARY(Platform ${POSIXSources} ${PublicHeaders})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(Platform PRIVATE pthread rt)
