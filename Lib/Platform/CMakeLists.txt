@@ -2,7 +2,6 @@ set(POSIXSources
         POSIX/Diagnostics.cpp
         POSIX/Event.cpp
         POSIX/Exception.cpp
-        POSIX/File.cpp
         POSIX/Memory.cpp
         POSIX/Mutex.cpp
         POSIX/Thread.cpp
@@ -15,7 +14,6 @@ set(PublicHeaders
         ${WAVM_INCLUDE_DIR}/Platform/Diagnostics.h
         ${WAVM_INCLUDE_DIR}/Platform/Event.h
         ${WAVM_INCLUDE_DIR}/Platform/Exception.h
-        ${WAVM_INCLUDE_DIR}/Platform/File.h
         ${WAVM_INCLUDE_DIR}/Platform/Intrinsic.h
         ${WAVM_INCLUDE_DIR}/Platform/Memory.h
         ${WAVM_INCLUDE_DIR}/Platform/Mutex.h

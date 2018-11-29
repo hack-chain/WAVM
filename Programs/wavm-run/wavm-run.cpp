@@ -5,7 +5,8 @@
 #include <utility>
 #include <vector>
 #include <iostream>
-#include <WAVM/Platform/File.h>
+#include <fcntl.h>
+#include <zconf.h>
 
 #include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/IR/Module.h"
@@ -97,29 +98,147 @@ struct RootResolver : Resolver {
     }
 };
 
+struct File;
+
+enum class FileAccessMode {
+    readOnly = 0x1,
+    writeOnly = 0x2,
+    readWrite = 0x1 | 0x2,
+};
+
+enum class FileCreateMode {
+    createAlways,
+    createNew,
+    openAlways,
+    openExisting,
+    truncateExisting,
+};
+
+enum class StdDevice {
+    in,
+    out,
+    err,
+};
+
+enum class FileSeekOrigin {
+    begin = 0,
+    cur = 1,
+    end = 2
+};
+
+static File *fileIndexToPtr(int index) { return reinterpret_cast<File *>(-Iptr(index) - 1); }
+
+File* openFile(const std::string &pathName, FileAccessMode accessMode, FileCreateMode createMode) {
+    U32 flags = 0;
+    mode_t mode = 0;
+    switch (accessMode) {
+        case FileAccessMode::readOnly:
+            flags = O_RDONLY;
+            break;
+        case FileAccessMode::writeOnly:
+            flags = O_WRONLY;
+            break;
+        case FileAccessMode::readWrite:
+            flags = O_RDWR;
+            break;
+        default:
+            Errors::unreachable();
+    };
+
+    switch (createMode) {
+        case FileCreateMode::createAlways:
+            flags |= O_CREAT | O_TRUNC;
+            break;
+        case FileCreateMode::createNew:
+            flags |= O_CREAT | O_EXCL;
+            break;
+        case FileCreateMode::openAlways:
+            flags |= O_CREAT;
+            break;
+        case FileCreateMode::openExisting:
+            break;
+        case FileCreateMode::truncateExisting:
+            flags |= O_TRUNC;
+            break;
+        default:
+            Errors::unreachable();
+    };
+
+    switch (createMode) {
+        case FileCreateMode::createAlways:
+        case FileCreateMode::createNew:
+        case FileCreateMode::openAlways:
+            mode = S_IRWXU;
+            break;
+        default:
+            break;
+    };
+
+    const I32 result = open(pathName.c_str(), flags, mode);
+    return fileIndexToPtr(result);
+}
+
+static I32 filePtrToIndex(File *ptr) { return I32(-reinterpret_cast<Iptr>(ptr) - 1); }
+
+bool seekFile(File *file,
+              I64 offset,
+              FileSeekOrigin origin,
+              U64 *outAbsoluteOffset = nullptr) {
+    I32 whence = 0;
+    switch (origin) {
+        case FileSeekOrigin::begin:
+            whence = SEEK_SET;
+            break;
+        case FileSeekOrigin::cur:
+            whence = SEEK_CUR;
+            break;
+        case FileSeekOrigin::end:
+            whence = SEEK_END;
+            break;
+        default:
+            Errors::unreachable();
+    };
+
+#ifdef __linux__
+    const I64 result = lseek64(filePtrToIndex(file), offset, whence);
+#else
+    const I64 result = lseek(filePtrToIndex(file), reinterpret_cast<off_t>(offset), whence);
+#endif
+    if (outAbsoluteOffset) { *outAbsoluteOffset = U64(result); }
+    return result != -1;
+}
+
+bool closeFile(File *file) {
+    return close(filePtrToIndex(file)) == 0;
+}
+
+bool readFile(File *file, void *outData, Uptr numBytes, Uptr *outNumBytesRead= nullptr) {
+    ssize_t result = read(filePtrToIndex(file), outData, numBytes);
+    if (outNumBytesRead) { *outNumBytesRead = result; }
+    return result >= 0;
+}
+
 inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
-    Platform::File *file = Platform::openFile(
-            filename, Platform::FileAccessMode::readOnly, Platform::FileCreateMode::openExisting);
+    File *file = openFile(filename, FileAccessMode::readOnly, FileCreateMode::openExisting);
     if (!file) {
         std::cout << "Couldn't read %s: couldn't open file.\n" << filename;
         return false;
     }
 
     U64 numFileBytes64 = 0;
-    errorUnless(Platform::seekFile(file, 0, Platform::FileSeekOrigin::end, &numFileBytes64));
+    errorUnless(seekFile(file, 0, FileSeekOrigin::end, &numFileBytes64));
     if (numFileBytes64 > UINTPTR_MAX) {
         std::cout << "Couldn't read %s: file doesn't fit in memory.\n" << filename;
-        errorUnless(Platform::closeFile(file));
+        errorUnless(closeFile(file));
         return false;
     }
     const Uptr numFileBytes = Uptr(numFileBytes64);
 
     std::vector<U8> fileContents;
     outFileContents.resize(numFileBytes);
-    errorUnless(Platform::seekFile(file, 0, Platform::FileSeekOrigin::begin));
-    errorUnless(
-            Platform::readFile(file, const_cast<U8 *>(outFileContents.data()), numFileBytes));
-    errorUnless(Platform::closeFile(file));
+    errorUnless(seekFile(file, 0, FileSeekOrigin::begin));
+    errorUnless(readFile(file, const_cast<U8*>(outFileContents.data()), numFileBytes));
+    errorUnless(closeFile(file));
 
     return true;
 }
