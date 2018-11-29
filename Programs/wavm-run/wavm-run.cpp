@@ -143,9 +143,7 @@ static int run(const CommandLineOptions &options) {
     if (emscriptenInstance) {
         rootResolver.moduleNameToInstanceMap.set("env", emscriptenInstance->env);
         rootResolver.moduleNameToInstanceMap.set("asm2wasm", emscriptenInstance->asm2wasm);
-        rootResolver.moduleNameToInstanceMap.set("global", emscriptenInstance->global);
     }
-
 
     LinkResult linkResult = linkModule(irModule, rootResolver);
     if (!linkResult.success) {
