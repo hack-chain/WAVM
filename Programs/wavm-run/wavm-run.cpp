@@ -237,7 +237,7 @@ static int run(const CommandLineOptions& options)
 static void showHelp() {
 	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
-				"  -h|--help             Display this message\n"
+				"  -h|--help             Display this message\n";
 }
 
 int main(int argc, char** argv)
@@ -246,12 +246,7 @@ int main(int argc, char** argv)
 	options.args = argv;
 	while(*++options.args)
 	{
-	    if(!strcmp(*options.args, "--"))
-		{
-			++options.args;
-			break;
-		}
-		else if(!strcmp(*options.args, "--help") || !strcmp(*options.args, "-h"))
+		if(!strcmp(*options.args, "--help") || !strcmp(*options.args, "-h"))
 		{
 			showHelp();
 			return EXIT_SUCCESS;
