@@ -4,7 +4,6 @@
 #include <tuple>
 
 #include "Lexer.h"
-#include "WAVM/Inline/CLI.h"
 #include "WAVM/NFA/NFA.h"
 #include "WAVM/RegExp/RegExp.h"
 
@@ -135,14 +134,12 @@ StaticData::StaticData() {
 
     if (DUMP_NFA_GRAPH) {
         std::string nfaGraphVizString = NFA::dumpNFAGraphViz(nfaBuilder);
-        errorUnless(saveFile("nfaGraph.dot", nfaGraphVizString.data(), nfaGraphVizString.size()));
     }
 
     nfaMachine = NFA::Machine(nfaBuilder);
 
     if (DUMP_DFA_GRAPH) {
         std::string dfaGraphVizString = nfaMachine.dumpDFAGraphViz().c_str();
-        errorUnless(saveFile("dfaGraph.dot", dfaGraphVizString.data(), dfaGraphVizString.size()));
     }
 }
 

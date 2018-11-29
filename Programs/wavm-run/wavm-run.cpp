@@ -5,12 +5,12 @@
 #include <utility>
 #include <vector>
 #include <iostream>
+#include <WAVM/Platform/File.h>
 
 #include "WAVM/Emscripten/Emscripten.h"
 #include "WAVM/IR/Module.h"
 #include "WAVM/IR/Operators.h"
 #include "WAVM/IR/Validate.h"
-#include "WAVM/Inline/CLI.h"
 #include "WAVM/Inline/HashMap.h"
 #include "WAVM/Runtime/Linker.h"
 #include "WAVM/WASTParse/WASTParse.h"
@@ -97,12 +97,41 @@ struct RootResolver : Resolver {
     }
 };
 
+inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
+    Platform::File *file = Platform::openFile(
+            filename, Platform::FileAccessMode::readOnly, Platform::FileCreateMode::openExisting);
+    if (!file) {
+        std::cout << "Couldn't read %s: couldn't open file.\n" << filename;
+        return false;
+    }
+
+    U64 numFileBytes64 = 0;
+    errorUnless(Platform::seekFile(file, 0, Platform::FileSeekOrigin::end, &numFileBytes64));
+    if (numFileBytes64 > UINTPTR_MAX) {
+        std::cout << "Couldn't read %s: file doesn't fit in memory.\n" << filename;
+        errorUnless(Platform::closeFile(file));
+        return false;
+    }
+    const Uptr numFileBytes = Uptr(numFileBytes64);
+
+    std::vector<U8> fileContents;
+    outFileContents.resize(numFileBytes);
+    errorUnless(Platform::seekFile(file, 0, Platform::FileSeekOrigin::begin));
+    errorUnless(
+            Platform::readFile(file, const_cast<U8 *>(outFileContents.data()), numFileBytes));
+    errorUnless(Platform::closeFile(file));
+
+    return true;
+}
+
 static int run(const char *filename, char** args) {
     IR::Module irModule;
 
     // Read the specified file into an array.
     std::vector<U8> fileBytes;
-    if (!loadFile(filename, fileBytes)) { return false; }
+    if (!loadFile(filename, fileBytes)) {
+        return false;
+    }
 
     fileBytes.push_back(0);
 
@@ -141,8 +170,7 @@ static int run(const char *filename, char** args) {
     }
 
     // Instantiate the module.
-    ModuleInstance *moduleInstance = instantiateModule(
-            compartment, module, std::move(linkResult.resolvedImports), filename);
+    ModuleInstance *moduleInstance = instantiateModule(compartment, module, std::move(linkResult.resolvedImports), filename);
     if (!moduleInstance) { return EXIT_FAILURE; }
 
     // Call the module start function, if it has one.

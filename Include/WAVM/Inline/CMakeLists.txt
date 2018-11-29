@@ -2,7 +2,6 @@ set(PublicHeaders
         Assert.h
         BasicTypes.h
         Config.h.in
-        CLI.h
         DenseStaticIntSet.h
         Errors.h
         FloatComponents.h
