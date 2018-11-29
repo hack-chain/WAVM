@@ -125,7 +125,9 @@ static int run(const CommandLineOptions &options) {
     IR::Module irModule;
 
     // Load the module.
-    if (!loadModule(options.filename, irModule)) { return EXIT_FAILURE; }
+    if (!loadModule(options.filename, irModule)) {
+        return EXIT_FAILURE;
+    }
 
     // Compile the module.
     Runtime::ModuleRef module = nullptr;
@@ -173,7 +175,9 @@ static int run(const CommandLineOptions &options) {
     Function *function;
 
     function = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
-    if (!function) { function = asFunctionNullable(getInstanceExport(moduleInstance, "_main")); }
+    if (!function) {
+        function = asFunctionNullable(getInstanceExport(moduleInstance, "_main"));
+    }
     if (!function) {
         std::cout << "Module does not export main function";
         return EXIT_FAILURE;
