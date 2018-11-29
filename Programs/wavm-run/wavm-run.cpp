@@ -97,7 +97,9 @@ struct RootResolver : Resolver {
     }
 };
 
-static bool loadModule(const char *filename, IR::Module &outModule) {
+static int run(const char *filename, char** args) {
+    IR::Module irModule;
+
     // Read the specified file into an array.
     std::vector<U8> fileBytes;
     if (!loadFile(filename, fileBytes)) { return false; }
@@ -106,26 +108,9 @@ static bool loadModule(const char *filename, IR::Module &outModule) {
 
     // Load it as a text irModule.
     std::vector<WAST::Error> parseErrors;
-    if (!WAST::parseModule(
-            (const char *) fileBytes.data(), fileBytes.size(), outModule, parseErrors)) {
+    if (!WAST::parseModule((const char *) fileBytes.data(), fileBytes.size(), irModule, parseErrors)) {
         std::cout << "Error parsing WebAssembly text file:\n";
         WAST::reportParseErrors(filename, parseErrors);
-        return false;
-    }
-
-    return true;
-}
-
-struct CommandLineOptions {
-    const char *filename = nullptr;
-    char **args = nullptr;
-};
-
-static int run(const CommandLineOptions &options) {
-    IR::Module irModule;
-
-    // Load the module.
-    if (!loadModule(options.filename, irModule)) {
         return EXIT_FAILURE;
     }
 
@@ -157,7 +142,7 @@ static int run(const CommandLineOptions &options) {
 
     // Instantiate the module.
     ModuleInstance *moduleInstance = instantiateModule(
-            compartment, module, std::move(linkResult.resolvedImports), options.filename);
+            compartment, module, std::move(linkResult.resolvedImports), filename);
     if (!moduleInstance) { return EXIT_FAILURE; }
 
     // Call the module start function, if it has one.
@@ -187,8 +172,7 @@ static int run(const CommandLineOptions &options) {
     std::vector<Value> invokeArgs;
     if (functionType.params().size() == 2) {
         std::vector<const char *> argStrings;
-        argStrings.push_back(options.filename);
-        char **args = options.args;
+        argStrings.push_back(filename);
         while (*args) { argStrings.push_back(*args++); };
 
         wavmAssert(emscriptenInstance);
@@ -208,34 +192,11 @@ static int run(const CommandLineOptions &options) {
     }
 }
 
-static void showHelp() {
-    std::cout << "Usage: wavm-run [programfile] [--] [arguments]\n"
-                 "  -h|--help             Display this message\n";
-}
-
 int main(int argc, char **argv) {
-    CommandLineOptions options;
-    options.args = argv;
-    while (*++options.args) {
-        if (!strcmp(*options.args, "--help") || !strcmp(*options.args, "-h")) {
-            showHelp();
-            return EXIT_SUCCESS;
-        } else if (!options.filename) {
-            options.filename = *options.args;
-        } else {
-            break;
-        }
-    }
-
-    if (!options.filename) {
-        showHelp();
+    if (argc < 2) {
+        std::cout << "Usage: wavm-run [programfile] [--] [arguments]\n"
+                     "  -h|--help             Display this message\n";
         return EXIT_FAILURE;
     }
-
-    // Treat any unhandled exception (e.g. in a thread) as a fatal error.
-    Runtime::setUnhandledExceptionHandler([](Runtime::Exception &&exception) {
-        Errors::fatalf("Runtime exception: %s", describeException(exception).c_str());
-    });
-
-    return run(options);
+    return run(argv[1], argv+2);
 }
