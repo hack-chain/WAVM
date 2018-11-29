@@ -163,23 +163,6 @@ namespace WAVM {
                                                  IR::CallingConvention::intrinsic);                \
     static Result cName(Runtime::ContextRuntimeData* contextRuntimeData, ##__VA_ARGS__)
 
-#define DEFINE_INTRINSIC_FUNCTION_WITH_CONTEXT_SWITCH(module, nameString, Result, cName, ...)      \
-    static Intrinsics::ResultInContextRuntimeData<Result>* cName(                                  \
-        Runtime::ContextRuntimeData* contextRuntimeData, ##__VA_ARGS__);                           \
-    static Intrinsics::Function cName##Intrinsic(                                                  \
-        getIntrinsicModule_##module(),                                                             \
-        nameString,                                                                                \
-        (void*)&cName,                                                                             \
-        Intrinsics::inferIntrinsicWithContextSwitchFunctionType(&cName),                           \
-        IR::CallingConvention::intrinsicWithContextSwitch);                                        \
-    static Intrinsics::ResultInContextRuntimeData<Result>* cName(                                  \
-        Runtime::ContextRuntimeData* contextRuntimeData, ##__VA_ARGS__)
-
 // Macros for defining intrinsic globals, memories, and tables.
 #define DEFINE_INTRINSIC_GLOBAL(module, name, Value, cName, initializer)                           \
     static Intrinsics::GenericGlobal<Value> cName(getIntrinsicModule_##module(), name, initializer);
-
-#define DEFINE_INTRINSIC_MEMORY(module, cName, name, type)                                         \
-    static Intrinsics::Memory cName(getIntrinsicModule_##module(), #name, type);
-#define DEFINE_INTRINSIC_TABLE(module, cName, name, type)                                          \
-    static Intrinsics::Table cName(getIntrinsicModule_##module(), #name, type);

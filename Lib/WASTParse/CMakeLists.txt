@@ -8,8 +8,7 @@ set(Sources
         ParseModule.cpp
         )
 set(PublicHeaders
-        ${WAVM_INCLUDE_DIR}/WASTParse/WASTParse.h
-        ${WAVM_INCLUDE_DIR}/WASTParse/TestScript.h)
+        ${WAVM_INCLUDE_DIR}/WASTParse/WASTParse.h)
 
 WAVM_ADD_LIBRARY(WASTParse ${Sources} ${PublicHeaders})
 target_link_libraries(WASTParse PRIVATE IR NFA Platform RegExp)
