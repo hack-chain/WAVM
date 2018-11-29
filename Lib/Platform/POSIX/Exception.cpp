@@ -211,6 +211,4 @@ std::type_info *Platform::getUserExceptionTypeInfo() {
 
 [[noreturn]] void Platform::raisePlatformException(void *data) {
     throw PlatformException{data, captureCallStack(1)};
-    printf("unhandled PlatformException\n");
-    Errors::unreachable();
 }
