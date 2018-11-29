@@ -207,7 +207,7 @@ static int run(const CommandLineOptions &options) {
 }
 
 static void showHelp() {
-    std::cout << "Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
+    std::cout << "Usage: wavm-run [programfile] [--] [arguments]\n"
                  "  -h|--help             Display this message\n";
 }
 
