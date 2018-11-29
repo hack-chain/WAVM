@@ -237,10 +237,7 @@ static int run(const CommandLineOptions& options)
 static void showHelp() {
 	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
-				"  -f|--function name    Specify function name to run in module rather than main\n"
 				"  -h|--help             Display this message\n"
-				"  --enable-thread-test  Enable ThreadTest intrinsics\n"
-				"  --                    Stop parsing arguments\n";
 }
 
 int main(int argc, char** argv)
