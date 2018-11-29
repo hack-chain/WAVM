@@ -139,7 +139,6 @@ struct CommandLineOptions
 	const char* filename = nullptr;
 	const char* functionName = nullptr;
 	char** args = nullptr;
-	bool onlyCheck = false;
 	bool precompiled = false;
 };
 
@@ -149,8 +148,7 @@ static int run(const CommandLineOptions& options)
 
 	// Load the module.
 	if(!loadModule(options.filename, irModule)) { return EXIT_FAILURE; }
-	if(options.onlyCheck) { return EXIT_SUCCESS; }
-
+	
 	// Compile the module.
 	Runtime::ModuleRef module = nullptr;
 	if(!options.precompiled) { module = Runtime::compileModule(irModule); }
@@ -302,7 +300,6 @@ static int run(const CommandLineOptions& options)
 static void showHelp() {
 	std::cout <<
 				"Usage: wavm-run [switches] [programfile] [--] [arguments]\n"
-				"  -c|--check            Exit after checking that the program is valid\n"
 				"  -f|--function name    Specify function name to run in module rather than main\n"
 				"  -h|--help             Display this message\n"
 				"  --enable-thread-test  Enable ThreadTest intrinsics\n"
@@ -324,10 +321,6 @@ int main(int argc, char** argv)
 				return EXIT_FAILURE;
 			}
 			options.functionName = *options.args;
-		}
-		else if(!strcmp(*options.args, "--check") || !strcmp(*options.args, "-c"))
-		{
-			options.onlyCheck = true;
 		}
 		else if(!strcmp(*options.args, "--precompiled"))
 		{
