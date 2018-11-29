@@ -43,7 +43,7 @@ struct StaticData {
 
 static NFA::StateIndex createTokenSeparatorPeekState(NFA::Builder *builder,
                                                      NFA::StateIndex finalState) {
-    NFA::CharSet tokenSeparatorCharSet;
+        NFA::CharSet tokenSeparatorCharSet;
     tokenSeparatorCharSet.add(U8(' '));
     tokenSeparatorCharSet.add(U8('\t'));
     tokenSeparatorCharSet.add(U8('\r'));
