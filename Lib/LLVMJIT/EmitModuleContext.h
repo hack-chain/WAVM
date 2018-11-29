@@ -5,53 +5,54 @@
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include "llvm/IR/DIBuilder.h"
+
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
-namespace WAVM { namespace LLVMJIT {
-	struct EmitModuleContext
-	{
-		const IR::Module& irModule;
+namespace WAVM {
+    namespace LLVMJIT {
+        struct EmitModuleContext {
+            const IR::Module &irModule;
 
-		LLVMContext& llvmContext;
-		llvm::Module* llvmModule;
-		std::vector<llvm::Constant*> typeIds;
-		std::vector<llvm::Function*> functions;
-		std::vector<llvm::Constant*> tableOffsets;
-		std::vector<llvm::Constant*> memoryOffsets;
-		std::vector<llvm::Constant*> globals;
-		std::vector<llvm::Constant*> exceptionTypeIds;
+            LLVMContext &llvmContext;
+            llvm::Module *llvmModule;
+            std::vector<llvm::Constant *> typeIds;
+            std::vector<llvm::Function *> functions;
+            std::vector<llvm::Constant *> tableOffsets;
+            std::vector<llvm::Constant *> memoryOffsets;
+            std::vector<llvm::Constant *> globals;
+            std::vector<llvm::Constant *> exceptionTypeIds;
 
-		llvm::Constant* defaultMemoryOffset;
-		llvm::Constant* defaultTableOffset;
+            llvm::Constant *defaultMemoryOffset;
+            llvm::Constant *defaultTableOffset;
 
-		llvm::Constant* moduleInstanceId;
-		llvm::Constant* tableReferenceBias;
+            llvm::Constant *moduleInstanceId;
+            llvm::Constant *tableReferenceBias;
 
-		llvm::Constant* userExceptionTypeInfo;
+            llvm::Constant *userExceptionTypeInfo;
 
-		llvm::DIBuilder diBuilder;
-		llvm::DICompileUnit* diCompileUnit;
-		llvm::DIFile* diModuleScope;
+            llvm::DIBuilder diBuilder;
+            llvm::DICompileUnit *diCompileUnit;
+            llvm::DIFile *diModuleScope;
 
-		llvm::DIType* diValueTypes[(Uptr)IR::ValueType::num];
+            llvm::DIType *diValueTypes[(Uptr) IR::ValueType::num];
 
-		llvm::MDNode* likelyFalseBranchWeights;
-		llvm::MDNode* likelyTrueBranchWeights;
+            llvm::MDNode *likelyFalseBranchWeights;
+            llvm::MDNode *likelyTrueBranchWeights;
 
-		llvm::Value* fpRoundingModeMetadata;
-		llvm::Value* fpExceptionMetadata;
+            llvm::Value *fpRoundingModeMetadata;
+            llvm::Value *fpExceptionMetadata;
 
-		llvm::Function* tryPrologueDummyFunction;
-		llvm::Function* cxaBeginCatchFunction;
+            llvm::Function *tryPrologueDummyFunction;
+            llvm::Function *cxaBeginCatchFunction;
 
-		EmitModuleContext(const IR::Module& inModule,
-						  LLVMContext& inLLVMContext,
-						  llvm::Module* inLLVMModule);
+            EmitModuleContext(const IR::Module &inModule,
+                              LLVMContext &inLLVMContext,
+                              llvm::Module *inLLVMModule);
 
-		inline llvm::Function* getLLVMIntrinsic(llvm::ArrayRef<llvm::Type*> typeArguments,
-												llvm::Intrinsic::ID id)
-		{
-			return llvm::Intrinsic::getDeclaration(llvmModule, id, typeArguments);
-		}
-	};
-}}
+            inline llvm::Function *getLLVMIntrinsic(llvm::ArrayRef<llvm::Type *> typeArguments,
+                                                    llvm::Intrinsic::ID id) {
+                return llvm::Intrinsic::getDeclaration(llvmModule, id, typeArguments);
+            }
+        };
+    }
+}

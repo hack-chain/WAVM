@@ -26,27 +26,27 @@
 #endif
 
 typedef enum {
-  _URC_NO_REASON = 0,
-  _URC_OK = 0,
-  _URC_FOREIGN_EXCEPTION_CAUGHT = 1,
-  _URC_FATAL_PHASE2_ERROR = 2,
-  _URC_FATAL_PHASE1_ERROR = 3,
-  _URC_NORMAL_STOP = 4,
-  _URC_END_OF_STACK = 5,
-  _URC_HANDLER_FOUND = 6,
-  _URC_INSTALL_CONTEXT = 7,
-  _URC_CONTINUE_UNWIND = 8,
+    _URC_NO_REASON = 0,
+    _URC_OK = 0,
+    _URC_FOREIGN_EXCEPTION_CAUGHT = 1,
+    _URC_FATAL_PHASE2_ERROR = 2,
+    _URC_FATAL_PHASE1_ERROR = 3,
+    _URC_NORMAL_STOP = 4,
+    _URC_END_OF_STACK = 5,
+    _URC_HANDLER_FOUND = 6,
+    _URC_INSTALL_CONTEXT = 7,
+    _URC_CONTINUE_UNWIND = 8,
 #if defined(_LIBUNWIND_ARM_EHABI)
-  _URC_FAILURE = 9
+    _URC_FAILURE = 9
 #endif
 } _Unwind_Reason_Code;
 
 typedef enum {
-  _UA_SEARCH_PHASE = 1,
-  _UA_CLEANUP_PHASE = 2,
-  _UA_HANDLER_FRAME = 4,
-  _UA_FORCE_UNWIND = 8,
-  _UA_END_OF_STACK = 16 // gcc extension to C++ ABI
+    _UA_SEARCH_PHASE = 1,
+    _UA_CLEANUP_PHASE = 2,
+    _UA_HANDLER_FRAME = 4,
+    _UA_FORCE_UNWIND = 8,
+    _UA_END_OF_STACK = 16 // gcc extension to C++ ABI
 } _Unwind_Action;
 
 typedef struct _Unwind_Context _Unwind_Context;   // opaque
@@ -117,37 +117,40 @@ struct _Unwind_Exception; // forward declaration
 typedef struct _Unwind_Exception _Unwind_Exception;
 
 struct _Unwind_Exception {
-  uint64_t exception_class;
-  void (*exception_cleanup)(_Unwind_Reason_Code reason,
-                            _Unwind_Exception *exc);
-  uintptr_t private_1; // non-zero means forced unwind
-  uintptr_t private_2; // holds sp that phase1 found for phase2 to use
+    uint64_t exception_class;
+
+    void (*exception_cleanup)(_Unwind_Reason_Code reason,
+                              _Unwind_Exception *exc);
+
+    uintptr_t private_1; // non-zero means forced unwind
+    uintptr_t private_2; // holds sp that phase1 found for phase2 to use
 #if __SIZEOF_POINTER__ == 4
-  // The implementation of _Unwind_Exception uses an attribute mode on the
-  // above fields which has the side effect of causing this whole struct to
-  // round up to 32 bytes in size. To be more explicit, we add pad fields
-  // added for binary compatibility.
-  uint32_t reserved[3];
+    // The implementation of _Unwind_Exception uses an attribute mode on the
+    // above fields which has the side effect of causing this whole struct to
+    // round up to 32 bytes in size. To be more explicit, we add pad fields
+    // added for binary compatibility.
+    uint32_t reserved[3];
 #endif
-  // The Itanium ABI requires that _Unwind_Exception objects are "double-word
-  // aligned".  GCC has interpreted this to mean "use the maximum useful
-  // alignment for the target"; so do we.
+    // The Itanium ABI requires that _Unwind_Exception objects are "double-word
+    // aligned".  GCC has interpreted this to mean "use the maximum useful
+    // alignment for the target"; so do we.
 } __attribute__((__aligned__));
 
 typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn)
-    (int version,
-     _Unwind_Action actions,
-     uint64_t exceptionClass,
-     _Unwind_Exception* exceptionObject,
-     struct _Unwind_Context* context,
-     void* stop_parameter );
+        (int version,
+         _Unwind_Action actions,
+         uint64_t exceptionClass,
+         _Unwind_Exception *exceptionObject,
+         struct _Unwind_Context *context,
+         void *stop_parameter);
 
 typedef _Unwind_Reason_Code (*__personality_routine)
-      (int version,
-       _Unwind_Action actions,
-       uint64_t exceptionClass,
-       _Unwind_Exception* exceptionObject,
-       struct _Unwind_Context* context);
+        (int version,
+         _Unwind_Action actions,
+         uint64_t exceptionClass,
+         _Unwind_Exception *exceptionObject,
+         struct _Unwind_Context *context);
+
 #endif
 
 #ifdef __cplusplus
@@ -163,7 +166,7 @@ extern _Unwind_Reason_Code
 extern void _Unwind_SjLj_Resume(_Unwind_Exception *exception_object);
 #else
 extern _Unwind_Reason_Code
-    _Unwind_RaiseException(_Unwind_Exception *exception_object);
+_Unwind_RaiseException(_Unwind_Exception *exception_object);
 extern void _Unwind_Resume(_Unwind_Exception *exception_object);
 #endif
 extern void _Unwind_DeleteException(_Unwind_Exception *exception_object);
@@ -259,15 +262,15 @@ void _Unwind_SetIP(struct _Unwind_Context *context, uintptr_t value) {
 
 extern uintptr_t _Unwind_GetRegionStart(struct _Unwind_Context *context);
 extern uintptr_t
-    _Unwind_GetLanguageSpecificData(struct _Unwind_Context *context);
+_Unwind_GetLanguageSpecificData(struct _Unwind_Context *context);
 #ifdef __USING_SJLJ_EXCEPTIONS__
 extern _Unwind_Reason_Code
     _Unwind_SjLj_ForcedUnwind(_Unwind_Exception *exception_object,
                               _Unwind_Stop_Fn stop, void *stop_parameter);
 #else
 extern _Unwind_Reason_Code
-    _Unwind_ForcedUnwind(_Unwind_Exception *exception_object,
-                         _Unwind_Stop_Fn stop, void *stop_parameter);
+_Unwind_ForcedUnwind(_Unwind_Exception *exception_object,
+                     _Unwind_Stop_Fn stop, void *stop_parameter);
 #endif
 
 #ifdef __USING_SJLJ_EXCEPTIONS__
@@ -288,7 +291,7 @@ extern _Unwind_Reason_Code
     _Unwind_SjLj_Resume_or_Rethrow(_Unwind_Exception *exception_object);
 #else
 extern _Unwind_Reason_Code
-    _Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object);
+_Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object);
 #endif
 
 // _Unwind_Backtrace() is a gcc extension that walks the stack and calls the
@@ -329,9 +332,9 @@ extern void __deregister_frame(const void *fde);
 // function will only work if the target function has an FDE but no compact
 // unwind info.
 struct dwarf_eh_bases {
-  uintptr_t tbase;
-  uintptr_t dbase;
-  uintptr_t func;
+    uintptr_t tbase;
+    uintptr_t dbase;
+    uintptr_t func;
 };
 extern const void *_Unwind_Find_FDE(const void *pc, struct dwarf_eh_bases *);
 
@@ -346,9 +349,9 @@ extern void *_Unwind_FindEnclosingFunction(void *pc);
 // Mac OS X does not support text-rel and data-rel addressing so these functions
 // are unimplemented
 extern uintptr_t _Unwind_GetDataRelBase(struct _Unwind_Context *context)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern uintptr_t _Unwind_GetTextRelBase(struct _Unwind_Context *context)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 
 // Mac OS X 10.4 and 10.5 had implementations of these functions in
 // libgcc_s.dylib, but they never worked.
@@ -356,18 +359,18 @@ extern uintptr_t _Unwind_GetTextRelBase(struct _Unwind_Context *context)
 extern void __register_frame_info_bases(const void *fde, void *ob, void *tb,
                                         void *db) LIBUNWIND_UNAVAIL;
 extern void __register_frame_info(const void *fde, void *ob)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern void __register_frame_info_table_bases(const void *fde, void *ob,
                                               void *tb, void *db)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern void __register_frame_info_table(const void *fde, void *ob)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern void __register_frame_table(const void *fde)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern void *__deregister_frame_info(const void *fde)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 extern void *__deregister_frame_info_bases(const void *fde)
-    LIBUNWIND_UNAVAIL;
+LIBUNWIND_UNAVAIL;
 
 #ifdef __cplusplus
 }

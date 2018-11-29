@@ -10,8 +10,8 @@
 #define FORCEINLINE __forceinline
 #define FORCENOINLINE __declspec(noinline)
 #define PACKED_STRUCT(definition)                                                                  \
-	__pragma(pack(push, 1)) definition;                                                            \
-	__pragma(pack(pop))
+    __pragma(pack(push, 1)) definition;                                                            \
+    __pragma(pack(pop))
 #elif defined(__GNUC__)
 #define FORCEINLINE inline __attribute__((always_inline))
 #define FORCENOINLINE __attribute__((noinline))
@@ -27,7 +27,7 @@
 #define NO_ASAN __attribute__((no_sanitize_address))
 #define RETURNS_TWICE __attribute__((returns_twice))
 #define VALIDATE_AS_PRINTF(formatStringIndex, firstFormatArgIndex)                                 \
-	__attribute__((format(printf, formatStringIndex, firstFormatArgIndex)))
+    __attribute__((format(printf, formatStringIndex, firstFormatArgIndex)))
 #define UNLIKELY(condition) __builtin_expect(condition, 0)
 #else
 #define NO_ASAN

@@ -1,34 +1,34 @@
 set(Sources
-	EmitContext.h
-	EmitConvert.cpp
-	EmitCore.cpp
-	EmitExceptions.cpp
-	EmitFunction.cpp
-	EmitFunctionContext.h
-	EmitMem.cpp
-	EmitModule.cpp
-	EmitModuleContext.h
-	EmitNumeric.cpp
-	EmitTable.cpp
-	EmitVar.cpp
-	EmitWorkarounds.h
-	LLVMCompile.cpp
-	LLVMJIT.cpp
-	LLVMJITPrivate.h
-	LLVMModule.cpp
-	Thunk.cpp
-	Win64EH.cpp)
+        EmitContext.h
+        EmitConvert.cpp
+        EmitCore.cpp
+        EmitExceptions.cpp
+        EmitFunction.cpp
+        EmitFunctionContext.h
+        EmitMem.cpp
+        EmitModule.cpp
+        EmitModuleContext.h
+        EmitNumeric.cpp
+        EmitTable.cpp
+        EmitVar.cpp
+        EmitWorkarounds.h
+        LLVMCompile.cpp
+        LLVMJIT.cpp
+        LLVMJITPrivate.h
+        LLVMModule.cpp
+        Thunk.cpp
+        Win64EH.cpp)
 set(PublicHeaders
-	${WAVM_INCLUDE_DIR}/LLVMJIT/LLVMJIT.h)
+        ${WAVM_INCLUDE_DIR}/LLVMJIT/LLVMJIT.h)
 
 WAVM_ADD_LIBRARY(LLVMJIT ${Sources} ${PublicHeaders})
 
 # Find an installed build of LLVM
 find_package(LLVM REQUIRED CONFIG)
 
-if(LLVM_VERSION_MAJOR LESS 6)
-	message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
-endif()
+if (LLVM_VERSION_MAJOR LESS 6)
+    message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
+endif ()
 
 # Include the LLVM headers
 include_directories(${LLVM_INCLUDE_DIRS})

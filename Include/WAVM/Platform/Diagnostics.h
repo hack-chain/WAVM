@@ -7,39 +7,40 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Platform/Defines.h"
 
-namespace WAVM { namespace Platform {
-	//
-	// Error reporting
-	//
+namespace WAVM {
+    namespace Platform {
+        //
+        // Error reporting
+        //
 
-	PACKED_STRUCT(struct AssertMetadata {
-		const char* condition;
-		const char* file;
-		U32 line;
-	});
+        PACKED_STRUCT(struct AssertMetadata {
+                          const char *condition;
+                          const char *file;
+                          U32 line;
+                      });
 
-	PLATFORM_API void handleAssertionFailure(const AssertMetadata& metadata);
-	[[noreturn]] PLATFORM_API void handleFatalError(const char* messageFormat,
-													bool printCallStack,
-													va_list varArgs);
+        PLATFORM_API void handleAssertionFailure(const AssertMetadata &metadata);
 
-	//
-	// Call stack and exceptions
-	//
+        [[noreturn]] PLATFORM_API void handleFatalError(const char *messageFormat,
+                                                        bool printCallStack,
+                                                        va_list varArgs);
 
-	// Describes a call stack.
-	struct CallStack
-	{
-		struct Frame
-		{
-			Uptr ip;
-		};
-		std::vector<Frame> stackFrames;
-	};
+        //
+        // Call stack and exceptions
+        //
 
-	// Captures the execution context of the caller.
-	PLATFORM_API CallStack captureCallStack(Uptr numOmittedFramesFromTop = 0);
+        // Describes a call stack.
+        struct CallStack {
+            struct Frame {
+                Uptr ip;
+            };
+            std::vector<Frame> stackFrames;
+        };
 
-	// Describes an instruction pointer.
-	PLATFORM_API bool describeInstructionPointer(Uptr ip, std::string& outDescription);
-}}
+        // Captures the execution context of the caller.
+        PLATFORM_API CallStack captureCallStack(Uptr numOmittedFramesFromTop = 0);
+
+        // Describes an instruction pointer.
+        PLATFORM_API bool describeInstructionPointer(Uptr ip, std::string &outDescription);
+    }
+}

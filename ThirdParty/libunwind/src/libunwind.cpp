@@ -15,16 +15,14 @@
 #ifndef NDEBUG
 #include <cstdlib> // getenv
 #endif
-#include <new>
+
 #include <algorithm>
 
 #include "libunwind_ext.h"
-#include "config.h"
-
-#include <stdlib.h>
 
 
 #if !defined(__USING_SJLJ_EXCEPTIONS__)
+
 #include "AddressSpace.hpp"
 #include "UnwindCursor.hpp"
 
@@ -34,7 +32,7 @@ using namespace libunwind;
 LocalAddressSpace LocalAddressSpace::sThisAddressSpace;
 
 _LIBUNWIND_EXPORT unw_addr_space_t unw_local_addr_space =
-    (unw_addr_space_t)&LocalAddressSpace::sThisAddressSpace;
+        (unw_addr_space_t) &LocalAddressSpace::sThisAddressSpace;
 
 /// record the registers and stack position of the caller
 extern int unw_getcontext(unw_context_t *);
@@ -44,9 +42,9 @@ extern int unw_getcontext(unw_context_t *);
 /// unw_getcontext().
 _LIBUNWIND_EXPORT int unw_init_local(unw_cursor_t *cursor,
                                      unw_context_t *context) {
-  _LIBUNWIND_TRACE_API("unw_init_local(cursor=%p, context=%p)",
-                       static_cast<void *>(cursor),
-                       static_cast<void *>(context));
+    _LIBUNWIND_TRACE_API("unw_init_local(cursor=%p, context=%p)",
+                         static_cast<void *>(cursor),
+                         static_cast<void *>(context));
 #if defined(__i386__)
 # define REGISTER_KIND Registers_x86
 #elif defined(__x86_64__)
@@ -71,14 +69,14 @@ _LIBUNWIND_EXPORT int unw_init_local(unw_cursor_t *cursor,
 #else
 # error Architecture not supported
 #endif
-  // Use "placement new" to allocate UnwindCursor in the cursor buffer.
-  new ((void *)cursor) UnwindCursor<LocalAddressSpace, REGISTER_KIND>(
-                                 context, LocalAddressSpace::sThisAddressSpace);
+    // Use "placement new" to allocate UnwindCursor in the cursor buffer.
+    new((void *) cursor) UnwindCursor<LocalAddressSpace, REGISTER_KIND>(
+            context, LocalAddressSpace::sThisAddressSpace);
 #undef REGISTER_KIND
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  co->setInfoBasedOnIPRegister();
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    co->setInfoBasedOnIPRegister();
 
-  return UNW_ESUCCESS;
+    return UNW_ESUCCESS;
 }
 
 #ifdef UNW_REMOTE
@@ -166,49 +164,51 @@ _LIBUNWIND_EXPORT void unw_destroy_addr_space(unw_addr_space_t asp) {
 /// Get value of specified register at cursor position in stack frame.
 _LIBUNWIND_EXPORT int unw_get_reg(unw_cursor_t *cursor, unw_regnum_t regNum,
                                   unw_word_t *value) {
-  _LIBUNWIND_TRACE_API("unw_get_reg(cursor=%p, regNum=%d, &value=%p)",
-                       static_cast<void *>(cursor), regNum,
-                       static_cast<void *>(value));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  if (co->validReg(regNum)) {
-    *value = co->getReg(regNum);
-    return UNW_ESUCCESS;
-  }
-  return UNW_EBADREG;
+    _LIBUNWIND_TRACE_API("unw_get_reg(cursor=%p, regNum=%d, &value=%p)",
+                         static_cast<void *>(cursor), regNum,
+                         static_cast<void *>(value));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    if (co->validReg(regNum)) {
+        *value = co->getReg(regNum);
+        return UNW_ESUCCESS;
+    }
+    return UNW_EBADREG;
 }
 
 
 /// Set value of specified register at cursor position in stack frame.
 _LIBUNWIND_EXPORT int unw_set_reg(unw_cursor_t *cursor, unw_regnum_t regNum,
                                   unw_word_t value) {
-  _LIBUNWIND_TRACE_API("unw_set_reg(cursor=%p, regNum=%d, value=0x%" PRIxPTR ")",
-                       static_cast<void *>(cursor), regNum, value);
-  typedef LocalAddressSpace::pint_t pint_t;
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  if (co->validReg(regNum)) {
-    co->setReg(regNum, (pint_t)value);
-    // specical case altering IP to re-find info (being called by personality
-    // function)
-    if (regNum == UNW_REG_IP)
-      co->setInfoBasedOnIPRegister(false);
-    return UNW_ESUCCESS;
-  }
-  return UNW_EBADREG;
+    _LIBUNWIND_TRACE_API("unw_set_reg(cursor=%p, regNum=%d, value=0x%"
+                                 PRIxPTR
+                                 ")",
+                         static_cast<void *>(cursor), regNum, value);
+    typedef LocalAddressSpace::pint_t pint_t;
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    if (co->validReg(regNum)) {
+        co->setReg(regNum, (pint_t) value);
+        // specical case altering IP to re-find info (being called by personality
+        // function)
+        if (regNum == UNW_REG_IP)
+            co->setInfoBasedOnIPRegister(false);
+        return UNW_ESUCCESS;
+    }
+    return UNW_EBADREG;
 }
 
 
 /// Get value of specified float register at cursor position in stack frame.
 _LIBUNWIND_EXPORT int unw_get_fpreg(unw_cursor_t *cursor, unw_regnum_t regNum,
                                     unw_fpreg_t *value) {
-  _LIBUNWIND_TRACE_API("unw_get_fpreg(cursor=%p, regNum=%d, &value=%p)",
-                       static_cast<void *>(cursor), regNum,
-                       static_cast<void *>(value));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  if (co->validFloatReg(regNum)) {
-    *value = co->getFloatReg(regNum);
-    return UNW_ESUCCESS;
-  }
-  return UNW_EBADREG;
+    _LIBUNWIND_TRACE_API("unw_get_fpreg(cursor=%p, regNum=%d, &value=%p)",
+                         static_cast<void *>(cursor), regNum,
+                         static_cast<void *>(value));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    if (co->validFloatReg(regNum)) {
+        *value = co->getFloatReg(regNum);
+        return UNW_ESUCCESS;
+    }
+    return UNW_EBADREG;
 }
 
 
@@ -216,91 +216,91 @@ _LIBUNWIND_EXPORT int unw_get_fpreg(unw_cursor_t *cursor, unw_regnum_t regNum,
 _LIBUNWIND_EXPORT int unw_set_fpreg(unw_cursor_t *cursor, unw_regnum_t regNum,
                                     unw_fpreg_t value) {
 #if defined(_LIBUNWIND_ARM_EHABI)
-  _LIBUNWIND_TRACE_API("unw_set_fpreg(cursor=%p, regNum=%d, value=%llX)",
-                       static_cast<void *>(cursor), regNum, value);
+    _LIBUNWIND_TRACE_API("unw_set_fpreg(cursor=%p, regNum=%d, value=%llX)",
+                         static_cast<void *>(cursor), regNum, value);
 #else
-  _LIBUNWIND_TRACE_API("unw_set_fpreg(cursor=%p, regNum=%d, value=%g)",
-                       static_cast<void *>(cursor), regNum, value);
+    _LIBUNWIND_TRACE_API("unw_set_fpreg(cursor=%p, regNum=%d, value=%g)",
+                         static_cast<void *>(cursor), regNum, value);
 #endif
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  if (co->validFloatReg(regNum)) {
-    co->setFloatReg(regNum, value);
-    return UNW_ESUCCESS;
-  }
-  return UNW_EBADREG;
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    if (co->validFloatReg(regNum)) {
+        co->setFloatReg(regNum, value);
+        return UNW_ESUCCESS;
+    }
+    return UNW_EBADREG;
 }
 
 
 /// Move cursor to next frame.
 _LIBUNWIND_EXPORT int unw_step(unw_cursor_t *cursor) {
-  _LIBUNWIND_TRACE_API("unw_step(cursor=%p)", static_cast<void *>(cursor));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  return co->step();
+    _LIBUNWIND_TRACE_API("unw_step(cursor=%p)", static_cast<void *>(cursor));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    return co->step();
 }
 
 
 /// Get unwind info at cursor position in stack frame.
 _LIBUNWIND_EXPORT int unw_get_proc_info(unw_cursor_t *cursor,
                                         unw_proc_info_t *info) {
-  _LIBUNWIND_TRACE_API("unw_get_proc_info(cursor=%p, &info=%p)",
-                       static_cast<void *>(cursor), static_cast<void *>(info));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  co->getInfo(info);
-  if (info->end_ip == 0)
-    return UNW_ENOINFO;
-  else
-    return UNW_ESUCCESS;
+    _LIBUNWIND_TRACE_API("unw_get_proc_info(cursor=%p, &info=%p)",
+                         static_cast<void *>(cursor), static_cast<void *>(info));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    co->getInfo(info);
+    if (info->end_ip == 0)
+        return UNW_ENOINFO;
+    else
+        return UNW_ESUCCESS;
 }
 
 
 /// Resume execution at cursor position (aka longjump).
 _LIBUNWIND_EXPORT int unw_resume(unw_cursor_t *cursor) {
-  _LIBUNWIND_TRACE_API("unw_resume(cursor=%p)", static_cast<void *>(cursor));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  co->jumpto();
-  return UNW_EUNSPEC;
+    _LIBUNWIND_TRACE_API("unw_resume(cursor=%p)", static_cast<void *>(cursor));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    co->jumpto();
+    return UNW_EUNSPEC;
 }
 
 
 /// Get name of function at cursor position in stack frame.
 _LIBUNWIND_EXPORT int unw_get_proc_name(unw_cursor_t *cursor, char *buf,
                                         size_t bufLen, unw_word_t *offset) {
-  _LIBUNWIND_TRACE_API("unw_get_proc_name(cursor=%p, &buf=%p, bufLen=%lu)",
-                       static_cast<void *>(cursor), static_cast<void *>(buf),
-                       static_cast<unsigned long>(bufLen));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  if (co->getFunctionName(buf, bufLen, offset))
-    return UNW_ESUCCESS;
-  else
-    return UNW_EUNSPEC;
+    _LIBUNWIND_TRACE_API("unw_get_proc_name(cursor=%p, &buf=%p, bufLen=%lu)",
+                         static_cast<void *>(cursor), static_cast<void *>(buf),
+                         static_cast<unsigned long>(bufLen));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    if (co->getFunctionName(buf, bufLen, offset))
+        return UNW_ESUCCESS;
+    else
+        return UNW_EUNSPEC;
 }
 
 
 /// Checks if a register is a floating-point register.
 _LIBUNWIND_EXPORT int unw_is_fpreg(unw_cursor_t *cursor, unw_regnum_t regNum) {
-  _LIBUNWIND_TRACE_API("unw_is_fpreg(cursor=%p, regNum=%d)",
-                       static_cast<void *>(cursor), regNum);
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  return co->validFloatReg(regNum);
+    _LIBUNWIND_TRACE_API("unw_is_fpreg(cursor=%p, regNum=%d)",
+                         static_cast<void *>(cursor), regNum);
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    return co->validFloatReg(regNum);
 }
 
 
 /// Checks if a register is a floating-point register.
 _LIBUNWIND_EXPORT const char *unw_regname(unw_cursor_t *cursor,
                                           unw_regnum_t regNum) {
-  _LIBUNWIND_TRACE_API("unw_regname(cursor=%p, regNum=%d)",
-                       static_cast<void *>(cursor), regNum);
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  return co->getRegisterName(regNum);
+    _LIBUNWIND_TRACE_API("unw_regname(cursor=%p, regNum=%d)",
+                         static_cast<void *>(cursor), regNum);
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    return co->getRegisterName(regNum);
 }
 
 
 /// Checks if current frame is signal trampoline.
 _LIBUNWIND_EXPORT int unw_is_signal_frame(unw_cursor_t *cursor) {
-  _LIBUNWIND_TRACE_API("unw_is_signal_frame(cursor=%p)",
-                       static_cast<void *>(cursor));
-  AbstractUnwindCursor *co = (AbstractUnwindCursor *)cursor;
-  return co->isSignalFrame();
+    _LIBUNWIND_TRACE_API("unw_is_signal_frame(cursor=%p)",
+                         static_cast<void *>(cursor));
+    AbstractUnwindCursor *co = (AbstractUnwindCursor *) cursor;
+    return co->isSignalFrame();
 }
 
 #ifdef __arm__
@@ -317,37 +317,38 @@ _LIBUNWIND_EXPORT void unw_save_vfp_as_X(unw_cursor_t *cursor) {
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 /// SPI: walks cached DWARF entries
 _LIBUNWIND_EXPORT void unw_iterate_dwarf_unwind_cache(void (*func)(
-    unw_word_t ip_start, unw_word_t ip_end, unw_word_t fde, unw_word_t mh)) {
-  _LIBUNWIND_TRACE_API("unw_iterate_dwarf_unwind_cache(func=%p)",
-                       reinterpret_cast<void *>(func));
-  DwarfFDECache<LocalAddressSpace>::iterateCacheEntries(func);
+        unw_word_t ip_start, unw_word_t ip_end, unw_word_t fde, unw_word_t mh)) {
+    _LIBUNWIND_TRACE_API("unw_iterate_dwarf_unwind_cache(func=%p)",
+                         reinterpret_cast<void *>(func));
+    DwarfFDECache<LocalAddressSpace>::iterateCacheEntries(func);
 }
 
 
 /// IPI: for __register_frame()
 void _unw_add_dynamic_fde(unw_word_t fde) {
-  CFI_Parser<LocalAddressSpace>::FDE_Info fdeInfo;
-  CFI_Parser<LocalAddressSpace>::CIE_Info cieInfo;
-  const char *message = CFI_Parser<LocalAddressSpace>::decodeFDE(
-                           LocalAddressSpace::sThisAddressSpace,
-                          (LocalAddressSpace::pint_t) fde, &fdeInfo, &cieInfo);
-  if (message == NULL) {
-    // dynamically registered FDEs don't have a mach_header group they are in.
-    // Use fde as mh_group
-    unw_word_t mh_group = fdeInfo.fdeStart;
-    DwarfFDECache<LocalAddressSpace>::add((LocalAddressSpace::pint_t)mh_group,
-                                          fdeInfo.pcStart, fdeInfo.pcEnd,
-                                          fdeInfo.fdeStart);
-  } else {
-    _LIBUNWIND_DEBUG_LOG("_unw_add_dynamic_fde: bad fde: %s", message);
-  }
+    CFI_Parser<LocalAddressSpace>::FDE_Info fdeInfo;
+    CFI_Parser<LocalAddressSpace>::CIE_Info cieInfo;
+    const char *message = CFI_Parser<LocalAddressSpace>::decodeFDE(
+            LocalAddressSpace::sThisAddressSpace,
+            (LocalAddressSpace::pint_t) fde, &fdeInfo, &cieInfo);
+    if (message == NULL) {
+        // dynamically registered FDEs don't have a mach_header group they are in.
+        // Use fde as mh_group
+        unw_word_t mh_group = fdeInfo.fdeStart;
+        DwarfFDECache<LocalAddressSpace>::add((LocalAddressSpace::pint_t) mh_group,
+                                              fdeInfo.pcStart, fdeInfo.pcEnd,
+                                              fdeInfo.fdeStart);
+    } else {
+        _LIBUNWIND_DEBUG_LOG("_unw_add_dynamic_fde: bad fde: %s", message);
+    }
 }
 
 /// IPI: for __deregister_frame()
 void _unw_remove_dynamic_fde(unw_word_t fde) {
-  // fde is own mh_group
-  DwarfFDECache<LocalAddressSpace>::removeAllIn((LocalAddressSpace::pint_t)fde);
+    // fde is own mh_group
+    DwarfFDECache<LocalAddressSpace>::removeAllIn((LocalAddressSpace::pint_t) fde);
 }
+
 #endif // defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 #endif // !defined(__USING_SJLJ_EXCEPTIONS__)
 

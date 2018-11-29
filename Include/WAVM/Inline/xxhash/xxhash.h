@@ -76,7 +76,9 @@ extern "C" {
 *  Definitions
 ******************************/
 #include <stddef.h>   /* size_t */
-typedef enum { XXH_OK=0, XXH_ERROR } XXH_errorcode;
+typedef enum {
+    XXH_OK = 0, XXH_ERROR
+} XXH_errorcode;
 
 
 /* ****************************
@@ -103,7 +105,7 @@ typedef enum { XXH_OK=0, XXH_ERROR } XXH_errorcode;
 #  elif defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #    define XXH_PUBLIC_API static inline
 #  else
-     /* this version may generate warnings for unused static functions */
+/* this version may generate warnings for unused static functions */
 #    define XXH_PUBLIC_API static
 #  endif
 #else
@@ -153,7 +155,7 @@ typedef enum { XXH_OK=0, XXH_ERROR } XXH_errorcode;
 #define XXH_VERSION_MINOR    6
 #define XXH_VERSION_RELEASE  5
 #define XXH_VERSION_NUMBER  (XXH_VERSION_MAJOR *100*100 + XXH_VERSION_MINOR *100 + XXH_VERSION_RELEASE)
-XXH_PUBLIC_API unsigned XXH_versionNumber (void);
+XXH_PUBLIC_API unsigned XXH_versionNumber(void);
 
 
 /*-**********************************************************************
@@ -166,17 +168,17 @@ typedef unsigned int XXH32_hash_t;
     The memory between input & input+length must be valid (allocated and read-accessible).
     "seed" can be used to alter the result predictably.
     Speed on Core 2 Duo @ 3 GHz (single thread, SMHasher benchmark) : 5.4 GB/s */
-XXH_PUBLIC_API XXH32_hash_t XXH32 (const void* input, size_t length, unsigned int seed);
+XXH_PUBLIC_API XXH32_hash_t XXH32(const void *input, size_t length, unsigned int seed);
 
 /*======   Streaming   ======*/
 typedef struct XXH32_state_s XXH32_state_t;   /* incomplete type */
-XXH_PUBLIC_API XXH32_state_t* XXH32_createState(void);
-XXH_PUBLIC_API XXH_errorcode  XXH32_freeState(XXH32_state_t* statePtr);
-XXH_PUBLIC_API void XXH32_copyState(XXH32_state_t* dst_state, const XXH32_state_t* src_state);
+XXH_PUBLIC_API XXH32_state_t *XXH32_createState(void);
+XXH_PUBLIC_API XXH_errorcode XXH32_freeState(XXH32_state_t *statePtr);
+XXH_PUBLIC_API void XXH32_copyState(XXH32_state_t *dst_state, const XXH32_state_t *src_state);
 
-XXH_PUBLIC_API XXH_errorcode XXH32_reset  (XXH32_state_t* statePtr, unsigned int seed);
-XXH_PUBLIC_API XXH_errorcode XXH32_update (XXH32_state_t* statePtr, const void* input, size_t length);
-XXH_PUBLIC_API XXH32_hash_t  XXH32_digest (const XXH32_state_t* statePtr);
+XXH_PUBLIC_API XXH_errorcode XXH32_reset(XXH32_state_t *statePtr, unsigned int seed);
+XXH_PUBLIC_API XXH_errorcode XXH32_update(XXH32_state_t *statePtr, const void *input, size_t length);
+XXH_PUBLIC_API XXH32_hash_t XXH32_digest(const XXH32_state_t *statePtr);
 
 /*
  * Streaming functions generate the xxHash of an input provided in multiple segments.
@@ -201,9 +203,11 @@ XXH_PUBLIC_API XXH32_hash_t  XXH32_digest (const XXH32_state_t* statePtr);
 
 /*======   Canonical representation   ======*/
 
-typedef struct { unsigned char digest[4]; } XXH32_canonical_t;
-XXH_PUBLIC_API void XXH32_canonicalFromHash(XXH32_canonical_t* dst, XXH32_hash_t hash);
-XXH_PUBLIC_API XXH32_hash_t XXH32_hashFromCanonical(const XXH32_canonical_t* src);
+typedef struct {
+    unsigned char digest[4];
+} XXH32_canonical_t;
+XXH_PUBLIC_API void XXH32_canonicalFromHash(XXH32_canonical_t *dst, XXH32_hash_t hash);
+XXH_PUBLIC_API XXH32_hash_t XXH32_hashFromCanonical(const XXH32_canonical_t *src);
 
 /* Default result type for XXH functions are primitive unsigned 32 and 64 bits.
  * The canonical representation uses human-readable write convention, aka big-endian (large digits first).
@@ -223,24 +227,25 @@ typedef unsigned long long XXH64_hash_t;
     "seed" can be used to alter the result predictably.
     This function runs faster on 64-bit systems, but slower on 32-bit systems (see benchmark).
 */
-XXH_PUBLIC_API XXH64_hash_t XXH64 (const void* input, size_t length, unsigned long long seed);
+XXH_PUBLIC_API XXH64_hash_t XXH64(const void *input, size_t length, unsigned long long seed);
 
 /*======   Streaming   ======*/
 typedef struct XXH64_state_s XXH64_state_t;   /* incomplete type */
-XXH_PUBLIC_API XXH64_state_t* XXH64_createState(void);
-XXH_PUBLIC_API XXH_errorcode  XXH64_freeState(XXH64_state_t* statePtr);
-XXH_PUBLIC_API void XXH64_copyState(XXH64_state_t* dst_state, const XXH64_state_t* src_state);
+XXH_PUBLIC_API XXH64_state_t *XXH64_createState(void);
+XXH_PUBLIC_API XXH_errorcode XXH64_freeState(XXH64_state_t *statePtr);
+XXH_PUBLIC_API void XXH64_copyState(XXH64_state_t *dst_state, const XXH64_state_t *src_state);
 
-XXH_PUBLIC_API XXH_errorcode XXH64_reset  (XXH64_state_t* statePtr, unsigned long long seed);
-XXH_PUBLIC_API XXH_errorcode XXH64_update (XXH64_state_t* statePtr, const void* input, size_t length);
-XXH_PUBLIC_API XXH64_hash_t  XXH64_digest (const XXH64_state_t* statePtr);
+XXH_PUBLIC_API XXH_errorcode XXH64_reset(XXH64_state_t *statePtr, unsigned long long seed);
+XXH_PUBLIC_API XXH_errorcode XXH64_update(XXH64_state_t *statePtr, const void *input, size_t length);
+XXH_PUBLIC_API XXH64_hash_t XXH64_digest(const XXH64_state_t *statePtr);
 
 /*======   Canonical representation   ======*/
-typedef struct { unsigned char digest[8]; } XXH64_canonical_t;
-XXH_PUBLIC_API void XXH64_canonicalFromHash(XXH64_canonical_t* dst, XXH64_hash_t hash);
-XXH_PUBLIC_API XXH64_hash_t XXH64_hashFromCanonical(const XXH64_canonical_t* src);
+typedef struct {
+    unsigned char digest[8];
+} XXH64_canonical_t;
+XXH_PUBLIC_API void XXH64_canonicalFromHash(XXH64_canonical_t *dst, XXH64_hash_t hash);
+XXH_PUBLIC_API XXH64_hash_t XXH64_hashFromCanonical(const XXH64_canonical_t *src);
 #endif  /* XXH_NO_LONG_LONG */
-
 
 
 #ifdef XXH_STATIC_LINKING_ONLY
@@ -257,31 +262,31 @@ XXH_PUBLIC_API XXH64_hash_t XXH64_hashFromCanonical(const XXH64_canonical_t* src
  * Never **ever** use members directly. */
 
 #if !defined (__VMS) \
-  && (defined (__cplusplus) \
-  || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */) )
+ && (defined (__cplusplus) \
+ || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */))
 #   include <stdint.h>
 
 struct XXH32_state_s {
-   uint32_t total_len_32;
-   uint32_t large_len;
-   uint32_t v1;
-   uint32_t v2;
-   uint32_t v3;
-   uint32_t v4;
-   uint32_t mem32[4];
-   uint32_t memsize;
-   uint32_t reserved;   /* never read nor write, might be removed in a future version */
+    uint32_t total_len_32;
+    uint32_t large_len;
+    uint32_t v1;
+    uint32_t v2;
+    uint32_t v3;
+    uint32_t v4;
+    uint32_t mem32[4];
+    uint32_t memsize;
+    uint32_t reserved;   /* never read nor write, might be removed in a future version */
 };   /* typedef'd to XXH32_state_t */
 
 struct XXH64_state_s {
-   uint64_t total_len;
-   uint64_t v1;
-   uint64_t v2;
-   uint64_t v3;
-   uint64_t v4;
-   uint64_t mem64[4];
-   uint32_t memsize;
-   uint32_t reserved[2];          /* never read nor write, might be removed in a future version */
+    uint64_t total_len;
+    uint64_t v1;
+    uint64_t v2;
+    uint64_t v3;
+    uint64_t v4;
+    uint64_t mem64[4];
+    uint32_t memsize;
+    uint32_t reserved[2];          /* never read nor write, might be removed in a future version */
 };   /* typedef'd to XXH64_state_t */
 
 # else

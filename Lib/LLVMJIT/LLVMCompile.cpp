@@ -1,46 +1,31 @@
 #include <string.h>
 #include <memory>
-#include <string>
 #include <system_error>
-#include <utility>
 #include <vector>
 
 #include "LLVMJITPrivate.h"
-#include "WAVM/IR/Module.h"
-#include "WAVM/Inline/Assert.h"
-#include "WAVM/Inline/BasicTypes.h"
-#include "WAVM/Inline/Errors.h"
-#include "WAVM/LLVMJIT/LLVMJIT.h"
 #include "iostream"
-#include "WAVM/Platform/Defines.h"
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Triple.h"
-#include "llvm/ADT/ilist_iterator.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/Scalar.h"
+
 #if LLVM_VERSION_MAJOR >= 7
+
 #include "llvm/Transforms/Utils.h"
+
 #endif
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
 namespace llvm {
-	class MCContext;
+    class MCContext;
 
 #if LLVM_VERSION_MAJOR >= 8
-	// Instead of including llvm/Transforms/InstCombine/InstCombine.h, which doesn't compile on
-	// Windows, just declare the one function we call.
-	FunctionPass* createInstructionCombiningPass(bool ExpensiveCombines = true);
+    // Instead of including llvm/Transforms/InstCombine/InstCombine.h, which doesn't compile on
+    // Windows, just declare the one function we call.
+    FunctionPass* createInstructionCombiningPass(bool ExpensiveCombines = true);
 #endif
 }
 
@@ -55,102 +40,96 @@ using namespace WAVM::LLVMJIT;
 
 static Uptr printedModuleId = 0;
 
-static void printModule(const llvm::Module& llvmModule, const char* filename)
-{
-	std::error_code errorCode;
-	std::string augmentedFilename
-		= std::string(filename) + std::to_string(printedModuleId++) + ".ll";
-	llvm::raw_fd_ostream dumpFileStream(
-		augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_Text);
-	llvmModule.print(dumpFileStream, nullptr);
-	std::cout << "Dumped LLVM module to: %s\n", augmentedFilename.c_str();
+static void printModule(const llvm::Module &llvmModule, const char *filename) {
+    std::error_code errorCode;
+    std::string augmentedFilename
+            = std::string(filename) + std::to_string(printedModuleId++) + ".ll";
+    llvm::raw_fd_ostream dumpFileStream(
+            augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_Text);
+    llvmModule.print(dumpFileStream, nullptr);
+    std::cout << "Dumped LLVM module to: %s\n", augmentedFilename.c_str();
 }
 
 // Define a LLVM raw output stream that can write directly to a std::vector.
-struct LLVMArrayOutputStream : llvm::raw_pwrite_stream
-{
-	LLVMArrayOutputStream() { SetUnbuffered(); }
+struct LLVMArrayOutputStream : llvm::raw_pwrite_stream {
+    LLVMArrayOutputStream() { SetUnbuffered(); }
 
-	~LLVMArrayOutputStream() override = default;
+    ~LLVMArrayOutputStream() override = default;
 
-	void flush() = delete;
+    void flush() = delete;
 
-	std::vector<U8>&& getOutput() { return std::move(output); }
+    std::vector<U8> &&getOutput() { return std::move(output); }
 
 protected:
-	virtual void write_impl(const char* data, size_t numBytes) override
-	{
-		const Uptr startOffset = output.size();
-		output.resize(output.size() + numBytes);
-		memcpy(output.data() + startOffset, data, numBytes);
-	}
-	virtual void pwrite_impl(const char* data, size_t numBytes, U64 offset) override
-	{
-		wavmAssert(offset + numBytes > offset && offset + numBytes <= U64(output.size()));
-		memcpy(output.data() + offset, data, numBytes);
-	}
-	virtual U64 current_pos() const override { return output.size(); }
+    virtual void write_impl(const char *data, size_t numBytes) override {
+        const Uptr startOffset = output.size();
+        output.resize(output.size() + numBytes);
+        memcpy(output.data() + startOffset, data, numBytes);
+    }
+
+    virtual void pwrite_impl(const char *data, size_t numBytes, U64 offset) override {
+        wavmAssert(offset + numBytes > offset && offset + numBytes <= U64(output.size()));
+        memcpy(output.data() + offset, data, numBytes);
+    }
+
+    virtual U64 current_pos() const override { return output.size(); }
 
 private:
-	std::vector<U8> output;
+    std::vector<U8> output;
 };
 
-static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
-{
-	llvm::legacy::FunctionPassManager fpm(&llvmModule);
-	fpm.add(llvm::createPromoteMemoryToRegisterPass());
-	fpm.add(llvm::createInstructionNamerPass());
-	fpm.add(llvm::createCFGSimplificationPass());
-	fpm.add(llvm::createJumpThreadingPass());
-	fpm.add(llvm::createConstantPropagationPass());
-	fpm.doInitialization();
-	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
-	{ fpm.run(*functionIt); }
+static void optimizeLLVMModule(llvm::Module &llvmModule, bool shouldLogMetrics) {
+    llvm::legacy::FunctionPassManager fpm(&llvmModule);
+    fpm.add(llvm::createPromoteMemoryToRegisterPass());
+    fpm.add(llvm::createInstructionNamerPass());
+    fpm.add(llvm::createCFGSimplificationPass());
+    fpm.add(llvm::createJumpThreadingPass());
+    fpm.add(llvm::createConstantPropagationPass());
+    fpm.doInitialization();
+    for (auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt) { fpm.run(*functionIt); }
 }
 
-std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext& llvmContext,
-										   llvm::Module&& llvmModule,
-										   bool shouldLogMetrics)
-{
-	auto targetTriple = llvm::sys::getProcessTriple();
+std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext &llvmContext,
+                                           llvm::Module &&llvmModule,
+                                           bool shouldLogMetrics) {
+    auto targetTriple = llvm::sys::getProcessTriple();
 #ifdef __APPLE__
-	// Didn't figure out exactly why, but this works around a problem with the MacOS dynamic loader.
-	// Without it, our symbols can't be found in the JITed object file.
-	targetTriple += "-elf";
+    // Didn't figure out exactly why, but this works around a problem with the MacOS dynamic loader.
+    // Without it, our symbols can't be found in the JITed object file.
+    targetTriple += "-elf";
 #endif
-	std::unique_ptr<llvm::TargetMachine> targetMachine(llvm::EngineBuilder().selectTarget(
-		llvm::Triple(targetTriple),
-		"",
-		llvm::sys::getHostCPUName(),
-		llvm::SmallVector<std::string, 0>{LLVM_TARGET_ATTRIBUTES}));
+    std::unique_ptr<llvm::TargetMachine> targetMachine(llvm::EngineBuilder().selectTarget(
+            llvm::Triple(targetTriple),
+            "",
+            llvm::sys::getHostCPUName(),
+            llvm::SmallVector<std::string, 0>{LLVM_TARGET_ATTRIBUTES}));
 
-	// Get a target machine object for this host, and set the module to use its data layout.
-	llvmModule.setDataLayout(targetMachine->createDataLayout());
+    // Get a target machine object for this host, and set the module to use its data layout.
+    llvmModule.setDataLayout(targetMachine->createDataLayout());
 
-	// Optimize the module;
-	optimizeLLVMModule(llvmModule, shouldLogMetrics);
+    // Optimize the module;
+    optimizeLLVMModule(llvmModule, shouldLogMetrics);
 
-	std::vector<U8> objectBytes;
-	{
-		llvm::legacy::PassManager passManager;
-		llvm::MCContext* mcContext;
-		LLVMArrayOutputStream objectStream;
-		errorUnless(!targetMachine->addPassesToEmitMC(passManager, mcContext, objectStream));
-		passManager.run(llvmModule);
-		objectBytes = objectStream.getOutput();
-	}
+    std::vector<U8> objectBytes;
+    {
+        llvm::legacy::PassManager passManager;
+        llvm::MCContext *mcContext;
+        LLVMArrayOutputStream objectStream;
+        errorUnless(!targetMachine->addPassesToEmitMC(passManager, mcContext, objectStream));
+        passManager.run(llvmModule);
+        objectBytes = objectStream.getOutput();
+    }
 
-	return objectBytes;
+    return objectBytes;
 }
 
-std::vector<U8> LLVMJIT::compileModule(const IR::Module& irModule)
-{
-	LLVMContext llvmContext;
+std::vector<U8> LLVMJIT::compileModule(const IR::Module &irModule) {
+    LLVMContext llvmContext;
 
-	// Emit LLVM IR for the module.
-	llvm::Module llvmModule("", llvmContext);
-	emitModule(irModule, llvmContext, llvmModule);
+    // Emit LLVM IR for the module.
+    llvm::Module llvmModule("", llvmContext);
+    emitModule(irModule, llvmContext, llvmModule);
 
-	// Compile the LLVM IR to object code.
-	return compileLLVMModule(llvmContext, std::move(llvmModule), true);
+    // Compile the LLVM IR to object code.
+    return compileLLVMModule(llvmContext, std::move(llvmModule), true);
 }

@@ -1,22 +1,21 @@
 #pragma once
 
 namespace WAVM {
-	// RAII-style lock.
-	template<typename Mutex> struct Lock
-	{
-		Lock(Mutex& inMutex) : mutex(&inMutex) { mutex->lock(); }
-		~Lock() { unlock(); }
+    // RAII-style lock.
+    template<typename Mutex>
+    struct Lock {
+        Lock(Mutex &inMutex) : mutex(&inMutex) { mutex->lock(); }
 
-		void unlock()
-		{
-			if(mutex)
-			{
-				mutex->unlock();
-				mutex = nullptr;
-			}
-		}
+        ~Lock() { unlock(); }
 
-	private:
-		Mutex* mutex;
-	};
+        void unlock() {
+            if (mutex) {
+                mutex->unlock();
+                mutex = nullptr;
+            }
+        }
+
+    private:
+        Mutex *mutex;
+    };
 }
