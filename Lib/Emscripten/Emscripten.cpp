@@ -128,13 +128,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "getTotalMemory", U32, getTotalMemory) {
                               Runtime::getMemoryMaxPages(emscriptenMemory) * IR::numBytesPerPage);
 }
 
-DEFINE_INTRINSIC_FUNCTION(env, "abortOnCannotGrowMemory", I32, abortOnCannotGrowMemory) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "enlargeMemory", I32, enlargeMemory) {
-    return abortOnCannotGrowMemory(contextRuntimeData);
-}
-
 DEFINE_INTRINSIC_FUNCTION(env, "_time", I32, _time, U32 address) {
     wavmAssert(emscriptenMemory);
     time_t t = time(nullptr);
@@ -202,14 +195,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "_pthread_getspecific", I32, _pthread_getspecific
     const I32 *value = pthreadSpecific.get(key);
     return value ? *value : 0;
 }
-
-DEFINE_INTRINSIC_FUNCTION(env, "_pthread_once", I32, _pthread_once, I32 a, I32 b) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_pthread_cleanup_push", void, _pthread_cleanup_push, I32 a, I32 b) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_pthread_cleanup_pop", void, _pthread_cleanup_pop, I32 a) {}
 
 DEFINE_INTRINSIC_FUNCTION(env, "_pthread_self", I32, _pthread_self) { return 0; }
 
@@ -323,13 +308,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "___ctype_tolower_loc", U32, ___ctype_tolower_loc
     return vmAddress + sizeof(I32) * 128;
 }
 
-DEFINE_INTRINSIC_FUNCTION(env, "___assert_fail", void, ___assert_fail,
-                          I32 condition,
-                          I32 filename,
-                          I32 line,
-                          I32 function) {
-}
-
 DEFINE_INTRINSIC_FUNCTION(env, "___cxa_atexit", I32, ___cxa_atexit, I32 a, I32 b, I32 c) {
     return 0;
 }
@@ -344,14 +322,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "___cxa_guard_acquire", I32, ___cxa_guard_acquire
     }
 }
 
-DEFINE_INTRINSIC_FUNCTION(env, "___cxa_guard_release", void, ___cxa_guard_release, I32 a) {}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___cxa_throw", void, ___cxa_throw, I32 a, I32 b, I32 c) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___cxa_begin_catch", I32, ___cxa_begin_catch, I32 a) {
-}
-
 DEFINE_INTRINSIC_FUNCTION(env,
                           "___cxa_allocate_exception",
                           U32,
@@ -359,18 +329,6 @@ DEFINE_INTRINSIC_FUNCTION(env,
                           U32 size) {
     wavmAssert(emscriptenMemory);
     return coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, size));
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "__ZSt18uncaught_exceptionv", I32, __ZSt18uncaught_exceptionv) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_abort", void, emscripten__abort) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_exit", void, emscripten__exit, I32 code) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "abort", void, emscripten_abort, I32 code) {
 }
 
 static U32 currentLocale = 0;
@@ -383,24 +341,10 @@ DEFINE_INTRINSIC_FUNCTION(env, "_uselocale", I32, _uselocale, I32 locale) {
 
 DEFINE_INTRINSIC_FUNCTION(env, "_newlocale", U32, _newlocale, I32 mask, I32 locale, I32 base) {
     wavmAssert(emscriptenMemory);
-    if (!base) { base = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, 4)); }
+    if (!base) {
+        base = coerce32bitAddress(emscriptenMemory, dynamicAlloc(emscriptenMemory, 4));
+    }
     return base;
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_freelocale", void, emscripten__freelocale, I32 a) {}
-
-DEFINE_INTRINSIC_FUNCTION(env,
-                          "_strftime_l",
-                          I32,
-                          emscripten__strftime_l,
-                          I32 a,
-                          I32 b,
-                          I32 c,
-                          I32 d,
-                          I32 e) {
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_strerror", I32, emscripten__strerror, I32 a) {
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_catopen", I32, emscripten__catopen, I32 a, I32 b) { return -1; }
@@ -409,9 +353,6 @@ DEFINE_INTRINSIC_FUNCTION(env,
                           "_catgets",
                           I32,
                           emscripten__catgets,
-                          I32 catd,
-                          I32 set_id,
-                          I32 msg_id,
                           I32 s) {
     return s;
 }
@@ -449,15 +390,6 @@ FILE *vmFile(U32 vmHandle) {
         default:
             return stdout; // std::cerr << "invalid file handle " << vmHandle << std::endl; throw;
     }
-}
-
-DEFINE_INTRINSIC_FUNCTION(env,
-                          "_vfprintf",
-                          I32,
-                          _vfprintf,
-                          I32 file,
-                          U32 formatPointer,
-                          I32 argList) {
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_getc", I32, _getc, I32 file) { return getc(vmFile(file)); }
@@ -502,33 +434,6 @@ DEFINE_INTRINSIC_FUNCTION(env,
 
 DEFINE_INTRINSIC_FUNCTION(env, "_fputc", I32, _fputc, I32 character, I32 file) {
     return fputc(character, vmFile(file));
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "_fflush", I32, _fflush, I32 file) { return fflush(vmFile(file)); }
-
-DEFINE_INTRINSIC_FUNCTION(env, "___lock", void, ___lock, I32 a) {}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___unlock", void, ___unlock, I32 a) {}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___lockfile", I32, ___lockfile, I32 a) { return 1; }
-
-DEFINE_INTRINSIC_FUNCTION(env, "___unlockfile", void, ___unlockfile, I32 a) {}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___syscall6", I32, ___syscall6, I32 a, I32 b) {
-    // close
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___syscall54", I32, ___syscall54, I32 a, I32 b) {
-    // ioctl
-    return 0;
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___syscall140", I32, ___syscall140, I32 a, I32 b) {
-    // llseek
-}
-
-DEFINE_INTRINSIC_FUNCTION(env, "___syscall145", I32, ___syscall145, I32 file, I32 argsPtr) {
-    // readv
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall146", I32, ___syscall146, I32 file, U32 argsPtr) {
