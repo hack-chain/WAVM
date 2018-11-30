@@ -1,6 +1,5 @@
 set(Sources
         Compartment.cpp
-        Context.cpp
         Global.cpp
         Intrinsics.cpp
         Invoke.cpp
