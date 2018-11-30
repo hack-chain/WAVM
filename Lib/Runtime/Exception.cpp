@@ -25,22 +25,6 @@ Runtime::ExceptionType::~ExceptionType() {
     }
 }
 
-[[noreturn]] void Runtime::throwException(ExceptionType *type,
-                                          std::vector<IR::UntaggedValue> &&arguments) {
-    wavmAssert(arguments.size() == type->sig.params.size());
-    ExceptionData *exceptionData
-            = (ExceptionData *) malloc(ExceptionData::calcNumBytes(type->sig.params.size()));
-    exceptionData->typeId = type->id;
-    exceptionData->type = type;
-    exceptionData->isUserException = 0;
-    if (arguments.size()) {
-        memcpy(exceptionData->arguments,
-               arguments.data(),
-               sizeof(IR::UntaggedValue) * arguments.size());
-    }
-    Platform::raisePlatformException(exceptionData);
-}
-
 DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "throwException", void, intrinsicThrowException, Uptr exceptionTypeId, Uptr argsBits, U32 isUserException) {
     ExceptionType *exceptionType;
     {
