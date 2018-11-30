@@ -254,8 +254,6 @@ install(
 
 # Create a dummy target to hold various files in the project root
 add_custom_target(RootFiles SOURCES
-        .clang-format
-        .travis.yml
         Build/azure-windows-build-job-template.yml
         Build/notify-discord.sh
         Build/travis-build.sh
