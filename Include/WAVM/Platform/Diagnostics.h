@@ -25,9 +25,5 @@ namespace WAVM {
             };
             std::vector<Frame> stackFrames;
         };
-
-        PLATFORM_API CallStack captureCallStack(Uptr numOmittedFramesFromTop = 0);
-
-        PLATFORM_API bool describeInstructionPointer(Uptr ip, std::string &outDescription);
     }
 }

@@ -55,7 +55,6 @@ U8 *Platform::allocateVirtualPages(Uptr numPages) {
     if (result == MAP_FAILED) {
         fprintf(stderr, "mmap(0, %" PRIuPTR
                         ", PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0) failed! errno=%s\n", numBytes, strerror(errno));
-        dumpErrorCallStack(0);
         return nullptr;
     }
     return (U8 *) result;
@@ -105,7 +104,6 @@ bool Platform::commitVirtualPages(U8 *baseVirtualAddress, Uptr numPages, MemoryA
     if (result != 0) {
         fprintf(stderr, "mprotect(0x%" PRIxPTR ", %" PRIuPTR ", %u) failed! errno=%s\n", reinterpret_cast<Uptr>(baseVirtualAddress),
                 numPages << getPageSizeLog2(), memoryAccessAsPOSIXFlag(access), strerror(errno));
-        dumpErrorCallStack(0);
     }
     return result == 0;
 }
@@ -116,7 +114,6 @@ bool Platform::setVirtualPageAccess(U8 *baseVirtualAddress, Uptr numPages, Memor
     if (result != 0) {
         fprintf(stderr, "mprotect(0x%" PRIxPTR ", %" PRIuPTR ", %u) failed! errno=%s\n", reinterpret_cast<Uptr>(baseVirtualAddress),
                 numPages << getPageSizeLog2(), memoryAccessAsPOSIXFlag(access), strerror(errno));
-        dumpErrorCallStack(0);
     }
     return result == 0;
 }

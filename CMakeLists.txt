@@ -236,7 +236,6 @@ if (WAVM_ENABLE_RUNTIME)
     add_subdirectory(Lib/LLVMJIT)
     add_subdirectory(Lib/Runtime)
     add_subdirectory(Programs/wavm-run)
-    add_subdirectory(ThirdParty/libunwind)
 endif ()
 
 # Create a CMake package in <build>/lib/cmake/WAVM containing the WAVM library targets.

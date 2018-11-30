@@ -47,9 +47,5 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif ()
 
 if (NOT MSVC AND WAVM_ENABLE_RUNTIME)
-    target_link_libraries(Platform PRIVATE dl WAVMUnwind)
-
-    # This can't be set in the WAVMUnwind target's public include directories without adding the
-    # libunwind headers to the install, so just set it manually on Platform
-    target_include_directories(Platform PRIVATE ${WAVM_SOURCE_DIR}/ThirdParty/libunwind/include)
+    target_link_libraries(Platform PRIVATE dl)
 endif ()
