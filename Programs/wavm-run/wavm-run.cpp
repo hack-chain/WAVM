@@ -98,66 +98,22 @@ struct RootResolver : Resolver {
     }
 };
 
-struct File;
-
-static File *fileIndexToPtr(int index) { return reinterpret_cast<File *>(-Iptr(index) - 1); }
-
-File* openFile(const std::string &pathName) {
-    const I32 result = open(pathName.c_str(), O_RDONLY, 0);
-    return fileIndexToPtr(result);
-}
-
-static I32 filePtrToIndex(File *ptr) { return I32(-reinterpret_cast<Iptr>(ptr) - 1); }
-
-bool seekFile(File *file, I64 offset, bool origin, U64 *outAbsoluteOffset = nullptr) {
-    I32 whence = 0;
-    switch (origin) {
-        case 0:
-            whence = SEEK_SET;
-            break;
-        case 1:
-            whence = SEEK_END;
-            break;
-        default:
-            Errors::unreachable();
-    };
-
-    const I64 result = lseek64(filePtrToIndex(file), offset, whence);
-    if (outAbsoluteOffset) {
-        *outAbsoluteOffset = U64(result);
-    }
-    return result != -1;
-}
-
-bool closeFile(File *file) {
-    return close(filePtrToIndex(file)) == 0;
-}
-
-bool readFile(File *file, void *outData, Uptr numBytes, Uptr *outNumBytesRead= nullptr) {
-    ssize_t result = read(filePtrToIndex(file), outData, numBytes);
-    if (outNumBytesRead) {
-        *outNumBytesRead = result;
-    }
-    return result >= 0;
-}
-
 inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
-    File *file = openFile(filename);
+    I32 file = open(std::string(filename).c_str(), O_RDONLY, 0);
     if (!file) {
-        std::cout << "Couldn't read %s: couldn't open file.\n" << filename;
+        std::cout << "Couldn't open file: " << filename;
         return false;
     }
 
-    U64 numFileBytes64 = 0;
-    seekFile(file, 0, 1, &numFileBytes64);
+    U64 numFileBytes64 = U64(lseek64(file, 0, SEEK_END));
     const Uptr numFileBytes = Uptr(numFileBytes64);
 
     std::vector<U8> fileContents;
     outFileContents.resize(numFileBytes);
-    seekFile(file, 0, 0);
-    readFile(file, const_cast<U8*>(outFileContents.data()), numFileBytes);
-    closeFile(file);
+    lseek64(file, 0, SEEK_SET);
 
+    read(file, outFileContents.data(), numFileBytes);
+    close(file);
     return true;
 }
 
