@@ -98,7 +98,7 @@ struct RootResolver : Resolver {
     }
 };
 
-inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
+inline bool readFile(const char *filename, std::vector<U8> &outFileContents) {
     I32 file = open(std::string(filename).c_str(), O_RDONLY, 0);
     if (!file) {
         std::cout << "Couldn't open file: " << filename;
@@ -118,27 +118,19 @@ inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
 }
 
 static int run(const char *filename, char** args) {
-    IR::Module irModule;
-
-    // Read the specified file into an array.
     std::vector<U8> fileBytes;
-    if (!loadFile(filename, fileBytes)) {
+    if (!readFile(filename, fileBytes)) {
         return false;
     }
-
     fileBytes.push_back(0);
 
-    // Load it as a text irModule.
-    std::vector<WAST::Error> parseErrors;
-    if (!WAST::parseModule((const char *) fileBytes.data(), fileBytes.size(), irModule, parseErrors)) {
-        std::cout << "Error parsing WebAssembly text file:\n";
-        WAST::reportParseErrors(filename, parseErrors);
-        return EXIT_FAILURE;
+    IR::Module irModule;
+    if (!WAST::parseModule((const char *) fileBytes.data(), fileBytes.size(), irModule)) {
+        std::cout << "Error parsing WebAssembly text file";
     }
 
     // Compile the module.
-    Runtime::ModuleRef module = nullptr;
-    module = Runtime::compileModule(irModule);
+    Runtime::ModuleRef module = Runtime::compileModule(irModule);
 
     // Link the module with the intrinsic modules.
     Compartment *compartment = Runtime::createCompartment();

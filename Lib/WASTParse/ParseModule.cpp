@@ -887,8 +887,7 @@ void WAST::parseModuleBody(CursorState *cursor, IR::Module &outModule) {
 
 bool WAST::parseModule(const char *string,
                        Uptr stringLength,
-                       IR::Module &outModule,
-                       std::vector<Error> &outErrors) {
+                       IR::Module &outModule) {
 
     // Lex the string.
     LineInfo *lineInfo = nullptr;
@@ -917,12 +916,11 @@ bool WAST::parseModule(const char *string,
     // Resolve line information for any errors, and write them to outErrors.
     for (const auto &unresolvedError : parseState.unresolvedErrors) {
         TextFileLocus locus = calcLocusFromOffset(string, lineInfo, unresolvedError.charOffset);
-        outErrors.push_back({std::move(locus), std::move(unresolvedError.message)});
     }
 
     // Free the tokens and line info.
     freeTokens(tokens);
     freeLineInfo(lineInfo);
 
-    return outErrors.size() == 0;
+    return true;
 }
