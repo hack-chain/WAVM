@@ -26,6 +26,6 @@ void Platform::handleFatalError(const char *messageFormat, bool printCallStack, 
 
 void Platform::handleAssertionFailure(const AssertMetadata &metadata) {
     Lock<Platform::Mutex> lock(getErrorReportingMutex());
-    std::fprintf(stderr, "Assertion failed at %s(%u): %s\n", metadata.file, metadata.line, metadata.condition);2
+    std::fprintf(stderr, "Assertion failed at %s(%u): %s\n", metadata.file, metadata.line, metadata.condition);
     std::fflush(stderr);
 }

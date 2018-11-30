@@ -222,7 +222,6 @@ function(WAVM_ADD_INSTALLED_EXECUTABLE TARGET_NAME FOLDER_NAME)
     WAVM_INSTALL_TARGET(${TARGET_NAME})
 endfunction()
 
-add_subdirectory(Examples)
 add_subdirectory(Include/WAVM/Inline)
 add_subdirectory(Lib/IR)
 add_subdirectory(Lib/NFA)
