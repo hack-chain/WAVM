@@ -196,7 +196,7 @@ static int run(const char *filename, char **args) {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        std::cout << "Usage: wavm-run [programfile] [--] [arguments]\n"
+        std::cout << "Usage: run [programfile] [--] [arguments]\n"
                      "  -h|--help             Display this message\n";
         return EXIT_FAILURE;
     }
