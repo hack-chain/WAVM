@@ -31,16 +31,10 @@ DEFINE_INTRINSIC_MODULE(asm2wasm)
 DEFINE_INTRINSIC_MODULE(global)
 
 static U32 coerce32bitAddress(Memory *memory, Uptr address) {
-    if (address >= UINT32_MAX) {
-        throwException(Exception::outOfBoundsMemoryAccessType, {asObject(memory), U64(address)});
-    }
     return (U32) address;
 }
 
 static I32 coerce32bitAddressSigned(Memory *memory, Uptr address) {
-    if (address >= INT32_MAX) {
-        throwException(Exception::outOfBoundsMemoryAccessType, {asObject(memory), U64(address)});
-    }
     return (I32) address;
 }
 
@@ -135,7 +129,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "getTotalMemory", U32, getTotalMemory) {
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "abortOnCannotGrowMemory", I32, abortOnCannotGrowMemory) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "enlargeMemory", I32, enlargeMemory) {
@@ -158,8 +151,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "_sysconf", I32, _sysconf, I32 a) {
     switch (a) {
         case sysConfPageSize:
             return IR::numBytesPerPage;
-        default:
-            throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
     }
 }
 
@@ -213,7 +204,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "_pthread_getspecific", I32, _pthread_getspecific
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_pthread_once", I32, _pthread_once, I32 a, I32 b) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_pthread_cleanup_push", void, _pthread_cleanup_push, I32 a, I32 b) {
@@ -357,11 +347,9 @@ DEFINE_INTRINSIC_FUNCTION(env, "___cxa_guard_acquire", I32, ___cxa_guard_acquire
 DEFINE_INTRINSIC_FUNCTION(env, "___cxa_guard_release", void, ___cxa_guard_release, I32 a) {}
 
 DEFINE_INTRINSIC_FUNCTION(env, "___cxa_throw", void, ___cxa_throw, I32 a, I32 b, I32 c) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___cxa_begin_catch", I32, ___cxa_begin_catch, I32 a) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env,
@@ -374,20 +362,15 @@ DEFINE_INTRINSIC_FUNCTION(env,
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "__ZSt18uncaught_exceptionv", I32, __ZSt18uncaught_exceptionv) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_abort", void, emscripten__abort) {
-    throwException(Runtime::Exception::calledAbortType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_exit", void, emscripten__exit, I32 code) {
-    throwException(Runtime::Exception::calledAbortType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "abort", void, emscripten_abort, I32 code) {
-    std::cout << "env.abort(%i)\n", code;
-    throwException(Runtime::Exception::calledAbortType);
 }
 
 static U32 currentLocale = 0;
@@ -415,11 +398,9 @@ DEFINE_INTRINSIC_FUNCTION(env,
                           I32 c,
                           I32 d,
                           I32 e) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_strerror", I32, emscripten__strerror, I32 a) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_catopen", I32, emscripten__catopen, I32 a, I32 b) { return -1; }
@@ -477,7 +458,6 @@ DEFINE_INTRINSIC_FUNCTION(env,
                           I32 file,
                           U32 formatPointer,
                           I32 argList) {
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "_getc", I32, _getc, I32 file) { return getc(vmFile(file)); }
@@ -536,7 +516,6 @@ DEFINE_INTRINSIC_FUNCTION(env, "___unlockfile", void, ___unlockfile, I32 a) {}
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall6", I32, ___syscall6, I32 a, I32 b) {
     // close
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall54", I32, ___syscall54, I32 a, I32 b) {
@@ -546,12 +525,10 @@ DEFINE_INTRINSIC_FUNCTION(env, "___syscall54", I32, ___syscall54, I32 a, I32 b) 
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall140", I32, ___syscall140, I32 a, I32 b) {
     // llseek
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall145", I32, ___syscall145, I32 file, I32 argsPtr) {
     // readv
-    throwException(Runtime::Exception::calledUnimplementedIntrinsicType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___syscall146", I32, ___syscall146, I32 file, U32 argsPtr) {

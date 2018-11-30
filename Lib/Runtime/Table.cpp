@@ -226,11 +226,6 @@ bool Runtime::isAddressOwnedByTable(U8 *address, Table *&outTable, Uptr &outTabl
 static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) {
     wavmAssert(object);
 
-    // Verify the index is within the table's bounds.
-    if (index >= table->numReservedElements) {
-        throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
-    }
-
     // Use a saturated index to access the table data to ensure that it's harmless for the CPU to
     // speculate past the above bounds check.
     const Uptr saturatedIndex
@@ -243,9 +238,6 @@ static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) 
     // the element being replaced is an out-of-bounds sentinel value.
     Uptr oldBiasedValue = table->elements[saturatedIndex].biasedValue;
     while (true) {
-        if (biasedTableElementValueToObject(oldBiasedValue) == getOutOfBoundsElement()) {
-            throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
-        }
         if (table->elements[saturatedIndex].biasedValue.compare_exchange_weak(
                 oldBiasedValue, biasedValue, std::memory_order_acq_rel)) { break; }
     };
@@ -255,9 +247,6 @@ static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) 
 
 static Object *getTableElementNonNull(Table *table, Uptr index) {
     // Verify the index is within the table's bounds.
-    if (index >= table->numReservedElements) {
-        throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
-    }
 
     // Use a saturated index to access the table data to ensure that it's harmless for the CPU to
     // speculate past the above bounds check.
@@ -268,11 +257,6 @@ static Object *getTableElementNonNull(Table *table, Uptr index) {
     const Uptr biasedValue
             = table->elements[saturatedIndex].biasedValue.load(std::memory_order_acquire);
     Object *object = biasedTableElementValueToObject(biasedValue);
-
-    // If the element was an out-of-bounds sentinel value, throw an out-of-bounds exception.
-    if (object == getOutOfBoundsElement()) {
-        throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
-    }
 
     wavmAssert(object);
     return object;
@@ -378,7 +362,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 
     if (!moduleInstance->passiveElemSegments.contains(elemSegmentIndex)) {
         passiveElemSegmentsLock.unlock();
-        throwException(Exception::invalidArgumentType);
     } else {
         // Copy the passive elem segment shared_ptr, and unlock the mutex. It's important to
         // explicitly unlock the mutex before calling setTableElement, as setTableElement trigger a
@@ -392,10 +375,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
         for (Uptr index = 0; index < numElements; ++index) {
             const U64 sourceIndex = U64(sourceOffset) + index;
             const U64 destIndex = U64(destOffset) + index;
-            if (sourceIndex >= passiveElemSegmentObjects->size()) {
-                throwException(Exception::outOfBoundsElemSegmentAccessType,
-                               {asObject(moduleInstance), U64(elemSegmentIndex), sourceIndex});
-            }
 
             setTableElement(
                     table, Uptr(destIndex), asObject((*passiveElemSegmentObjects)[sourceIndex]));
@@ -415,7 +394,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 
     if (!moduleInstance->passiveElemSegments.contains(elemSegmentIndex)) {
         passiveElemSegmentsLock.unlock();
-        throwException(Exception::invalidArgumentType);
     } else {
         moduleInstance->passiveElemSegments.removeOrFail(elemSegmentIndex);
     }
@@ -464,9 +442,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
     Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
     if (asObject(function) == getOutOfBoundsElement()) {
         std::cout << "call_indirect: index %u is out-of-bounds\n" << index;
-        throwException(Exception::outOfBoundsTableAccessType, {table, U64(index)});
     } else if (asObject(function) == getUninitializedElement()) {
         std::cout << "call_indirect: index %u is uninitialized\n" << index;
-        throwException(Exception::uninitializedTableElementType, {table, U64(index)});
     }
 }

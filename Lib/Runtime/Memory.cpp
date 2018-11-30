@@ -291,7 +291,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 
     if (!moduleInstance->passiveDataSegments.contains(dataSegmentIndex)) {
         passiveDataSegmentsLock.unlock();
-        throwException(Exception::invalidArgumentType);
     } else {
         // Copy the passive data segment shared_ptr, and unlock the mutex. It's important to
         // explicitly unlock the mutex before calling memcpy, as memcpy might trigger a signal that
@@ -311,10 +310,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
                                           passiveDataSegmentBytes->data() + sourceOffset,
                                           passiveDataSegmentBytes->size() - sourceOffset);
             }
-            throwException(Exception::outOfBoundsDataSegmentAccessType,
-                           {asObject(moduleInstance),
-                            U64(dataSegmentIndex),
-                            U64(passiveDataSegmentBytes->size())});
         } else if (numBytes) {
             Platform::bytewiseMemCopy(
                     destPointer, passiveDataSegmentBytes->data() + sourceOffset, numBytes);
