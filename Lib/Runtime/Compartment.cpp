@@ -73,12 +73,6 @@ Compartment *Runtime::cloneCompartment(const Compartment *compartment) {
         wavmAssert(newGlobal->mutableGlobalIndex == global->mutableGlobalIndex);
     }
 
-    // Clone exception types.
-    for (ExceptionType *exceptionType : compartment->exceptionTypes) {
-        ExceptionType *newExceptionType = cloneExceptionType(exceptionType, newCompartment);
-        wavmAssert(newExceptionType->id == exceptionType->id);
-    }
-
     // Clone module instances.
     for (ModuleInstance *moduleInstance : compartment->moduleInstances) {
         ModuleInstance *newModuleInstance = cloneModuleInstance(moduleInstance, newCompartment);

@@ -333,15 +333,11 @@ DEFINE_INTRINSIC_FUNCTION(env, "___ctype_tolower_loc", U32, ___ctype_tolower_loc
     return vmAddress + sizeof(I32) * 128;
 }
 
-DEFINE_INTRINSIC_FUNCTION(env,
-                          "___assert_fail",
-                          void,
-                          ___assert_fail,
+DEFINE_INTRINSIC_FUNCTION(env, "___assert_fail", void, ___assert_fail,
                           I32 condition,
                           I32 filename,
                           I32 line,
                           I32 function) {
-    throwException(Runtime::Exception::calledAbortType);
 }
 
 DEFINE_INTRINSIC_FUNCTION(env, "___cxa_atexit", I32, ___cxa_atexit, I32 a, I32 b, I32 c) {

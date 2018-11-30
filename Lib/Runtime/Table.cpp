@@ -468,13 +468,5 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
     } else if (asObject(function) == getUninitializedElement()) {
         std::cout << "call_indirect: index %u is uninitialized\n" << index;
         throwException(Exception::uninitializedTableElementType, {table, U64(index)});
-    } else {
-        IR::FunctionType expectedSignature{IR::FunctionType::Encoding{expectedTypeEncoding}};
-        std::string ipDescription = "<unknown>";
-        describeInstructionPointer(reinterpret_cast<Uptr>(function->code), ipDescription);
-        std::cout << "call_indirect: index %u has signature %s (%s), but was expecting %s\n" << index
-                  << asString(IR::FunctionType{function->encodedType}).c_str() << ipDescription.c_str()
-                  << asString(expectedSignature).c_str();
-        throwException(Exception::indirectCallSignatureMismatchType);
     }
 }

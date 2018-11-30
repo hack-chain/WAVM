@@ -18,52 +18,6 @@ using namespace WAVM::Runtime;
 ENUM_INTRINSIC_EXCEPTION_TYPES(DEFINE_INTRINSIC_EXCEPTION_TYPE)
 #undef DEFINE_INTRINSIC_EXCEPTION_TYPE
 
-bool Runtime::describeInstructionPointer(Uptr ip, std::string &outDescription) {
-    Runtime::Function *function = LLVMJIT::getFunctionByAddress(ip);
-    if (!function) { return Platform::describeInstructionPointer(ip, outDescription); }
-    else {
-        outDescription = function->mutableData->debugName;
-        outDescription += '+';
-
-        // Find the highest entry in the offsetToOpIndexMap whose offset is <= the
-        // symbol-relative IP.
-        U32 ipOffset = (U32) (ip - reinterpret_cast<Uptr>(function->code));
-        Iptr opIndex = -1;
-        for (auto offsetMapIt : function->mutableData->offsetToOpIndexMap) {
-            if (offsetMapIt.first <= ipOffset) { opIndex = offsetMapIt.second; }
-            else {
-                break;
-            }
-        }
-        outDescription += std::to_string(opIndex >= 0 ? opIndex : 0);
-        return true;
-    }
-}
-
-ExceptionType *Runtime::createExceptionType(Compartment *compartment, IR::ExceptionType sig, std::string &&debugName) {
-    auto exceptionType = new ExceptionType(compartment, sig, std::move(debugName));
-
-    Lock<Platform::Mutex> compartmentLock(compartment->mutex);
-    exceptionType->id = compartment->exceptionTypes.add(UINTPTR_MAX, exceptionType);
-    if (exceptionType->id == UINTPTR_MAX) {
-        delete exceptionType;
-        return nullptr;
-    }
-
-    return exceptionType;
-}
-
-ExceptionType *Runtime::cloneExceptionType(ExceptionType *exceptionType,
-                                           Compartment *newCompartment) {
-    auto newExceptionType = new ExceptionType(
-            newCompartment, exceptionType->sig, std::string(exceptionType->debugName));
-    newExceptionType->id = exceptionType->id;
-
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    newCompartment->exceptionTypes.insertOrFail(exceptionType->id, newExceptionType);
-    return newExceptionType;
-}
-
 Runtime::ExceptionType::~ExceptionType() {
     if (id != UINTPTR_MAX) {
         wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);

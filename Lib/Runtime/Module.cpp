@@ -147,11 +147,7 @@ ModuleInstance *Runtime::instantiateModule(Compartment *compartment,
          ++exceptionTypeDefIndex) {
         const ExceptionTypeDef &exceptionTypeDef
                 = module->ir.exceptionTypes.defs[exceptionTypeDefIndex];
-        std::string debugName
-                = disassemblyNames
-                        .exceptionTypes[module->ir.exceptionTypes.imports.size() + exceptionTypeDefIndex];
-        exceptionTypes.push_back(
-                createExceptionType(compartment, exceptionTypeDef.type, std::move(debugName)));
+        std::string debugName= disassemblyNames.exceptionTypes[module->ir.exceptionTypes.imports.size() + exceptionTypeDefIndex];
     }
 
     // Set up the values to bind to the symbols in the LLVMJIT object code.
