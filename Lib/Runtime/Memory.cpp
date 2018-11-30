@@ -225,12 +225,6 @@ static U8 *getValidatedMemoryOffsetRangeImpl(Memory *memory,
 
     numBytes = Platform::saturateToBounds(numBytes, memoryNumBytes);
     U8 *pointer = memoryBase + Platform::saturateToBounds(address, memoryNumBytes - numBytes);
-    if (pointer < memoryBase || pointer + numBytes < pointer
-        || pointer + numBytes > memoryBase + memoryNumBytes) {
-        throwException(
-                Exception::outOfBoundsMemoryAccessType,
-                {asObject(memory), U64(address > memoryNumBytes ? address : memoryNumBytes)});
-    }
     return pointer;
 }
 
@@ -329,7 +323,6 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 
     if (!moduleInstance->passiveDataSegments.contains(dataSegmentIndex)) {
         passiveDataSegmentsLock.unlock();
-        throwException(Exception::invalidArgumentType);
     } else {
         moduleInstance->passiveDataSegments.removeOrFail(dataSegmentIndex);
     }
