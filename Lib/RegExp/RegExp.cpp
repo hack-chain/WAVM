@@ -3,39 +3,38 @@
 using namespace WAVM;
 
 enum class NodeType : U8 {
-    lit,
-    zeroOrMore,
-    oneOrMore,
-    optional,
-    alt,
-    seq,
+    lit, zeroOrMore, oneOrMore, optional, alt, seq,
 };
 
 struct Node {
     const NodeType type;
 
-    Node(NodeType inType) : type(inType) {}
+    Node(NodeType inType) : type(inType) {
+    }
 
-    virtual ~Node() {}
+    virtual ~Node() {
+    }
 };
 
 struct Lit : Node {
     NFA::CharSet charSet;
 
-    Lit(const NFA::CharSet &inCharSet) : Node(NodeType::lit), charSet(inCharSet) {}
+    Lit(const NFA::CharSet &inCharSet) : Node(NodeType::lit), charSet(inCharSet) {
+    }
 };
 
-template<NodeType inType>
-struct Unary : Node {
+template<NodeType inType> struct Unary : Node {
     Node *child;
 
-    Unary(Node *inChild) : Node(inType), child(inChild) {}
+    Unary(Node *inChild) : Node(inType), child(inChild) {
+    }
 
-    ~Unary() { delete child; }
+    ~Unary() {
+        delete child;
+    }
 };
 
-template<NodeType inType>
-struct Binary : Node {
+template<NodeType inType> struct Binary : Node {
     Node *firstChild;
     Node *secondChild;
 
@@ -55,8 +54,7 @@ typedef Unary<NodeType::optional> Optional;
 typedef Binary<NodeType::alt> Alt;
 typedef Binary<NodeType::seq> Seq;
 
-template<bool inSet>
-static bool isMetachar(char c) {
+template<bool inSet> static bool isMetachar(char c) {
     switch (c) {
         case '^':
         case '\\':
@@ -80,11 +78,12 @@ static bool isMetachar(char c) {
     };
 }
 
-template<bool inSet>
-static char parseChar(const char *&nextChar) {
+template<bool inSet> static char parseChar(const char *&nextChar) {
     if (*nextChar == '\\') {
         ++nextChar;
-        if (!isMetachar<inSet>(*nextChar)) { Errors::fatalf("'%c' is not a metachar in this context", *nextChar); }
+        if (!isMetachar<inSet>(*nextChar)) {
+            Errors::fatalf("'%c' is not a metachar in this context", *nextChar);
+        }
     } else if (isMetachar<inSet>(*nextChar)) {
         Errors::fatalf("'%c' is a metachar in this context", *nextChar);
     } else if (*nextChar == 0) {
@@ -93,8 +92,7 @@ static char parseChar(const char *&nextChar) {
     return *nextChar++;
 }
 
-template<bool inSet>
-static NFA::CharSet parseLit(const char *&nextChar) {
+template<bool inSet> static NFA::CharSet parseLit(const char *&nextChar) {
     NFA::CharSet result;
     const char c = parseChar<inSet>(nextChar);
     if (inSet && *nextChar == '-') {
@@ -107,10 +105,10 @@ static NFA::CharSet parseLit(const char *&nextChar) {
     return result;
 }
 
-template<bool inSet>
-static NFA::CharSet parseCharClass(const char *&nextChar) {
-    if (*nextChar != '\\') { return parseLit<inSet>(nextChar); }
-    else {
+template<bool inSet> static NFA::CharSet parseCharClass(const char *&nextChar) {
+    if (*nextChar != '\\') {
+        return parseLit<inSet>(nextChar);
+    } else {
         NFA::CharSet result;
         switch (nextChar[1]) {
             case 'd':
@@ -153,7 +151,9 @@ static NFA::CharSet parseSet(const char *&nextChar) {
         ++nextChar;
     }
 
-    while (*nextChar && *nextChar != ']') { result = result | parseCharClass<true>(nextChar); };
+    while (*nextChar && *nextChar != ']') {
+        result = result | parseCharClass<true>(nextChar);
+    };
     ++nextChar;
 
     if (isNegative) {
@@ -192,8 +192,9 @@ static Node *parseElementary(const char *&nextChar, Uptr groupDepth) {
 static Node *parseUnion(const char *&nextChar, Uptr groupDepth);
 
 static Node *parseGroup(const char *&nextChar, Uptr groupDepth) {
-    if (*nextChar != '(') { return parseElementary(nextChar, groupDepth); }
-    else {
+    if (*nextChar != '(') {
+        return parseElementary(nextChar, groupDepth);
+    } else {
         ++nextChar;
         Node *result = parseUnion(nextChar, groupDepth + 1);
         wavmAssert(*nextChar == ')');
@@ -231,10 +232,14 @@ static Node *parseSeq(const char *&nextChar, Uptr groupDepth) {
 
         switch (*nextChar) {
             case ')':
-                if (groupDepth == 0) { Errors::fatalf("unexpected ')'"); }
+                if (groupDepth == 0) {
+                    Errors::fatalf("unexpected ')'");
+                }
                 return result;
             case 0:
-                if (groupDepth != 0) { Errors::fatalf("unexpected end of string"); }
+                if (groupDepth != 0) {
+                    Errors::fatalf("unexpected end of string");
+                }
                 return result;
             case '|':
                 return result;
@@ -250,10 +255,14 @@ static Node *parseUnion(const char *&nextChar, Uptr groupDepth) {
 
         switch (*nextChar) {
             case ')':
-                if (groupDepth == 0) { Errors::fatalf("unexpected ')'"); }
+                if (groupDepth == 0) {
+                    Errors::fatalf("unexpected ')'");
+                }
                 return result;
             case 0:
-                if (groupDepth != 0) { Errors::fatalf("unexpected end of string"); }
+                if (groupDepth != 0) {
+                    Errors::fatalf("unexpected end of string");
+                }
                 return result;
             case '|':
                 ++nextChar;
@@ -267,14 +276,13 @@ static Node *parseUnion(const char *&nextChar, Uptr groupDepth) {
 static Node *parse(const char *string) {
     const char *nextChar = string;
     Node *node = parseUnion(nextChar, 0);
-    if (*nextChar != 0) { Errors::fatalf("failed to parse entire regexp"); }
+    if (*nextChar != 0) {
+        Errors::fatalf("failed to parse entire regexp");
+    }
     return node;
 }
 
-static void createNFA(NFA::Builder *nfaBuilder,
-                      Node *node,
-                      NFA::StateIndex initialState,
-                      NFA::StateIndex finalState) {
+static void createNFA(NFA::Builder *nfaBuilder, Node *node, NFA::StateIndex initialState, NFA::StateIndex finalState) {
     switch (node->type) {
         case NodeType::lit: {
             auto lit = (Lit *) node;
@@ -319,10 +327,7 @@ static void createNFA(NFA::Builder *nfaBuilder,
     };
 }
 
-void RegExp::addToNFA(const char *regexpString,
-                      NFA::Builder *nfaBuilder,
-                      NFA::StateIndex initialState,
-                      NFA::StateIndex finalState) {
+void RegExp::addToNFA(const char *regexpString, NFA::Builder *nfaBuilder, NFA::StateIndex initialState, NFA::StateIndex finalState) {
     Node *rootNode = parse(regexpString);
     createNFA(nfaBuilder, rootNode, initialState, finalState);
     delete rootNode;

@@ -9,14 +9,20 @@ using namespace WAVM::IR;
 
 struct TypeTupleHashPolicy {
     static bool areKeysEqual(TypeTuple left, TypeTuple right) {
-        if (left.size() != right.size()) { return false; }
+        if (left.size() != right.size()) {
+            return false;
+        }
         for (Uptr elemIndex = 0; elemIndex < left.size(); ++elemIndex) {
-            if (left[elemIndex] != right[elemIndex]) { return false; }
+            if (left[elemIndex] != right[elemIndex]) {
+                return false;
+            }
         }
         return true;
     }
 
-    static Uptr getKeyHash(TypeTuple typeTuple) { return typeTuple.getHash(); }
+    static Uptr getKeyHash(TypeTuple typeTuple) {
+        return typeTuple.getHash();
+    }
 };
 
 struct FunctionTypeHashPolicy {
@@ -24,19 +30,27 @@ struct FunctionTypeHashPolicy {
         return left.params() == right.params() && left.results() == right.results();
     }
 
-    static Uptr getKeyHash(FunctionType functionType) { return functionType.getHash(); }
+    static Uptr getKeyHash(FunctionType functionType) {
+        return functionType.getHash();
+    }
 };
 
 IR::TypeTuple::Impl::Impl(Uptr inNumElems, const ValueType *inElems) : numElems(inNumElems) {
-    if (numElems) { memcpy(elems, inElems, sizeof(ValueType) * numElems); }
+    if (numElems) {
+        memcpy(elems, inElems, sizeof(ValueType) * numElems);
+    }
     hash = XXH<Uptr>(elems, numElems * sizeof(ValueType), 0);
 }
 
 IR::TypeTuple::Impl::Impl(const Impl &inCopy) : hash(inCopy.hash), numElems(inCopy.numElems) {
-    if (numElems) { memcpy(elems, inCopy.elems, numElems * sizeof(ValueType)); }
+    if (numElems) {
+        memcpy(elems, inCopy.elems, numElems * sizeof(ValueType));
+    }
 }
 
-IR::TypeTuple::TypeTuple(ValueType inElem) { impl = getUniqueImpl(1, &inElem); }
+IR::TypeTuple::TypeTuple(ValueType inElem) {
+    impl = getUniqueImpl(1, &inElem);
+}
 
 IR::TypeTuple::TypeTuple(const std::initializer_list<ValueType> &inElems) {
     impl = getUniqueImpl(inElems.size(), inElems.begin());
@@ -64,8 +78,9 @@ const TypeTuple::Impl *IR::TypeTuple::getUniqueImpl(Uptr numElems, const ValueTy
         Lock<Platform::Mutex> uniqueTypeTupleSetLock(uniqueTypeTupleSetMutex);
 
         const TypeTuple *typeTuple = uniqueTypeTupleSet.get(TypeTuple(localImpl));
-        if (typeTuple) { return typeTuple->impl; }
-        else {
+        if (typeTuple) {
+            return typeTuple->impl;
+        } else {
             Impl *globalImpl = new(malloc(numImplBytes)) Impl(*localImpl);
             uniqueTypeTupleSet.addOrFail(TypeTuple(globalImpl));
             return globalImpl;
@@ -73,8 +88,7 @@ const TypeTuple::Impl *IR::TypeTuple::getUniqueImpl(Uptr numElems, const ValueTy
     }
 }
 
-IR::FunctionType::Impl::Impl(TypeTuple inResults, TypeTuple inParams)
-        : results(inResults), params(inParams) {
+IR::FunctionType::Impl::Impl(TypeTuple inResults, TypeTuple inParams) : results(inResults), params(inParams) {
     hash = Hash<Uptr>()(results.getHash(), params.getHash());
 }
 
@@ -91,8 +105,9 @@ const FunctionType::Impl *IR::FunctionType::getUniqueImpl(TypeTuple results, Typ
         Lock<Platform::Mutex> uniqueFunctionTypeSetLock(uniqueFunctionTypeSetMutex);
 
         const FunctionType *functionType = uniqueFunctionTypeSet.get(FunctionType(&localImpl));
-        if (functionType) { return functionType->impl; }
-        else {
+        if (functionType) {
+            return functionType->impl;
+        } else {
             Impl *globalImpl = new Impl(localImpl);
             uniqueFunctionTypeSet.addOrFail(FunctionType(globalImpl));
             return globalImpl;

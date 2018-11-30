@@ -16,16 +16,17 @@ namespace WAVM {
         }
 
         static Uptr getMaxDesiredBuckets(Uptr numDesiredElements) {
-            const Uptr maxDesiredBuckets = Uptr(1) << WAVM::Platform::ceilLogTwo(
-                    divideAndRoundUp(numDesiredElements * 20, 7));
+            const Uptr maxDesiredBuckets =
+                    Uptr(1) << WAVM::Platform::ceilLogTwo(divideAndRoundUp(numDesiredElements * 20, 7));
             return maxDesiredBuckets < minBuckets ? minBuckets : maxDesiredBuckets;
         }
 
         static Uptr getMinDesiredBuckets(Uptr numDesiredElements) {
-            if (numDesiredElements == 0) { return 0; }
-            else {
-                const Uptr minDesiredBuckets = Uptr(1) << WAVM::Platform::ceilLogTwo(
-                        divideAndRoundUp(numDesiredElements * 20, 16));
+            if (numDesiredElements == 0) {
+                return 0;
+            } else {
+                const Uptr minDesiredBuckets =
+                        Uptr(1) << WAVM::Platform::ceilLogTwo(divideAndRoundUp(numDesiredElements * 20, 16));
                 return minDesiredBuckets < minBuckets ? minBuckets : minDesiredBuckets;
             }
         }
@@ -39,8 +40,7 @@ namespace WAVM {
     };
     */
 
-    template<typename Element>
-    struct HashTableBucket {
+    template<typename Element> struct HashTableBucket {
         OptionalStorage<Element> storage;
         Uptr hashAndOccupancy;
 
@@ -93,11 +93,7 @@ namespace WAVM {
     //   The table is dynamically resized as dictated by the AllocPolicy. The default
     // policy keeps the table between 35% and 80% occupied. This gives an average occupancy of 65%,
     // or about 2x space usage compared to just storing an array of the elements.
-    template<typename Key,
-            typename Element,
-            typename HashTablePolicy,
-            typename AllocPolicy = DefaultHashTableAllocPolicy>
-    struct HashTable {
+    template<typename Key, typename Element, typename HashTablePolicy, typename AllocPolicy = DefaultHashTableAllocPolicy> struct HashTable {
         typedef HashTableBucket<Element> Bucket;
 
         HashTable(Uptr estimatedNumElements = 0);
@@ -124,17 +120,20 @@ namespace WAVM {
 
         Bucket &getBucketForAdd(Uptr hash, const Key &key);
 
-        Uptr size() const { return numElements; }
+        Uptr size() const {
+            return numElements;
+        }
 
-        Uptr numBuckets() const { return hashToBucketIndexMask + 1; }
+        Uptr numBuckets() const {
+            return hashToBucketIndexMask + 1;
+        }
 
-        Bucket *getBuckets() const { return buckets; }
+        Bucket *getBuckets() const {
+            return buckets;
+        }
 
         // Compute some statistics about the space usage of this hash table.
-        void analyzeSpaceUsage(Uptr &outTotalMemoryBytes,
-                               Uptr &outMaxProbeCount,
-                               F32 &outOccupancy,
-                               F32 &outAverageProbeCount) const;
+        void analyzeSpaceUsage(Uptr &outTotalMemoryBytes, Uptr &outMaxProbeCount, F32 &outOccupancy, F32 &outAverageProbeCount) const;
 
     private:
         Bucket *buckets;

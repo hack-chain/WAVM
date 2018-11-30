@@ -24,7 +24,9 @@ Platform::Mutex::Mutex() {
 #endif
 }
 
-Platform::Mutex::~Mutex() { errorUnless(!pthread_mutex_destroy((pthread_mutex_t *) &pthreadMutex)); }
+Platform::Mutex::~Mutex() {
+    errorUnless(!pthread_mutex_destroy((pthread_mutex_t *) &pthreadMutex));
+}
 
 void Platform::Mutex::lock() {
     errorUnless(!pthread_mutex_lock((pthread_mutex_t *) &pthreadMutex));

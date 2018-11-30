@@ -22,13 +22,11 @@ Context *Runtime::createContext(Compartment *compartment) {
         context->runtimeData = &compartment->runtimeData->contexts[context->id];
 
         // Commit the page(s) for the context's runtime data.
-        errorUnless(Platform::commitVirtualPages(
-                            (U8 *) context->runtimeData, sizeof(ContextRuntimeData) >> Platform::getPageSizeLog2()));
+        errorUnless(Platform::commitVirtualPages((U8 *) context->runtimeData,
+                                                 sizeof(ContextRuntimeData) >> Platform::getPageSizeLog2()));
 
         // Initialize the context's global data.
-        memcpy(context->runtimeData->mutableGlobals,
-               compartment->initialContextMutableGlobals,
-               maxGlobalBytes);
+        memcpy(context->runtimeData->mutableGlobals, compartment->initialContextMutableGlobals, maxGlobalBytes);
     }
 
     return context;
@@ -41,19 +39,23 @@ Runtime::Context::~Context() {
 
 Global *Runtime::createGlobal(Compartment *compartment, GlobalType type, Value initialValue) {
     errorUnless(isSubtype(initialValue.type, type.valueType));
-    errorUnless(!isReferenceType(type.valueType) || !initialValue.object
-                || isInCompartment(initialValue.object, compartment));
+    errorUnless(!isReferenceType(type.valueType) || !initialValue.object ||
+                isInCompartment(initialValue.object, compartment));
 
     U32 mutableGlobalIndex = UINT32_MAX;
     if (type.isMutable) {
         mutableGlobalIndex = compartment->globalDataAllocationMask.getSmallestNonMember();
-        if (mutableGlobalIndex == maxMutableGlobals) { return nullptr; }
+        if (mutableGlobalIndex == maxMutableGlobals) {
+            return nullptr;
+        }
         compartment->globalDataAllocationMask.add(mutableGlobalIndex);
 
         // Initialize the global value for each context, and the data used to initialize new
         // contexts.
         compartment->initialContextMutableGlobals[mutableGlobalIndex] = initialValue;
-        for (Context *context : compartment->contexts) { context->runtimeData->mutableGlobals[mutableGlobalIndex] = initialValue; }
+        for (Context *context : compartment->contexts) {
+            context->runtimeData->mutableGlobals[mutableGlobalIndex] = initialValue;
+        }
     }
 
     // Create the global and add it to the compartment's list of globals.
@@ -122,7 +124,9 @@ DEFINE_OBJECT_TYPE(ObjectKind::context, Context, Context);
 DEFINE_OBJECT_TYPE(ObjectKind::compartment, Compartment, Compartment);
 
 bool Runtime::isA(Object *object, const ExternType &type) {
-    if (ObjectKind(type.kind) != object->kind) { return false; }
+    if (ObjectKind(type.kind) != object->kind) {
+        return false;
+    }
 
     switch (type.kind) {
         case ExternKind::function:
@@ -157,11 +161,12 @@ ExternType Runtime::getObjectType(Object *object) {
     };
 }
 
-FunctionType Runtime::getFunctionType(Function *function) { return function->encodedType; }
+FunctionType Runtime::getFunctionType(Function *function) {
+    return function->encodedType;
+}
 
 Context *Runtime::getContextFromRuntimeData(ContextRuntimeData *contextRuntimeData) {
-    const CompartmentRuntimeData *compartmentRuntimeData
-            = getCompartmentRuntimeData(contextRuntimeData);
+    const CompartmentRuntimeData *compartmentRuntimeData = getCompartmentRuntimeData(contextRuntimeData);
     const Uptr contextId = contextRuntimeData - compartmentRuntimeData->contexts;
     Lock<Platform::Mutex> compartmentLock(compartmentRuntimeData->compartment->mutex);
     return compartmentRuntimeData->compartment->contexts[contextId];
@@ -171,8 +176,7 @@ ContextRuntimeData *Runtime::getContextRuntimeData(const Context *context) {
     return context->runtimeData;
 }
 
-ModuleInstance *Runtime::getModuleInstanceFromRuntimeData(ContextRuntimeData *contextRuntimeData,
-                                                          Uptr moduleInstanceId) {
+ModuleInstance *Runtime::getModuleInstanceFromRuntimeData(ContextRuntimeData *contextRuntimeData, Uptr moduleInstanceId) {
     Compartment *compartment = getCompartmentRuntimeData(contextRuntimeData)->compartment;
     Lock<Platform::Mutex> compartmentLock(compartment->mutex);
     wavmAssert(compartment->moduleInstances.contains(moduleInstanceId));

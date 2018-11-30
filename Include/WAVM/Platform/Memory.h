@@ -7,11 +7,7 @@ namespace WAVM {
     namespace Platform {
         // Describes allowed memory accesses.
         enum class MemoryAccess {
-            none,
-            readOnly,
-            readWrite,
-            execute,
-            readWriteExecute
+            none, readOnly, readWrite, execute, readWriteExecute
         };
 
         // Returns the base 2 logarithm of the smallest virtual page size.
@@ -25,23 +21,17 @@ namespace WAVM {
         // Allocates virtual addresses without commiting physical pages to them.
         // Returns the base virtual address of the allocated addresses, or nullptr if the virtual
         // address space has been exhausted.
-        PLATFORM_API U8 *allocateAlignedVirtualPages(Uptr numPages,
-                                                     Uptr alignmentLog2,
-                                                     U8 *&outUnalignedBaseAddress);
+        PLATFORM_API U8 *allocateAlignedVirtualPages(Uptr numPages, Uptr alignmentLog2, U8 *&outUnalignedBaseAddress);
 
         // Commits physical memory to the specified virtual pages.
         // baseVirtualAddress must be a multiple of the preferred page size.
         // Return true if successful, or false if physical memory has been exhausted.
-        PLATFORM_API bool commitVirtualPages(U8 *baseVirtualAddress,
-                                             Uptr numPages,
-                                             MemoryAccess access = MemoryAccess::readWrite);
+        PLATFORM_API bool commitVirtualPages(U8 *baseVirtualAddress, Uptr numPages, MemoryAccess access = MemoryAccess::readWrite);
 
         // Changes the allowed access to the specified virtual pages.
         // baseVirtualAddress must be a multiple of the preferred page size.
         // Return true if successful, or false if the access-level could not be set.
-        PLATFORM_API bool setVirtualPageAccess(U8 *baseVirtualAddress,
-                                               Uptr numPages,
-                                               MemoryAccess access);
+        PLATFORM_API bool setVirtualPageAccess(U8 *baseVirtualAddress, Uptr numPages, MemoryAccess access);
 
         // Decommits the physical memory that was committed to the specified virtual pages.
         // baseVirtualAddress must be a multiple of the preferred page size.
@@ -54,8 +44,6 @@ namespace WAVM {
         // Frees an aligned virtual address block. unalignedBaseAddress must be the unaligned base
         // address returned in the outUnalignedBaseAddress parameter of a call to
         // allocateAlignedVirtualPages.
-        PLATFORM_API void freeAlignedVirtualPages(U8 *unalignedBaseAddress,
-                                                  Uptr numPages,
-                                                  Uptr alignmentLog2);
+        PLATFORM_API void freeAlignedVirtualPages(U8 *unalignedBaseAddress, Uptr numPages, Uptr alignmentLog2);
     }
 }

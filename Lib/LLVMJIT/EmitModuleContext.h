@@ -45,12 +45,9 @@ namespace WAVM {
             llvm::Function *tryPrologueDummyFunction;
             llvm::Function *cxaBeginCatchFunction;
 
-            EmitModuleContext(const IR::Module &inModule,
-                              LLVMContext &inLLVMContext,
-                              llvm::Module *inLLVMModule);
+            EmitModuleContext(const IR::Module &inModule, LLVMContext &inLLVMContext, llvm::Module *inLLVMModule);
 
-            inline llvm::Function *getLLVMIntrinsic(llvm::ArrayRef<llvm::Type *> typeArguments,
-                                                    llvm::Intrinsic::ID id) {
+            inline llvm::Function *getLLVMIntrinsic(llvm::ArrayRef<llvm::Type *> typeArguments, llvm::Intrinsic::ID id) {
                 return llvm::Intrinsic::getDeclaration(llvmModule, id, typeArguments);
             }
         };

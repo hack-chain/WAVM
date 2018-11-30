@@ -6,9 +6,7 @@
 namespace WAVM {
     namespace Platform {
         struct Thread;
-        PLATFORM_API Thread *createThread(Uptr numStackBytes,
-                                          I64 (*threadEntry)(void *),
-                                          void *argument);
+        PLATFORM_API Thread *createThread(Uptr numStackBytes, I64 (*threadEntry)(void *), void *argument);
 
         PLATFORM_API void detachThread(Thread *thread);
 

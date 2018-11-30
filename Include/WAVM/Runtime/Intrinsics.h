@@ -26,28 +26,23 @@ namespace WAVM {
             RUNTIME_API ~Module();
         };
 
-        RUNTIME_API Runtime::ModuleInstance *instantiateModule(
-                Runtime::Compartment *compartment,
-                const Intrinsics::Module &moduleRef,
-                std::string &&debugName,
-                const HashMap<std::string, Runtime::Object *> &extraExports = {});
+        RUNTIME_API Runtime::ModuleInstance *instantiateModule(Runtime::Compartment *compartment, const Intrinsics::Module &moduleRef, std::string &&debugName, const HashMap<std::string, Runtime::Object *> &extraExports = {});
 
-        RUNTIME_API HashMap<std::string, Function *> getUninstantiatedFunctions(
-                const Intrinsics::Module &moduleRef);
+        RUNTIME_API HashMap<std::string, Function *> getUninstantiatedFunctions(const Intrinsics::Module &moduleRef);
 
         // An intrinsic function.
         struct Function {
-            RUNTIME_API Function(Intrinsics::Module &moduleRef,
-                                 const char *inName,
-                                 void *inNativeFunction,
-                                 IR::FunctionType type,
-                                 IR::CallingConvention inCallingConvention);
+            RUNTIME_API Function(Intrinsics::Module &moduleRef, const char *inName, void *inNativeFunction, IR::FunctionType type, IR::CallingConvention inCallingConvention);
 
             RUNTIME_API Runtime::Function *instantiate(Runtime::Compartment *compartment);
 
-            void *getNativeFunction() const { return nativeFunction; }
+            void *getNativeFunction() const {
+                return nativeFunction;
+            }
 
-            IR::CallingConvention getCallingConvention() const { return callingConvention; }
+            IR::CallingConvention getCallingConvention() const {
+                return callingConvention;
+            }
 
         private:
             const char *name;
@@ -58,14 +53,13 @@ namespace WAVM {
 
         // The base class of Intrinsic globals.
         struct Global {
-            RUNTIME_API Global(Intrinsics::Module &moduleRef,
-                               const char *inName,
-                               IR::ValueType inType,
-                               IR::Value inValue);
+            RUNTIME_API Global(Intrinsics::Module &moduleRef, const char *inName, IR::ValueType inType, IR::Value inValue);
 
             RUNTIME_API Runtime::Global *instantiate(Runtime::Compartment *compartment);
 
-            IR::Value getValue() const { return value; }
+            IR::Value getValue() const {
+                return value;
+            }
 
         private:
             const char *name;
@@ -74,13 +68,9 @@ namespace WAVM {
         };
 
         // An immutable global that provides typed initialization and reading of the global's value.
-        template<typename Value>
-        struct GenericGlobal : Global {
+        template<typename Value> struct GenericGlobal : Global {
             GenericGlobal(Intrinsics::Module &moduleRef, const char *inName, Value inValue)
-                    : Global(moduleRef,
-                             inName,
-                             IR::inferValueType<Value>(),
-                             IR::Value(IR::inferValueType<Value>(), inValue)) {
+                    : Global(moduleRef, inName, IR::inferValueType<Value>(), IR::Value(IR::inferValueType<Value>(), inValue)) {
             }
         };
 
@@ -117,28 +107,19 @@ namespace WAVM {
 
         // Create a new return type for intrinsic functions that return their result in the
         // ContextRuntimeData buffer.
-        template<typename Result>
-        struct ResultInContextRuntimeData;
+        template<typename Result> struct ResultInContextRuntimeData;
 
-        template<typename Result>
-        ResultInContextRuntimeData<Result> *resultInContextRuntimeData(
-                Runtime::ContextRuntimeData *contextRuntimeData,
-                Result result) {
+        template<typename Result> ResultInContextRuntimeData<Result> *resultInContextRuntimeData(Runtime::ContextRuntimeData *contextRuntimeData, Result result) {
             *reinterpret_cast<Result *>(contextRuntimeData) = result;
             return reinterpret_cast<ResultInContextRuntimeData<Result> *>(contextRuntimeData);
         }
 
-        template<typename R, typename... Args>
-        IR::FunctionType inferIntrinsicFunctionType(R (*)(Runtime::ContextRuntimeData *, Args...)) {
-            return IR::FunctionType(IR::inferResultType<R>(),
-                                    IR::TypeTuple({IR::inferValueType<Args>()...}));
+        template<typename R, typename... Args> IR::FunctionType inferIntrinsicFunctionType(R (*)(Runtime::ContextRuntimeData *, Args...)) {
+            return IR::FunctionType(IR::inferResultType<R>(), IR::TypeTuple({IR::inferValueType<Args>()...}));
         }
 
-        template<typename R, typename... Args>
-        IR::FunctionType inferIntrinsicWithContextSwitchFunctionType(
-                ResultInContextRuntimeData<R> *(*)(Runtime::ContextRuntimeData *, Args...)) {
-            return IR::FunctionType(IR::inferResultType<R>(),
-                                    IR::TypeTuple({IR::inferValueType<Args>()...}));
+        template<typename R, typename... Args> IR::FunctionType inferIntrinsicWithContextSwitchFunctionType(ResultInContextRuntimeData<R> *(*)(Runtime::ContextRuntimeData *, Args...)) {
+            return IR::FunctionType(IR::inferResultType<R>(), IR::TypeTuple({IR::inferValueType<Args>()...}));
         }
     }
 }

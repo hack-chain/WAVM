@@ -57,17 +57,19 @@ bool Platform::Event::wait(U64 untilTime) {
         untilTimeSpec.tv_sec = untilTime / 1000000;
         untilTimeSpec.tv_nsec = (untilTime % 1000000) * 1000;
 
-        result = pthread_cond_timedwait(
-                (pthread_cond_t *) &pthreadCond, (pthread_mutex_t *) &pthreadMutex, &untilTimeSpec);
+        result = pthread_cond_timedwait((pthread_cond_t *) &pthreadCond, (pthread_mutex_t *) &pthreadMutex, &untilTimeSpec);
     }
 
     errorUnless(!pthread_mutex_unlock((pthread_mutex_t *) &pthreadMutex));
 
-    if (result == ETIMEDOUT) { return false; }
-    else {
+    if (result == ETIMEDOUT) {
+        return false;
+    } else {
         errorUnless(!result);
         return true;
     }
 }
 
-void Platform::Event::signal() { errorUnless(!pthread_cond_signal((pthread_cond_t *) &pthreadCond)); }
+void Platform::Event::signal() {
+    errorUnless(!pthread_cond_signal((pthread_cond_t *) &pthreadCond));
+}

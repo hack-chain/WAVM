@@ -106,13 +106,19 @@
 *   for malloc(), free() */
 #include <stdlib.h>
 
-static void *XXH_malloc(size_t s) { return malloc(s); }
+static void *XXH_malloc(size_t s) {
+    return malloc(s);
+}
 
-static void XXH_free(void *p) { free(p); }
+static void XXH_free(void *p) {
+    free(p);
+}
 /*! and for memcpy() */
 #include <string.h>
 
-static void *XXH_memcpy(void *dest, const void *src, size_t size) { return memcpy(dest, src, size); }
+static void *XXH_memcpy(void *dest, const void *src, size_t size) {
+    return memcpy(dest, src, size);
+}
 
 #include <assert.h>   /* assert */
 
@@ -265,7 +271,9 @@ FORCE_INLINE U32 XXH_readBE32(const void *ptr) {
 ***************************************/
 #define XXH_STATIC_ASSERT(c)  { enum { XXH_sa = 1/(int)(!!(c)) }; }  /* use after variable declarations */
 
-XXH_PUBLIC_API unsigned XXH_versionNumber(void) { return XXH_VERSION_NUMBER; }
+XXH_PUBLIC_API unsigned XXH_versionNumber(void) {
+    return XXH_VERSION_NUMBER;
+}
 
 
 /* *******************************************************************
@@ -296,9 +304,7 @@ FORCE_INLINE U32 XXH32_avalanche(U32 h32) {
 
 #define XXH_get32bits(p) XXH_readLE32_align(p, endian, align)
 
-FORCE_INLINE U32
-XXH32_finalize(U32 h32, const void *ptr, size_t len,
-               XXH_endianess endian, XXH_alignment align) {
+FORCE_INLINE U32 XXH32_finalize(U32 h32, const void *ptr, size_t len, XXH_endianess endian, XXH_alignment align) {
     const BYTE *p = (const BYTE *) ptr;
 #define PROCESS1             \
     h32 += (*p) * PRIME32_5; \
@@ -371,9 +377,7 @@ XXH32_finalize(U32 h32, const void *ptr, size_t len,
 }
 
 
-FORCE_INLINE U32
-XXH32_endian_align(const void *input, size_t len, U32 seed,
-                   XXH_endianess endian, XXH_alignment align) {
+FORCE_INLINE U32 XXH32_endian_align(const void *input, size_t len, U32 seed, XXH_endianess endian, XXH_alignment align) {
     const BYTE *p = (const BYTE *) input;
     const BYTE *bEnd = p + len;
     U32 h32;
@@ -403,8 +407,7 @@ XXH32_endian_align(const void *input, size_t len, U32 seed,
             p += 4;
         } while (p < limit);
 
-        h32 = XXH_rotl32(v1, 1) + XXH_rotl32(v2, 7)
-              + XXH_rotl32(v3, 12) + XXH_rotl32(v4, 18);
+        h32 = XXH_rotl32(v1, 1) + XXH_rotl32(v2, 7) + XXH_rotl32(v3, 12) + XXH_rotl32(v4, 18);
     } else {
         h32 = seed + PRIME32_5;
     }
@@ -551,15 +554,12 @@ XXH_PUBLIC_API XXH_errorcode XXH32_update(XXH32_state_t *state_in, const void *i
 }
 
 
-FORCE_INLINE U32
-XXH32_digest_endian(const XXH32_state_t *state, XXH_endianess endian) {
+FORCE_INLINE U32 XXH32_digest_endian(const XXH32_state_t *state, XXH_endianess endian) {
     U32 h32;
 
     if (state->large_len) {
-        h32 = XXH_rotl32(state->v1, 1)
-              + XXH_rotl32(state->v2, 7)
-              + XXH_rotl32(state->v3, 12)
-              + XXH_rotl32(state->v4, 18);
+        h32 = XXH_rotl32(state->v1, 1) + XXH_rotl32(state->v2, 7) + XXH_rotl32(state->v3, 12) +
+              XXH_rotl32(state->v4, 18);
     } else {
         h32 = state->v3 /* == seed */ + PRIME32_5;
     }
@@ -590,7 +590,8 @@ XXH_PUBLIC_API unsigned int XXH32_digest(const XXH32_state_t *state_in) {
 
 XXH_PUBLIC_API void XXH32_canonicalFromHash(XXH32_canonical_t *dst, XXH32_hash_t hash) {
     XXH_STATIC_ASSERT(sizeof(XXH32_canonical_t) == sizeof(XXH32_hash_t));
-    if (XXH_CPU_LITTLE_ENDIAN) hash = XXH_swap32(hash);
+    if (XXH_CPU_LITTLE_ENDIAN)
+        hash = XXH_swap32(hash);
     memcpy(dst, &hash, sizeof(*dst));
 }
 
@@ -717,9 +718,7 @@ FORCE_INLINE U64 XXH64_avalanche(U64 h64) {
 
 #define XXH_get64bits(p) XXH_readLE64_align(p, endian, align)
 
-FORCE_INLINE U64
-XXH64_finalize(U64 h64, const void *ptr, size_t len,
-               XXH_endianess endian, XXH_alignment align) {
+FORCE_INLINE U64 XXH64_finalize(U64 h64, const void *ptr, size_t len, XXH_endianess endian, XXH_alignment align) {
     const BYTE *p = (const BYTE *) ptr;
 
 #define PROCESS1_64          \
@@ -834,9 +833,7 @@ XXH64_finalize(U64 h64, const void *ptr, size_t len,
     return 0;  /* unreachable, but some compilers complain without it */
 }
 
-FORCE_INLINE U64
-XXH64_endian_align(const void *input, size_t len, U64 seed,
-                   XXH_endianess endian, XXH_alignment align) {
+FORCE_INLINE U64 XXH64_endian_align(const void *input, size_t len, U64 seed, XXH_endianess endian, XXH_alignment align) {
     const BYTE *p = (const BYTE *) input;
     const BYTE *bEnd = p + len;
     U64 h64;
@@ -1043,7 +1040,8 @@ XXH_PUBLIC_API unsigned long long XXH64_digest(const XXH64_state_t *state_in) {
 
 XXH_PUBLIC_API void XXH64_canonicalFromHash(XXH64_canonical_t *dst, XXH64_hash_t hash) {
     XXH_STATIC_ASSERT(sizeof(XXH64_canonical_t) == sizeof(XXH64_hash_t));
-    if (XXH_CPU_LITTLE_ENDIAN) hash = XXH_swap64(hash);
+    if (XXH_CPU_LITTLE_ENDIAN)
+        hash = XXH_swap64(hash);
     memcpy(dst, &hash, sizeof(*dst));
 }
 

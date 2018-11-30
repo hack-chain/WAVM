@@ -85,14 +85,11 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
         }
     }
 
-    virtual bool needsToReserveAllocationSpace() override { return true; }
+    virtual bool needsToReserveAllocationSpace() override {
+        return true;
+    }
 
-    virtual void reserveAllocationSpace(uintptr_t numCodeBytes,
-                                        U32 codeAlignment,
-                                        uintptr_t numReadOnlyBytes,
-                                        U32 readOnlyAlignment,
-                                        uintptr_t numReadWriteBytes,
-                                        U32 readWriteAlignment) override {
+    virtual void reserveAllocationSpace(uintptr_t numCodeBytes, U32 codeAlignment, uintptr_t numReadOnlyBytes, U32 readOnlyAlignment, uintptr_t numReadWriteBytes, U32 readWriteAlignment) override {
         if (USE_WINDOWS_SEH) {
             // Pad the code section to allow for the SEH trampoline.
             numCodeBytes += 32;
@@ -102,38 +99,27 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
         codeSection.numPages = shrAndRoundUp(numCodeBytes, Platform::getPageSizeLog2());
         readOnlySection.numPages = shrAndRoundUp(numReadOnlyBytes, Platform::getPageSizeLog2());
         readWriteSection.numPages = shrAndRoundUp(numReadWriteBytes, Platform::getPageSizeLog2());
-        numAllocatedImagePages
-                = codeSection.numPages + readOnlySection.numPages + readWriteSection.numPages;
+        numAllocatedImagePages = codeSection.numPages + readOnlySection.numPages + readWriteSection.numPages;
         if (numAllocatedImagePages) {
             // Reserve enough contiguous pages for all sections.
             imageBaseAddress = Platform::allocateVirtualPages(numAllocatedImagePages);
-            if (!imageBaseAddress
-                || !Platform::commitVirtualPages(imageBaseAddress, numAllocatedImagePages)) {
+            if (!imageBaseAddress || !Platform::commitVirtualPages(imageBaseAddress, numAllocatedImagePages)) {
                 Errors::fatal("memory allocation for JIT code failed");
             }
             codeSection.baseAddress = imageBaseAddress;
-            readOnlySection.baseAddress
-                    = codeSection.baseAddress + (codeSection.numPages << Platform::getPageSizeLog2());
-            readWriteSection.baseAddress
-                    = readOnlySection.baseAddress
-                      + (readOnlySection.numPages << Platform::getPageSizeLog2());
+            readOnlySection.baseAddress =
+                    codeSection.baseAddress + (codeSection.numPages << Platform::getPageSizeLog2());
+            readWriteSection.baseAddress =
+                    readOnlySection.baseAddress + (readOnlySection.numPages << Platform::getPageSizeLog2());
         }
     }
 
-    virtual U8 *allocateCodeSection(uintptr_t numBytes,
-                                    U32 alignment,
-                                    U32 sectionID,
-                                    llvm::StringRef sectionName) override {
+    virtual U8 *allocateCodeSection(uintptr_t numBytes, U32 alignment, U32 sectionID, llvm::StringRef sectionName) override {
         return allocateBytes((Uptr) numBytes, alignment, codeSection);
     }
 
-    virtual U8 *allocateDataSection(uintptr_t numBytes,
-                                    U32 alignment,
-                                    U32 sectionID,
-                                    llvm::StringRef SectionName,
-                                    bool isReadOnly) override {
-        return allocateBytes(
-                (Uptr) numBytes, alignment, isReadOnly ? readOnlySection : readWriteSection);
+    virtual U8 *allocateDataSection(uintptr_t numBytes, U32 alignment, U32 sectionID, llvm::StringRef SectionName, bool isReadOnly) override {
+        return allocateBytes((Uptr) numBytes, alignment, isReadOnly ? readOnlySection : readWriteSection);
     }
 
     virtual bool finalizeMemory(std::string *ErrMsg = nullptr) override {
@@ -148,30 +134,29 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
         isFinalized = true;
         const Platform::MemoryAccess codeAccess = Platform::MemoryAccess::execute;
         if (codeSection.numPages) {
-            errorUnless(Platform::setVirtualPageAccess(
-                    codeSection.baseAddress, codeSection.numPages, codeAccess));
+            errorUnless(Platform::setVirtualPageAccess(codeSection.baseAddress, codeSection.numPages, codeAccess));
         }
         if (readOnlySection.numPages) {
-            errorUnless(Platform::setVirtualPageAccess(readOnlySection.baseAddress,
-                                                       readOnlySection.numPages,
-                                                       Platform::MemoryAccess::readOnly));
+            errorUnless(Platform::setVirtualPageAccess(readOnlySection.baseAddress, readOnlySection.numPages, Platform::MemoryAccess::readOnly));
         }
         if (readWriteSection.numPages) {
-            errorUnless(Platform::setVirtualPageAccess(readWriteSection.baseAddress,
-                                                       readWriteSection.numPages,
-                                                       Platform::MemoryAccess::readWrite));
+            errorUnless(Platform::setVirtualPageAccess(readWriteSection.baseAddress, readWriteSection.numPages, Platform::MemoryAccess::readWrite));
         }
     }
 
     virtual void invalidateInstructionCache() {
         // Invalidate the instruction cache for the whole image.
-        llvm::sys::Memory::InvalidateInstructionCache(
-                imageBaseAddress, numAllocatedImagePages << Platform::getPageSizeLog2());
+        llvm::sys::Memory::InvalidateInstructionCache(imageBaseAddress,
+                                                      numAllocatedImagePages << Platform::getPageSizeLog2());
     }
 
-    U8 *getImageBaseAddress() const { return imageBaseAddress; }
+    U8 *getImageBaseAddress() const {
+        return imageBaseAddress;
+    }
 
-    Uptr getNumImageBytes() const { return numAllocatedImagePages << Platform::getPageSizeLog2(); }
+    Uptr getNumImageBytes() const {
+        return numAllocatedImagePages << Platform::getPageSizeLog2();
+    }
 
 private:
     struct Section {
@@ -198,11 +183,9 @@ private:
         wavmAssert(!isFinalized);
 
         // Allocate the section at the lowest uncommitted byte of image memory.
-        U8 *allocationBaseAddress
-                = section.baseAddress + align(section.numCommittedBytes, alignment);
+        U8 *allocationBaseAddress = section.baseAddress + align(section.numCommittedBytes, alignment);
         wavmAssert(!(reinterpret_cast<Uptr>(allocationBaseAddress) & (alignment - 1)));
-        section.numCommittedBytes
-                = align(section.numCommittedBytes, alignment) + align(numBytes, alignment);
+        section.numCommittedBytes = align(section.numCommittedBytes, alignment) + align(numBytes, alignment);
 
         // Check that enough space was reserved in the section.
         if (section.numCommittedBytes > (section.numPages << Platform::getPageSizeLog2())) {
@@ -226,20 +209,16 @@ private:
 };
 
 static void disassembleFunction(U8 *bytes, Uptr numBytes) {
-    LLVMDisasmContextRef disasmRef
-            = LLVMCreateDisasm(llvm::sys::getProcessTriple().c_str(), nullptr, 0, nullptr, nullptr);
+    LLVMDisasmContextRef disasmRef = LLVMCreateDisasm(llvm::sys::getProcessTriple().c_str(), nullptr, 0, nullptr, nullptr);
 
     U8 *nextByte = bytes;
     Uptr numBytesRemaining = numBytes;
     while (numBytesRemaining) {
         char instructionBuffer[256];
-        Uptr numInstructionBytes = LLVMDisasmInstruction(disasmRef,
-                                                         nextByte,
-                                                         numBytesRemaining,
-                                                         reinterpret_cast<Uptr>(nextByte),
-                                                         instructionBuffer,
-                                                         sizeof(instructionBuffer));
-        if (numInstructionBytes == 0) { numInstructionBytes = 1; }
+        Uptr numInstructionBytes = LLVMDisasmInstruction(disasmRef, nextByte, numBytesRemaining, reinterpret_cast<Uptr>(nextByte), instructionBuffer, sizeof(instructionBuffer));
+        if (numInstructionBytes == 0) {
+            numInstructionBytes = 1;
+        }
         wavmAssert(numInstructionBytes <= numBytesRemaining);
         numBytesRemaining -= numInstructionBytes;
         nextByte += numInstructionBytes;
@@ -250,20 +229,16 @@ static void disassembleFunction(U8 *bytes, Uptr numBytes) {
     LLVMDisasmDispose(disasmRef);
 }
 
-Module::Module(const std::vector<U8> &inObjectBytes,
-               const HashMap<std::string, Uptr> &importedSymbolMap,
-               bool shouldLogMetrics)
+Module::Module(const std::vector<U8> &inObjectBytes, const HashMap<std::string, Uptr> &importedSymbolMap, bool shouldLogMetrics)
         : memoryManager(new ModuleMemoryManager()), objectBytes(inObjectBytes) {
 
-    object = cantFail(llvm::object::ObjectFile::createObjectFile(llvm::MemoryBufferRef(
-            llvm::StringRef((const char *) objectBytes.data(), objectBytes.size()), "memory")));
+    object = cantFail(llvm::object::ObjectFile::createObjectFile(llvm::MemoryBufferRef(llvm::StringRef((const char *) objectBytes.data(), objectBytes.size()), "memory")));
 
     // Create the LLVM object loader.
     struct SymbolResolver : llvm::JITSymbolResolver {
         const HashMap<std::string, Uptr> &importedSymbolMap;
 
-        SymbolResolver(const HashMap<std::string, Uptr> &inImportedSymbolMap)
-                : importedSymbolMap(inImportedSymbolMap) {
+        SymbolResolver(const HashMap<std::string, Uptr> &inImportedSymbolMap) : importedSymbolMap(inImportedSymbolMap) {
         }
 
 #if LLVM_VERSION_MAJOR >= 8
@@ -282,13 +257,17 @@ Module::Module(const std::vector<U8> &inObjectBytes,
 
         virtual llvm::Expected<LookupResult> lookup(const LookupSet &symbols) override {
             LookupResult result;
-            for (auto symbol : symbols) { result.emplace(symbol, findSymbolImpl(symbol)); }
+            for (auto symbol : symbols) {
+                result.emplace(symbol, findSymbolImpl(symbol));
+            }
             return result;
         }
 
         virtual llvm::Expected<LookupFlagsResult> lookupFlags(const LookupSet &symbols) override {
             LookupFlagsResult result;
-            for (auto symbol : symbols) { result.emplace(symbol, findSymbolImpl(symbol).getFlags()); }
+            for (auto symbol : symbols) {
+                result.emplace(symbol, findSymbolImpl(symbol).getFlags());
+            }
             return result;
         }
 
@@ -306,8 +285,9 @@ Module::Module(const std::vector<U8> &inObjectBytes,
     private:
         llvm::JITEvaluatedSymbol findSymbolImpl(llvm::StringRef name) {
             const Uptr *symbolValue = importedSymbolMap.get(name.str());
-            if (!symbolValue) { return resolveJITImport(name); }
-            else {
+            if (!symbolValue) {
+                return resolveJITImport(name);
+            } else {
                 // LLVM assumes that a symbol value of zero is a symbol that wasn't resolved.
                 wavmAssert(*symbolValue);
                 return llvm::JITEvaluatedSymbol(U64(*symbolValue), llvm::JITSymbolFlags::None);
@@ -358,7 +338,9 @@ Module::Module(const std::vector<U8> &inObjectBytes,
     // Use the LLVM object loader to load the object.
     std::unique_ptr<llvm::RuntimeDyld::LoadedObjectInfo> loadedObject = loader.loadObject(*object);
     loader.finalizeWithMemoryManagerLocking();
-    if (loader.hasError()) { Errors::fatalf("RuntimeDyld failed: %s", loader.getErrorString().data()); }
+    if (loader.hasError()) {
+        Errors::fatalf("RuntimeDyld failed: %s", loader.getErrorString().data());
+    }
 
     if (USE_WINDOWS_SEH && pdataCopy) {
         // Lookup the real address of __C_specific_handler.
@@ -374,18 +356,9 @@ Module::Module(const std::vector<U8> &inObjectBytes,
         memset(trampolineBytes + 2, 0, 4);
         memcpy(trampolineBytes + 6, &sehHandlerAddress, sizeof(U64));
 
-        processSEHTables(memoryManager->getImageBaseAddress(),
-                         *loadedObject,
-                         pdataSection,
-                         pdataCopy,
-                         pdataNumBytes,
-                         xdataSection,
-                         xdataCopy,
-                         reinterpret_cast<Uptr>(trampolineBytes));
+        processSEHTables(memoryManager->getImageBaseAddress(), *loadedObject, pdataSection, pdataCopy, pdataNumBytes, xdataSection, xdataCopy, reinterpret_cast<Uptr>(trampolineBytes));
 
-        memoryManager->registerFixedSEHFrames(
-                reinterpret_cast<U8 *>(Uptr(loadedObject->getSectionLoadAddress(pdataSection))),
-                pdataNumBytes);
+        memoryManager->registerFixedSEHFrames(reinterpret_cast<U8 *>(Uptr(loadedObject->getSectionLoadAddress(pdataSection))), pdataNumBytes);
     }
 
     // Free the copies of the Windows SEH sections created above.
@@ -403,7 +376,9 @@ Module::Module(const std::vector<U8> &inObjectBytes,
     memoryManager->reallyFinalizeMemory();
 
     // Notify GDB of the new object.
-    if (!gdbRegistrationListener) { gdbRegistrationListener = llvm::JITEventListener::createGDBRegistrationListener(); }
+    if (!gdbRegistrationListener) {
+        gdbRegistrationListener = llvm::JITEventListener::createGDBRegistrationListener();
+    }
     gdbRegistrationListener->NotifyObjectEmitted(*object, *loadedObject);
 
     // Create a DWARF context to interpret the debug information in this compilation unit.
@@ -417,11 +392,17 @@ Module::Module(const std::vector<U8> &inObjectBytes,
         // Get the type, name, and address of the symbol. Need to be careful not to get the
         // Expected<T> for each value unless it will be checked for success before continuing.
         llvm::Expected<llvm::object::SymbolRef::Type> type = symbol.getType();
-        if (!type || *type != llvm::object::SymbolRef::ST_Function) { continue; }
+        if (!type || *type != llvm::object::SymbolRef::ST_Function) {
+            continue;
+        }
         llvm::Expected<llvm::StringRef> name = symbol.getName();
-        if (!name) { continue; }
+        if (!name) {
+            continue;
+        }
         llvm::Expected<U64> address = symbol.getAddress();
-        if (!address) { continue; }
+        if (!address) {
+            continue;
+        }
 
         // Compute the address the function was loaded at.
         wavmAssert(*address <= UINTPTR_MAX);
@@ -432,8 +413,7 @@ Module::Module(const std::vector<U8> &inObjectBytes,
 
         // Get the DWARF line info for this symbol, which maps machine code addresses to
         // WebAssembly op indices.
-        llvm::DILineInfoTable lineInfoTable
-                = dwarfContext->getLineInfoForAddressRange(loadedAddress, symbolSizePair.second);
+        llvm::DILineInfoTable lineInfoTable = dwarfContext->getLineInfoForAddressRange(loadedAddress, symbolSizePair.second);
         std::map<U32, U32> offsetToOpIndexMap;
         for (auto lineInfo : lineInfoTable) {
             offsetToOpIndexMap.emplace(U32(lineInfo.first - loadedAddress), lineInfo.second.Line);
@@ -446,8 +426,7 @@ Module::Module(const std::vector<U8> &inObjectBytes,
 
         // Add the function to the module's name and address to function maps.
         wavmAssert(symbolSizePair.second <= UINTPTR_MAX);
-        Runtime::Function *function
-                = (Runtime::Function *) (loadedAddress - offsetof(Runtime::Function, code));
+        Runtime::Function *function = (Runtime::Function *) (loadedAddress - offsetof(Runtime::Function, code));
         nameToFunctionMap.addOrFail(*name, function);
         addressToFunctionMap.emplace(Uptr(loadedAddress + symbolSizePair.second), function);
 
@@ -459,8 +438,8 @@ Module::Module(const std::vector<U8> &inObjectBytes,
         function->mutableData->offsetToOpIndexMap = std::move(std::move(offsetToOpIndexMap));
     }
 
-    const Uptr moduleEndAddress = reinterpret_cast<Uptr>(memoryManager->getImageBaseAddress()
-                                                         + memoryManager->getNumImageBytes());
+    const Uptr moduleEndAddress = reinterpret_cast<Uptr>(memoryManager->getImageBaseAddress() +
+                                                         memoryManager->getNumImageBytes());
     {
         Lock<Platform::Mutex> addressToModuleMapLock(addressToModuleMapMutex);
         addressToModuleMap.emplace(moduleEndAddress, this);
@@ -478,24 +457,15 @@ Module::~Module() {
                                                              memoryManager->getNumImageBytes())));
 
     // Free the FunctionMutableData objects.
-    for (const auto &pair : addressToFunctionMap) { delete pair.second->mutableData; }
+    for (const auto &pair : addressToFunctionMap) {
+        delete pair.second->mutableData;
+    }
 
     // Delete the memory manager.
     delete memoryManager;
 }
 
-std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(
-        const std::vector<U8> &objectFileBytes,
-        HashMap<std::string, FunctionBinding> &&wavmIntrinsicsExportMap,
-        std::vector<IR::FunctionType> &&types,
-        std::vector<FunctionBinding> &&functionImports,
-        std::vector<TableBinding> &&tables,
-        std::vector<MemoryBinding> &&memories,
-        std::vector<GlobalBinding> &&globals,
-        std::vector<ExceptionTypeBinding> &&exceptionTypes,
-        ModuleInstanceBinding moduleInstance,
-        Uptr tableReferenceBias,
-        const std::vector<Runtime::FunctionMutableData *> &functionDefMutableDatas) {
+std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(const std::vector<U8> &objectFileBytes, HashMap<std::string, FunctionBinding> &&wavmIntrinsicsExportMap, std::vector<IR::FunctionType> &&types, std::vector<FunctionBinding> &&functionImports, std::vector<TableBinding> &&tables, std::vector<MemoryBinding> &&memories, std::vector<GlobalBinding> &&globals, std::vector<ExceptionTypeBinding> &&exceptionTypes, ModuleInstanceBinding moduleInstance, Uptr tableReferenceBias, const std::vector<Runtime::FunctionMutableData *> &functionDefMutableDatas) {
     // Bind undefined symbols in the compiled object to values.
     HashMap<std::string, Uptr> importedSymbolMap;
 
@@ -503,36 +473,33 @@ std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(
     // calling convention, so no thunking is necessary.
     for (auto exportMapPair : wavmIntrinsicsExportMap) {
         wavmAssert(exportMapPair.value.callingConvention == IR::CallingConvention::intrinsic);
-        importedSymbolMap.addOrFail(exportMapPair.key,
-                                    reinterpret_cast<Uptr>(exportMapPair.value.code));
+        importedSymbolMap.addOrFail(exportMapPair.key, reinterpret_cast<Uptr>(exportMapPair.value.code));
     }
 
     // Bind the type ID symbols.
     for (Uptr typeIndex = 0; typeIndex < types.size(); ++typeIndex) {
-        importedSymbolMap.addOrFail(getExternalName("typeId", typeIndex),
-                                    types[typeIndex].getEncoding().impl);
+        importedSymbolMap.addOrFail(getExternalName("typeId", typeIndex), types[typeIndex].getEncoding().impl);
     }
 
     // Bind imported function symbols.
     for (Uptr importIndex = 0; importIndex < functionImports.size(); ++importIndex) {
-        importedSymbolMap.addOrFail(getExternalName("functionImport", importIndex),
-                                    reinterpret_cast<Uptr>(functionImports[importIndex].code));
+        importedSymbolMap.addOrFail(getExternalName("functionImport", importIndex), reinterpret_cast<Uptr>(functionImports[importIndex].code));
     }
 
     // Bind the table symbols. The compiled module uses the symbol's value as an offset into
     // CompartmentRuntimeData to the table's entry in CompartmentRuntimeData::tableBases.
     for (Uptr tableIndex = 0; tableIndex < tables.size(); ++tableIndex) {
         importedSymbolMap.addOrFail(getExternalName("tableOffset", tableIndex),
-                                    offsetof(Runtime::CompartmentRuntimeData, tableBases)
-                                    + sizeof(void *) * tables[tableIndex].id);
+                                    offsetof(Runtime::CompartmentRuntimeData, tableBases) +
+                                    sizeof(void *) * tables[tableIndex].id);
     }
 
     // Bind the memory symbols. The compiled module uses the symbol's value as an offset into
     // CompartmentRuntimeData to the memory's entry in CompartmentRuntimeData::memoryBases.
     for (Uptr memoryIndex = 0; memoryIndex < memories.size(); ++memoryIndex) {
         importedSymbolMap.addOrFail(getExternalName("memoryOffset", memoryIndex),
-                                    offsetof(Runtime::CompartmentRuntimeData, memoryBases)
-                                    + sizeof(void *) * memories[memoryIndex].id);
+                                    offsetof(Runtime::CompartmentRuntimeData, memoryBases) +
+                                    sizeof(void *) * memories[memoryIndex].id);
     }
 
     // Bind the globals symbols.
@@ -542,8 +509,8 @@ std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(
         if (globalSpec.type.isMutable) {
             // If the global is mutable, bind the symbol to the offset into
             // ContextRuntimeData::globalData where it is stored.
-            value = offsetof(Runtime::ContextRuntimeData, mutableGlobals)
-                    + globalSpec.mutableGlobalIndex * sizeof(IR::UntaggedValue);
+            value = offsetof(Runtime::ContextRuntimeData, mutableGlobals) +
+                    globalSpec.mutableGlobalIndex * sizeof(IR::UntaggedValue);
         } else {
             // Otherwise, bind the symbol to a pointer to the global's immutable value.
             value = reinterpret_cast<Uptr>(globalSpec.immutableValuePointer);
@@ -552,20 +519,16 @@ std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(
     }
 
     // Bind exception type symbols to point to the exception type instance.
-    for (Uptr exceptionTypeIndex = 0; exceptionTypeIndex < exceptionTypes.size();
-         ++exceptionTypeIndex) {
+    for (Uptr exceptionTypeIndex = 0; exceptionTypeIndex < exceptionTypes.size(); ++exceptionTypeIndex) {
         importedSymbolMap.addOrFail(getExternalName("biasedExceptionTypeId", exceptionTypeIndex),
                                     exceptionTypes[exceptionTypeIndex].id + 1);
     }
 
     // Allocate FunctionMutableData objects for each function def, and bind them to the symbols
     // imported by the compiled module.
-    for (Uptr functionDefIndex = 0; functionDefIndex < functionDefMutableDatas.size();
-         ++functionDefIndex) {
-        Runtime::FunctionMutableData *functionMutableData
-                = functionDefMutableDatas[functionDefIndex];
-        importedSymbolMap.addOrFail(getExternalName("functionDefMutableDatas", functionDefIndex),
-                                    reinterpret_cast<Uptr>(functionMutableData));
+    for (Uptr functionDefIndex = 0; functionDefIndex < functionDefMutableDatas.size(); ++functionDefIndex) {
+        Runtime::FunctionMutableData *functionMutableData = functionDefMutableDatas[functionDefIndex];
+        importedSymbolMap.addOrFail(getExternalName("functionDefMutableDatas", functionDefIndex), reinterpret_cast<Uptr>(functionMutableData));
     }
 
     // Bind the moduleInstance symbol to point to the ModuleInstance.
@@ -575,8 +538,7 @@ std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(
     // Bind the tableReferenceBias symbol to the tableReferenceBias.
     importedSymbolMap.addOrFail("tableReferenceBias", tableReferenceBias);
 
-    importedSymbolMap.addOrFail("userExceptionTypeInfo",
-                                reinterpret_cast<Uptr>(Platform::getUserExceptionTypeInfo()));
+    importedSymbolMap.addOrFail("userExceptionTypeInfo", reinterpret_cast<Uptr>(Platform::getUserExceptionTypeInfo()));
 
     // Load the module.
     return std::make_shared<Module>(objectFileBytes, importedSymbolMap, true);
@@ -587,15 +549,17 @@ Runtime::Function *LLVMJIT::getFunctionByAddress(Uptr address) {
     {
         Lock<Platform::Mutex> addressToModuleMapLock(addressToModuleMapMutex);
         auto moduleIt = addressToModuleMap.upper_bound(address);
-        if (moduleIt == addressToModuleMap.end()) { return nullptr; }
+        if (moduleIt == addressToModuleMap.end()) {
+            return nullptr;
+        }
         jitModule = moduleIt->second;
     }
 
     auto functionIt = jitModule->addressToFunctionMap.upper_bound(address);
-    if (functionIt == jitModule->addressToFunctionMap.end()) { return nullptr; }
+    if (functionIt == jitModule->addressToFunctionMap.end()) {
+        return nullptr;
+    }
     Runtime::Function *function = functionIt->second;
     const Uptr codeAddress = reinterpret_cast<Uptr>(function->code);
-    return address >= codeAddress && address < codeAddress + function->mutableData->numCodeBytes
-           ? function
-           : nullptr;
+    return address >= codeAddress && address < codeAddress + function->mutableData->numCodeBytes ? function : nullptr;
 }

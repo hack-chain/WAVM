@@ -13,7 +13,9 @@ namespace WAVM {
             Platform::handleFatalError(messageFormat, false, varArgs);
         }
 
-        [[noreturn]] inline void fatal(const char *message) { fatalf("%s", message); }
+        [[noreturn]] inline void fatal(const char *message) {
+            fatalf("%s", message);
+        }
 
         [[noreturn]] inline void unreachable() {
             va_list varArgs{};

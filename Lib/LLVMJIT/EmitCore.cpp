@@ -24,8 +24,7 @@ void EmitFunctionContext::block(ControlStructureImm imm) {
     auto endPHIs = createPHIs(endBlock, blockType.results());
 
     // Pop the block arguments.
-    llvm::Value **blockArgs
-            = (llvm::Value **) alloca(sizeof(llvm::Value *) * blockType.params().size());
+    llvm::Value **blockArgs = (llvm::Value **) alloca(sizeof(llvm::Value *) * blockType.params().size());
     popMultiple(blockArgs, blockType.params().size());
 
     // Push a control context that ends at the end block/phi.
@@ -55,8 +54,9 @@ void EmitFunctionContext::loop(ControlStructureImm imm) {
     irBuilder.SetInsertPoint(loopBodyBlock);
 
     // Pop the initial values of the loop's parameters from the stack.
-    for (Iptr elementIndex = Iptr(blockType.params().size()) - 1;
-         elementIndex >= 0; --elementIndex) { parameterPHIs[elementIndex]->addIncoming(pop(), loopEntryBlock); }
+    for (Iptr elementIndex = Iptr(blockType.params().size()) - 1; elementIndex >= 0; --elementIndex) {
+        parameterPHIs[elementIndex]->addIncoming(pop(), loopEntryBlock);
+    }
 
     // Push a control context that ends at the end block/phi.
     pushControlStack(ControlContext::Type::loop, blockType.results(), endBlock, endPHIs);
@@ -92,8 +92,7 @@ void EmitFunctionContext::if_(ControlStructureImm imm) {
 
     // Push an ifThen control context that ultimately ends at the end block/phi, but may be
     // terminated by an else operator that changes the control context to the else block.
-    pushControlStack(
-            ControlContext::Type::ifThen, blockType.results(), endBlock, endPHIs, elseBlock, args);
+    pushControlStack(ControlContext::Type::ifThen, blockType.results(), endBlock, endPHIs, elseBlock, args);
 
     // Push a branch target for the if end.
     pushBranchTarget(blockType.results(), endBlock, endPHIs);
@@ -115,7 +114,9 @@ void EmitFunctionContext::else_(NoImm imm) {
     irBuilder.SetInsertPoint(currentContext.elseBlock);
 
     // Push the if arguments back on the operand stack.
-    for (llvm::Value *argument : currentContext.elseArgs) { push(argument); }
+    for (llvm::Value *argument : currentContext.elseArgs) {
+        push(argument);
+    }
 
     // Change the top of the control stack to an else clause.
     currentContext.type = ControlContext::Type::ifElse;
@@ -139,13 +140,13 @@ void EmitFunctionContext::end(NoImm) {
         // block.
         wavmAssert(currentContext.elseArgs.size() == currentContext.endPHIs.size());
         for (Uptr argIndex = 0; argIndex < currentContext.elseArgs.size(); ++argIndex) {
-            currentContext.endPHIs[argIndex]->addIncoming(currentContext.elseArgs[argIndex],
-                                                          currentContext.elseBlock);
+            currentContext.endPHIs[argIndex]->addIncoming(currentContext.elseArgs[argIndex], currentContext.elseBlock);
         }
     }
 
-    if (currentContext.type == ControlContext::Type::try_) { endTry(); }
-    else if (currentContext.type == ControlContext::Type::catch_) {
+    if (currentContext.type == ControlContext::Type::try_) {
+        endTry();
+    } else if (currentContext.type == ControlContext::Type::catch_) {
         endCatch();
     }
 
@@ -164,8 +165,7 @@ void EmitFunctionContext::end(NoImm) {
                 // If there weren't any incoming values for the end PHI, remove it and push
                 // a dummy value.
                 currentContext.endPHIs[elementIndex]->eraseFromParent();
-                push(
-                        llvmContext.typedZeroConstants[(Uptr) currentContext.resultTypes[elementIndex]]);
+                push(llvmContext.typedZeroConstants[(Uptr) currentContext.resultTypes[elementIndex]]);
             }
         }
     }
@@ -188,8 +188,7 @@ void EmitFunctionContext::br_if(BranchImm imm) {
         // Take the branch target operands from the stack (without popping them) and add them to the
         // target's incoming value PHIs.
         llvm::Value *argument = getValueFromTop(target.params.size() - argIndex - 1);
-        target.phis[argIndex]->addIncoming(coerceToCanonicalType(argument),
-                                           irBuilder.GetInsertBlock());
+        target.phis[argIndex]->addIncoming(coerceToCanonicalType(argument), irBuilder.GetInsertBlock());
     }
 
     // Create a new basic block for the case where the branch is not taken.
@@ -210,8 +209,7 @@ void EmitFunctionContext::br(BranchImm imm) {
     // PHIs.
     for (Iptr argIndex = Iptr(target.params.size()) - 1; argIndex >= 0; --argIndex) {
         llvm::Value *argument = pop();
-        target.phis[argIndex]->addIncoming(coerceToCanonicalType(argument),
-                                           irBuilder.GetInsertBlock());
+        target.phis[argIndex]->addIncoming(coerceToCanonicalType(argument), irBuilder.GetInsertBlock());
     }
 
     // Branch to the target block.
@@ -235,15 +233,13 @@ void EmitFunctionContext::br_table(BranchTableImm imm) {
 
     // Add the branch arguments to the default target's parameter PHI nodes.
     for (Uptr argIndex = 0; argIndex < numArgs; ++argIndex) {
-        defaultTarget.phis[argIndex]->addIncoming(coerceToCanonicalType(args[argIndex]),
-                                                  irBuilder.GetInsertBlock());
+        defaultTarget.phis[argIndex]->addIncoming(coerceToCanonicalType(args[argIndex]), irBuilder.GetInsertBlock());
     }
 
     // Create a LLVM switch instruction.
     wavmAssert(imm.branchTableIndex < functionDef.branchTables.size());
     const std::vector<Uptr> &targetDepths = functionDef.branchTables[imm.branchTableIndex];
-    auto llvmSwitch
-            = irBuilder.CreateSwitch(index, defaultTarget.block, (unsigned int) targetDepths.size());
+    auto llvmSwitch = irBuilder.CreateSwitch(index, defaultTarget.block, (unsigned int) targetDepths.size());
 
     for (Uptr targetIndex = 0; targetIndex < targetDepths.size(); ++targetIndex) {
         BranchTarget &target = getBranchTargetByDepth(targetDepths[targetIndex]);
@@ -255,8 +251,7 @@ void EmitFunctionContext::br_table(BranchTableImm imm) {
         // Add the branch arguments to the PHI nodes for the branch target's parameters.
         wavmAssert(target.phis.size() == numArgs);
         for (Uptr argIndex = 0; argIndex < numArgs; ++argIndex) {
-            target.phis[argIndex]->addIncoming(coerceToCanonicalType(args[argIndex]),
-                                               irBuilder.GetInsertBlock());
+            target.phis[argIndex]->addIncoming(coerceToCanonicalType(args[argIndex]), irBuilder.GetInsertBlock());
         }
     }
 
@@ -268,8 +263,7 @@ void EmitFunctionContext::return_(NoImm) {
     // PHIs.
     for (Iptr argIndex = functionType.results().size() - 1; argIndex >= 0; --argIndex) {
         llvm::Value *argument = pop();
-        controlStack[0].endPHIs[argIndex]->addIncoming(coerceToCanonicalType(argument),
-                                                       irBuilder.GetInsertBlock());
+        controlStack[0].endPHIs[argIndex]->addIncoming(coerceToCanonicalType(argument), irBuilder.GetInsertBlock());
     }
 
     // Branch to the return block.
@@ -308,14 +302,12 @@ void EmitFunctionContext::call(FunctionImm imm) {
     }
 
     // Call the function.
-    ValueVector results = emitCallOrInvoke(callee,
-                                           llvm::ArrayRef<llvm::Value *>(llvmArgs, numArguments),
-                                           calleeType,
-                                           CallingConvention::wasm,
-                                           getInnermostUnwindToBlock());
+    ValueVector results = emitCallOrInvoke(callee, llvm::ArrayRef<llvm::Value *>(llvmArgs, numArguments), calleeType, CallingConvention::wasm, getInnermostUnwindToBlock());
 
     // Push the results on the operand stack.
-    for (llvm::Value *result : results) { push(result); }
+    for (llvm::Value *result : results) {
+        push(result);
+    }
 }
 
 void EmitFunctionContext::call_indirect(CallIndirectImm imm) {
@@ -339,60 +331,36 @@ void EmitFunctionContext::call_indirect(CallIndirectImm imm) {
     // Zero extend the function index to the pointer size.
     auto functionIndexZExt = zext(tableElementIndex, llvmContext.iptrType);
 
-    auto tableBasePointer = loadFromUntypedPointer(
-            irBuilder.CreateInBoundsGEP(getCompartmentAddress(),
-                                        {moduleContext.tableOffsets[imm.tableIndex]}),
-            llvmContext.iptrType->getPointerTo(),
-            sizeof(Uptr));
+    auto tableBasePointer = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(getCompartmentAddress(), {moduleContext.tableOffsets[imm.tableIndex]}), llvmContext.iptrType->getPointerTo(), sizeof(Uptr));
 
     // Load the anyfunc referenced by the table.
     auto elementPointer = irBuilder.CreateInBoundsGEP(tableBasePointer, {functionIndexZExt});
     llvm::LoadInst *biasedValueLoad = irBuilder.CreateLoad(elementPointer);
     biasedValueLoad->setAtomic(llvm::AtomicOrdering::Acquire);
     biasedValueLoad->setAlignment(sizeof(Uptr));
-    auto runtimeFunction = irBuilder.CreateIntToPtr(
-            irBuilder.CreateAdd(biasedValueLoad, moduleContext.tableReferenceBias),
-            llvmContext.i8PtrType);
-    auto elementTypeId = loadFromUntypedPointer(
-            irBuilder.CreateInBoundsGEP(
-                    runtimeFunction,
-                    emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, encodedType)))),
-            llvmContext.iptrType,
-            sizeof(Uptr));
+    auto runtimeFunction = irBuilder.CreateIntToPtr(irBuilder.CreateAdd(biasedValueLoad, moduleContext.tableReferenceBias), llvmContext.i8PtrType);
+    auto elementTypeId = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(runtimeFunction, emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, encodedType)))), llvmContext.iptrType, sizeof(Uptr));
     auto calleeTypeId = moduleContext.typeIds[imm.type.index];
 
     // If the function type doesn't match, trap.
-    emitConditionalTrapIntrinsic(
-            irBuilder.CreateICmpNE(calleeTypeId, elementTypeId),
-            "callIndirectFail",
-            FunctionType(TypeTuple(),
-                         TypeTuple({ValueType::i32,
-                                    inferValueType<Uptr>(),
-                                    ValueType::anyfunc,
-                                    inferValueType<Uptr>()})),
-            {tableElementIndex,
-             getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex]),
-             irBuilder.CreatePointerCast(runtimeFunction, llvmContext.anyrefType),
-             calleeTypeId});
+    emitConditionalTrapIntrinsic(irBuilder.CreateICmpNE(calleeTypeId, elementTypeId), "callIndirectFail", FunctionType(TypeTuple(), TypeTuple({ValueType::i32, inferValueType<Uptr>(), ValueType::anyfunc, inferValueType<Uptr>()})), {tableElementIndex, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex]), irBuilder.CreatePointerCast(runtimeFunction, llvmContext.anyrefType), calleeTypeId});
 
     // Call the function loaded from the table.
-    auto functionPointer = irBuilder.CreatePointerCast(
-            irBuilder.CreateInBoundsGEP(
-                    runtimeFunction, emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code)))),
-            asLLVMType(llvmContext, calleeType, CallingConvention::wasm)->getPointerTo());
-    ValueVector results = emitCallOrInvoke(functionPointer,
-                                           llvm::ArrayRef<llvm::Value *>(llvmArgs, numArguments),
-                                           calleeType,
-                                           CallingConvention::wasm,
-                                           getInnermostUnwindToBlock());
+    auto functionPointer = irBuilder.CreatePointerCast(irBuilder.CreateInBoundsGEP(runtimeFunction, emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code)))), asLLVMType(llvmContext, calleeType, CallingConvention::wasm)->getPointerTo());
+    ValueVector results = emitCallOrInvoke(functionPointer, llvm::ArrayRef<llvm::Value *>(llvmArgs, numArguments), calleeType, CallingConvention::wasm, getInnermostUnwindToBlock());
 
     // Push the results on the operand stack.
-    for (llvm::Value *result : results) { push(result); }
+    for (llvm::Value *result : results) {
+        push(result);
+    }
 }
 
-void EmitFunctionContext::nop(IR::NoImm) {}
+void EmitFunctionContext::nop(IR::NoImm) {
+}
 
-void EmitFunctionContext::drop(IR::NoImm) { stack.pop_back(); }
+void EmitFunctionContext::drop(IR::NoImm) {
+    stack.pop_back();
+}
 
 void EmitFunctionContext::select(IR::NoImm) {
     auto condition = pop();

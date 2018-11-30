@@ -15,14 +15,11 @@ Runtime::Compartment::Compartment()
 // Use UINTPTR_MAX as an invalid ID for globals, exception types, and module instances.
         , globals(0, UINTPTR_MAX - 1), exceptionTypes(0, UINTPTR_MAX - 1), moduleInstances(0, UINTPTR_MAX - 1),
           contexts(0, maxContexts - 1) {
-    runtimeData = (CompartmentRuntimeData *) Platform::allocateAlignedVirtualPages(
-            compartmentReservedBytes >> Platform::getPageSizeLog2(),
-            compartmentRuntimeDataAlignmentLog2,
-            unalignedRuntimeData);
+    runtimeData = (CompartmentRuntimeData *) Platform::allocateAlignedVirtualPages(compartmentReservedBytes
+                                                                                           >> Platform::getPageSizeLog2(), compartmentRuntimeDataAlignmentLog2, unalignedRuntimeData);
 
-    errorUnless(Platform::commitVirtualPages(
-            (U8 *) runtimeData,
-            offsetof(CompartmentRuntimeData, contexts) >> Platform::getPageSizeLog2()));
+    errorUnless(Platform::commitVirtualPages((U8 *) runtimeData, offsetof(CompartmentRuntimeData, contexts)
+            >> Platform::getPageSizeLog2()));
 
     runtimeData->compartment = this;
 }
@@ -37,14 +34,15 @@ Runtime::Compartment::~Compartment() {
     wavmAssert(!moduleInstances.size());
     wavmAssert(!contexts.size());
 
-    Platform::freeAlignedVirtualPages(unalignedRuntimeData,
-                                      compartmentReservedBytes >> Platform::getPageSizeLog2(),
-                                      compartmentRuntimeDataAlignmentLog2);
+    Platform::freeAlignedVirtualPages(unalignedRuntimeData, compartmentReservedBytes
+            >> Platform::getPageSizeLog2(), compartmentRuntimeDataAlignmentLog2);
     runtimeData = nullptr;
     unalignedRuntimeData = nullptr;
 }
 
-Compartment *Runtime::createCompartment() { return new Compartment; }
+Compartment *Runtime::createCompartment() {
+    return new Compartment;
+}
 
 Object *Runtime::remapToClonedCompartment(Object *object, const Compartment *newCompartment) {
     switch (object->kind) {
@@ -84,8 +82,7 @@ Global *Runtime::remapToClonedCompartment(Global *global, const Compartment *new
     return newCompartment->globals[global->id];
 }
 
-ExceptionType *Runtime::remapToClonedCompartment(ExceptionType *exceptionType,
-                                                 const Compartment *newCompartment) {
+ExceptionType *Runtime::remapToClonedCompartment(ExceptionType *exceptionType, const Compartment *newCompartment) {
     Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
     return newCompartment->exceptionTypes[exceptionType->id];
 }
@@ -98,9 +95,13 @@ bool Runtime::isInCompartment(Object *object, const Compartment *compartment) {
         Function *function = (Function *) object;
 
         // Treat functions with moduleInstanceId=UINTPTR_MAX as if they are in all compartments.
-        if (function->moduleInstanceId == UINTPTR_MAX) { return true; }
+        if (function->moduleInstanceId == UINTPTR_MAX) {
+            return true;
+        }
 
-        if (!compartment->moduleInstances.contains(function->moduleInstanceId)) { return false; }
+        if (!compartment->moduleInstances.contains(function->moduleInstanceId)) {
+            return false;
+        }
         ModuleInstance *moduleInstance = compartment->moduleInstances[function->moduleInstanceId];
         return moduleInstance->jitModule.get() == function->mutableData->jitModule;
     } else {

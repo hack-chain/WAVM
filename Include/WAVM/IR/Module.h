@@ -18,8 +18,7 @@ namespace WAVM {
 
         // An initializer expression: serialized like any other code, but may only be a constant or
         // immutable global
-        template<typename GlobalRef>
-        struct InitializerExpressionBase {
+        template<typename GlobalRef> struct InitializerExpressionBase {
             enum class Type : U16 {
                 i32_const = 0x0041,
                 i64_const = 0x0042,
@@ -43,28 +42,35 @@ namespace WAVM {
                 GlobalRef globalRef;
             };
 
-            InitializerExpressionBase() : type(Type::error) {}
+            InitializerExpressionBase() : type(Type::error) {
+            }
 
-            InitializerExpressionBase(I32 inI32) : type(Type::i32_const), i32(inI32) {}
+            InitializerExpressionBase(I32 inI32) : type(Type::i32_const), i32(inI32) {
+            }
 
-            InitializerExpressionBase(I64 inI64) : type(Type::i64_const), i64(inI64) {}
+            InitializerExpressionBase(I64 inI64) : type(Type::i64_const), i64(inI64) {
+            }
 
-            InitializerExpressionBase(F32 inF32) : type(Type::f32_const), f32(inF32) {}
+            InitializerExpressionBase(F32 inF32) : type(Type::f32_const), f32(inF32) {
+            }
 
-            InitializerExpressionBase(F64 inF64) : type(Type::f64_const), f64(inF64) {}
+            InitializerExpressionBase(F64 inF64) : type(Type::f64_const), f64(inF64) {
+            }
 
-            InitializerExpressionBase(V128 inV128) : type(Type::v128_const), v128(inV128) {}
+            InitializerExpressionBase(V128 inV128) : type(Type::v128_const), v128(inV128) {
+            }
 
-            InitializerExpressionBase(Type inType, GlobalRef inGlobalRef)
-                    : type(inType), globalRef(inGlobalRef) {
+            InitializerExpressionBase(Type inType, GlobalRef inGlobalRef) : type(inType), globalRef(inGlobalRef) {
                 wavmAssert(inType == Type::get_global);
             }
 
-            InitializerExpressionBase(std::nullptr_t) : type(Type::ref_null) {}
+            InitializerExpressionBase(std::nullptr_t) : type(Type::ref_null) {
+            }
 
-            friend bool operator==(const InitializerExpressionBase &a,
-                                   const InitializerExpressionBase &b) {
-                if (a.type != b.type) { return false; }
+            friend bool operator==(const InitializerExpressionBase &a, const InitializerExpressionBase &b) {
+                if (a.type != b.type) {
+                    return false;
+                }
                 switch (a.type) {
                     case Type::i32_const:
                         return a.i32 == b.i32;
@@ -89,8 +95,7 @@ namespace WAVM {
                 };
             }
 
-            friend bool operator!=(const InitializerExpressionBase &a,
-                                   const InitializerExpressionBase &b) {
+            friend bool operator!=(const InitializerExpressionBase &a, const InitializerExpressionBase &b) {
                 return !(a == b);
             }
         };
@@ -127,8 +132,7 @@ namespace WAVM {
         };
 
         // Describes an object imported into a module or a specific type
-        template<typename Type>
-        struct Import {
+        template<typename Type> struct Import {
             Type type;
             std::string moduleName;
             std::string exportName;
@@ -172,16 +176,18 @@ namespace WAVM {
         };
 
         // An index-space for imports and definitions of a specific kind.
-        template<typename Definition, typename Type>
-        struct IndexSpace {
+        template<typename Definition, typename Type> struct IndexSpace {
             std::vector<Import<Type>> imports;
             std::vector<Definition> defs;
 
-            Uptr size() const { return imports.size() + defs.size(); }
+            Uptr size() const {
+                return imports.size() + defs.size();
+            }
 
             Type getType(Uptr index) const {
-                if (index < imports.size()) { return imports[index].type; }
-                else {
+                if (index < imports.size()) {
+                    return imports[index].type;
+                } else {
                     return defs[index - imports.size()].type;
                 }
             }
@@ -221,17 +227,15 @@ namespace WAVM {
 
             Uptr startFunctionIndex;
 
-            Module() : startFunctionIndex(UINTPTR_MAX) {}
+            Module() : startFunctionIndex(UINTPTR_MAX) {
+            }
 
-            Module(const FeatureSpec &inFeatureSpec)
-                    : featureSpec(inFeatureSpec), startFunctionIndex(UINTPTR_MAX) {
+            Module(const FeatureSpec &inFeatureSpec) : featureSpec(inFeatureSpec), startFunctionIndex(UINTPTR_MAX) {
             }
         };
 
         // Finds a named user section in a module.
-        inline bool findUserSection(const Module &module,
-                                    const char *userSectionName,
-                                    Uptr &outUserSectionIndex) {
+        inline bool findUserSection(const Module &module, const char *userSectionName, Uptr &outUserSectionIndex) {
             for (Uptr sectionIndex = 0; sectionIndex < module.userSections.size(); ++sectionIndex) {
                 if (module.userSections[sectionIndex].name == userSectionName) {
                     outUserSectionIndex = sectionIndex;

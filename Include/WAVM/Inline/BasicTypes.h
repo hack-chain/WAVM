@@ -18,10 +18,8 @@ typedef double F64;
 // The OSX libc defines uintptr_t to be a long where U32/U64 are int. This causes uintptr_t/uint64
 // to be treated as distinct types for e.g. overloading. Work around it by defining our own
 // Uptr/Iptr that are always int type.
-template<size_t pointerSize>
-struct PointerIntHelper;
-template<>
-struct PointerIntHelper<8> {
+template<size_t pointerSize> struct PointerIntHelper;
+template<> struct PointerIntHelper<8> {
     typedef I64 IntType;
     typedef U64 UnsignedIntType;
 };

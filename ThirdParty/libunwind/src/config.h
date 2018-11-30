@@ -163,15 +163,11 @@ extern  bool logDWARF();
 #else
 # define COMP_OP <=
 #endif
-template<typename _Type, typename _Mem>
-struct check_fit {
-    template<typename T>
-    struct blk_count {
-        static const size_t count =
-                (sizeof(T) + sizeof(uint64_t) - 1) / sizeof(uint64_t);
+template<typename _Type, typename _Mem> struct check_fit {
+    template<typename T> struct blk_count {
+        static const size_t count = (sizeof(T) + sizeof(uint64_t) - 1) / sizeof(uint64_t);
     };
-    static const bool does_fit =
-            (blk_count<_Type>::count COMP_OP blk_count<_Mem>::count);
+    static const bool does_fit = (blk_count<_Type>::count COMP_OP blk_count<_Mem>::count);
 };
 #undef COMP_OP
 #endif // __cplusplus

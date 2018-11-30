@@ -41,7 +41,8 @@ struct GCState {
     HashSet<GCObject *> unreferencedObjects;
     std::vector<GCObject *> pendingScanObjects;
 
-    GCState(Compartment *inCompartment) : compartment(inCompartment) {}
+    GCState(Compartment *inCompartment) : compartment(inCompartment) {
+    }
 
     void visitReference(Object *object) {
         if (object) {
@@ -49,8 +50,7 @@ struct GCState {
                 Function *function = asFunction(object);
                 if (function->moduleInstanceId != UINTPTR_MAX) {
                     wavmAssert(compartment->moduleInstances.contains(function->moduleInstanceId));
-                    ModuleInstance *moduleInstance
-                            = compartment->moduleInstances[function->moduleInstanceId];
+                    ModuleInstance *moduleInstance = compartment->moduleInstances[function->moduleInstanceId];
                     visitReference(moduleInstance);
                 }
             } else if (unreferencedObjects.remove((GCObject *) object)) {
@@ -59,14 +59,16 @@ struct GCState {
         }
     }
 
-    template<typename Array>
-    void visitReferenceArray(const Array &array) {
-        for (auto reference : array) { visitReference(asObject(reference)); }
+    template<typename Array> void visitReferenceArray(const Array &array) {
+        for (auto reference : array) {
+            visitReference(asObject(reference));
+        }
     }
 
     void initGCObject(GCObject *object, bool forceRoot = false) {
-        if (forceRoot || object->numRootReferences > 0) { pendingScanObjects.push_back(object); }
-        else {
+        if (forceRoot || object->numRootReferences > 0) {
+            pendingScanObjects.push_back(object);
+        } else {
             unreferencedObjects.add(object);
         }
     }
@@ -91,13 +93,9 @@ struct GCState {
                 Global *global = asGlobal(object);
                 if (isReferenceType(global->type.valueType)) {
                     if (global->type.isMutable) {
-                        visitReference(
-                                compartment->initialContextMutableGlobals[global->mutableGlobalIndex]
-                                        .object);
+                        visitReference(compartment->initialContextMutableGlobals[global->mutableGlobalIndex].object);
                         for (Context *context : compartment->contexts) {
-                            visitReference(
-                                    context->runtimeData->mutableGlobals[global->mutableGlobalIndex]
-                                            .object);
+                            visitReference(context->runtimeData->mutableGlobals[global->mutableGlobalIndex].object);
                         }
                     }
                     visitReference(global->initialValue.object);
@@ -113,8 +111,7 @@ struct GCState {
                 visitReferenceArray(moduleInstance->exceptionTypes);
 
                 {
-                    Lock<Platform::Mutex> passiveElemSegmentLock(
-                            moduleInstance->passiveElemSegmentsMutex);
+                    Lock<Platform::Mutex> passiveElemSegmentLock(moduleInstance->passiveElemSegmentsMutex);
                     for (const auto &passiveElemSegmentPair : moduleInstance->passiveElemSegments) {
                         visitReferenceArray(*passiveElemSegmentPair.value);
                     }
@@ -157,16 +154,25 @@ static bool collectGarbageImpl(Compartment *compartment) {
 
         state.initGCObject(moduleInstance, hasRootFunction);
     }
-    for (Memory *memory : compartment->memories) { state.initGCObject(memory); }
-    for (Table *table : compartment->tables) { state.initGCObject(table); }
-    for (ExceptionType *exceptionType : compartment->exceptionTypes) { state.initGCObject(exceptionType); }
-    for (Global *global : compartment->globals) { state.initGCObject(global); }
-    for (Context *context : compartment->contexts) { state.initGCObject(context); }
+    for (Memory *memory : compartment->memories) {
+        state.initGCObject(memory);
+    }
+    for (Table *table : compartment->tables) {
+        state.initGCObject(table);
+    }
+    for (ExceptionType *exceptionType : compartment->exceptionTypes) {
+        state.initGCObject(exceptionType);
+    }
+    for (Global *global : compartment->globals) {
+        state.initGCObject(global);
+    }
+    for (Context *context : compartment->contexts) {
+        state.initGCObject(context);
+    }
 
     // Scan the objects added to the referenced set so far: gather their child references and
     // recurse.
-    const Uptr numInitialObjects
-            = state.pendingScanObjects.size() + state.unreferencedObjects.size();
+    const Uptr numInitialObjects = state.pendingScanObjects.size() + state.unreferencedObjects.size();
     const Uptr numRoots = state.pendingScanObjects.size();
     while (state.pendingScanObjects.size()) {
         GCObject *object = state.pendingScanObjects.back();
@@ -177,15 +183,18 @@ static bool collectGarbageImpl(Compartment *compartment) {
     // Delete each unreferenced object that isn't the compartment.
     bool wasCompartmentUnreferenced = false;
     for (GCObject *object : state.unreferencedObjects) {
-        if (object == compartment) { wasCompartmentUnreferenced = true; }
-        else {
+        if (object == compartment) {
+            wasCompartmentUnreferenced = true;
+        } else {
             delete object;
         }
     }
 
     // Delete the compartment last, if it wasn't referenced.
     compartmentLock.unlock();
-    if (wasCompartmentUnreferenced) { delete compartment; }
+    if (wasCompartmentUnreferenced) {
+        delete compartment;
+    }
 
     std::cout << "Collected garbage in %.2fms: %" PRIuPTR " roots, %" PRIuPTR " objects, %" PRIuPTR << " garbage\n"
               << numRoots << numInitialObjects << Uptr(state.unreferencedObjects.size());

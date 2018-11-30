@@ -64,8 +64,7 @@ extern "C" I64 saveExecutionState(ExecutionContext *outContext, I64 returnCode) 
 
 [[noreturn]] extern void loadExecutionState(ExecutionContext *context, I64 returnCode);
 
-extern "C" I64 switchToForkedStackContext(ExecutionContext *forkedContext,
-                                          U8 *trampolineFramePointer) noexcept(false);
+extern "C" I64 switchToForkedStackContext(ExecutionContext *forkedContext, U8 *trampolineFramePointer) noexcept(false);
 extern "C" U8 *getStackPointer();
 
 // libunwind dynamic frame registration

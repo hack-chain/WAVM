@@ -119,8 +119,7 @@ typedef struct _Unwind_Exception _Unwind_Exception;
 struct _Unwind_Exception {
     uint64_t exception_class;
 
-    void (*exception_cleanup)(_Unwind_Reason_Code reason,
-                              _Unwind_Exception *exc);
+    void (*exception_cleanup)(_Unwind_Reason_Code reason, _Unwind_Exception *exc);
 
     uintptr_t private_1; // non-zero means forced unwind
     uintptr_t private_2; // holds sp that phase1 found for phase2 to use
@@ -136,20 +135,9 @@ struct _Unwind_Exception {
     // alignment for the target"; so do we.
 } __attribute__((__aligned__));
 
-typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn)
-        (int version,
-         _Unwind_Action actions,
-         uint64_t exceptionClass,
-         _Unwind_Exception *exceptionObject,
-         struct _Unwind_Context *context,
-         void *stop_parameter);
+typedef _Unwind_Reason_Code (*_Unwind_Stop_Fn)(int version, _Unwind_Action actions, uint64_t exceptionClass, _Unwind_Exception *exceptionObject, struct _Unwind_Context *context, void *stop_parameter);
 
-typedef _Unwind_Reason_Code (*__personality_routine)
-        (int version,
-         _Unwind_Action actions,
-         uint64_t exceptionClass,
-         _Unwind_Exception *exceptionObject,
-         struct _Unwind_Context *context);
+typedef _Unwind_Reason_Code (*__personality_routine)(int version, _Unwind_Action actions, uint64_t exceptionClass, _Unwind_Exception *exceptionObject, struct _Unwind_Context *context);
 
 #endif
 
@@ -165,8 +153,7 @@ extern _Unwind_Reason_Code
     _Unwind_SjLj_RaiseException(_Unwind_Exception *exception_object);
 extern void _Unwind_SjLj_Resume(_Unwind_Exception *exception_object);
 #else
-extern _Unwind_Reason_Code
-_Unwind_RaiseException(_Unwind_Exception *exception_object);
+extern _Unwind_Reason_Code _Unwind_RaiseException(_Unwind_Exception *exception_object);
 extern void _Unwind_Resume(_Unwind_Exception *exception_object);
 #endif
 extern void _Unwind_DeleteException(_Unwind_Exception *exception_object);
@@ -214,8 +201,7 @@ _Unwind_VRS_Pop(_Unwind_Context *context, _Unwind_VRS_RegClass regclass,
 #if !defined(_LIBUNWIND_ARM_EHABI)
 
 extern uintptr_t _Unwind_GetGR(struct _Unwind_Context *context, int index);
-extern void _Unwind_SetGR(struct _Unwind_Context *context, int index,
-                          uintptr_t new_value);
+extern void _Unwind_SetGR(struct _Unwind_Context *context, int index, uintptr_t new_value);
 extern uintptr_t _Unwind_GetIP(struct _Unwind_Context *context);
 extern void _Unwind_SetIP(struct _Unwind_Context *, uintptr_t new_value);
 
@@ -261,16 +247,13 @@ void _Unwind_SetIP(struct _Unwind_Context *context, uintptr_t value) {
 #endif  // defined(_LIBUNWIND_ARM_EHABI)
 
 extern uintptr_t _Unwind_GetRegionStart(struct _Unwind_Context *context);
-extern uintptr_t
-_Unwind_GetLanguageSpecificData(struct _Unwind_Context *context);
+extern uintptr_t _Unwind_GetLanguageSpecificData(struct _Unwind_Context *context);
 #ifdef __USING_SJLJ_EXCEPTIONS__
 extern _Unwind_Reason_Code
     _Unwind_SjLj_ForcedUnwind(_Unwind_Exception *exception_object,
                               _Unwind_Stop_Fn stop, void *stop_parameter);
 #else
-extern _Unwind_Reason_Code
-_Unwind_ForcedUnwind(_Unwind_Exception *exception_object,
-                     _Unwind_Stop_Fn stop, void *stop_parameter);
+extern _Unwind_Reason_Code _Unwind_ForcedUnwind(_Unwind_Exception *exception_object, _Unwind_Stop_Fn stop, void *stop_parameter);
 #endif
 
 #ifdef __USING_SJLJ_EXCEPTIONS__
@@ -290,15 +273,13 @@ extern void _Unwind_SjLj_Unregister(_Unwind_FunctionContext_t fc);
 extern _Unwind_Reason_Code
     _Unwind_SjLj_Resume_or_Rethrow(_Unwind_Exception *exception_object);
 #else
-extern _Unwind_Reason_Code
-_Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object);
+extern _Unwind_Reason_Code _Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object);
 #endif
 
 // _Unwind_Backtrace() is a gcc extension that walks the stack and calls the
 // _Unwind_Trace_Fn once per frame until it reaches the bottom of the stack
 // or the _Unwind_Trace_Fn function returns something other than _URC_NO_REASON.
-typedef _Unwind_Reason_Code (*_Unwind_Trace_Fn)(struct _Unwind_Context *,
-                                                void *);
+typedef _Unwind_Reason_Code (*_Unwind_Trace_Fn)(struct _Unwind_Context *, void *);
 extern _Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn, void *);
 
 // _Unwind_GetCFA is a gcc extension that can be called from within a
@@ -313,8 +294,7 @@ extern uintptr_t _Unwind_GetCFA(struct _Unwind_Context *);
 // instruction causing the unwind. Normally, in a function call, the IP returned
 // is the return address which is after the call instruction and may be past the
 // end of the function containing the call instruction.
-extern uintptr_t _Unwind_GetIPInfo(struct _Unwind_Context *context,
-                                   int *ipBefore);
+extern uintptr_t _Unwind_GetIPInfo(struct _Unwind_Context *context, int *ipBefore);
 
 
 // __register_frame() is used with dynamically generated code to register the
@@ -356,12 +336,10 @@ LIBUNWIND_UNAVAIL;
 // Mac OS X 10.4 and 10.5 had implementations of these functions in
 // libgcc_s.dylib, but they never worked.
 /// These functions are no longer available on Mac OS X.
-extern void __register_frame_info_bases(const void *fde, void *ob, void *tb,
-                                        void *db) LIBUNWIND_UNAVAIL;
+extern void __register_frame_info_bases(const void *fde, void *ob, void *tb, void *db) LIBUNWIND_UNAVAIL;
 extern void __register_frame_info(const void *fde, void *ob)
 LIBUNWIND_UNAVAIL;
-extern void __register_frame_info_table_bases(const void *fde, void *ob,
-                                              void *tb, void *db)
+extern void __register_frame_info_table_bases(const void *fde, void *ob, void *tb, void *db)
 LIBUNWIND_UNAVAIL;
 extern void __register_frame_info_table(const void *fde, void *ob)
 LIBUNWIND_UNAVAIL;

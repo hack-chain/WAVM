@@ -28,8 +28,7 @@ namespace WAVM {
             Uptr charOffset;
             std::string message;
 
-            UnresolvedError(Uptr inCharOffset, std::string &&inMessage)
-                    : charOffset(inCharOffset), message(inMessage) {
+            UnresolvedError(Uptr inCharOffset, std::string &&inMessage) : charOffset(inCharOffset), message(inMessage) {
             }
         };
 
@@ -40,8 +39,7 @@ namespace WAVM {
 
             std::vector<std::unique_ptr<std::string>> quotedNameStrings;
 
-            ParseState(const char *inString, const LineInfo *inLineInfo)
-                    : string(inString), lineInfo(inLineInfo) {
+            ParseState(const char *inString, const LineInfo *inLineInfo) : string(inString), lineInfo(inLineInfo) {
             }
         };
 
@@ -51,21 +49,28 @@ namespace WAVM {
         // as long as the input string isn't freed.
         // Includes a hash of the name's characters.
         struct Name {
-            constexpr Name() : begin(nullptr), numChars(0), sourceOffset(0) {}
+            constexpr Name() : begin(nullptr), numChars(0), sourceOffset(0) {
+            }
 
             Name(const char *inBegin, U32 inNumChars, U32 inSourceOffset)
                     : begin(inBegin), numChars(inNumChars), sourceOffset(inSourceOffset) {
             }
 
-            constexpr operator bool() const { return begin != nullptr; }
+            constexpr operator bool() const {
+                return begin != nullptr;
+            }
 
             std::string getString() const {
                 return begin ? std::string(begin, numChars) : std::string();
             }
 
-            constexpr Uptr getSourceOffset() const { return sourceOffset; }
+            constexpr Uptr getSourceOffset() const {
+                return sourceOffset;
+            }
 
-            Uptr getHash() const { return XXH<Uptr>(begin, numChars, 0); }
+            Uptr getHash() const {
+                return XXH<Uptr>(begin, numChars, 0);
+            }
 
             void reset() {
                 begin = nullptr;
@@ -76,12 +81,18 @@ namespace WAVM {
                 return a.numChars == b.numChars && memcmp(a.begin, b.begin, a.numChars) == 0;
             }
 
-            friend constexpr bool operator!=(const Name &a, const Name &b) { return !(a == b); }
+            friend constexpr bool operator!=(const Name &a, const Name &b) {
+                return !(a == b);
+            }
 
             struct HashPolicy {
-                static bool areKeysEqual(const Name &left, const Name &right) { return left == right; }
+                static bool areKeysEqual(const Name &left, const Name &right) {
+                    return left == right;
+                }
 
-                static Uptr getKeyHash(const Name &name) { return name.getHash(); }
+                static Uptr getKeyHash(const Name &name) {
+                    return name.getHash();
+                }
             };
 
         private:
@@ -96,9 +107,7 @@ namespace WAVM {
         // Represents a yet-to-be-resolved reference, parsed as either a name or an index.
         struct Reference {
             enum class Type {
-                invalid,
-                name,
-                index
+                invalid, name, index
             };
             Type type;
             union {
@@ -107,13 +116,18 @@ namespace WAVM {
             };
             const Token *token;
 
-            Reference(const Name &inName) : type(Type::name), name(inName) {}
+            Reference(const Name &inName) : type(Type::name), name(inName) {
+            }
 
-            Reference(Uptr inIndex) : type(Type::index), index(inIndex) {}
+            Reference(Uptr inIndex) : type(Type::index), index(inIndex) {
+            }
 
-            Reference() : type(Type::invalid), token(nullptr) {}
+            Reference() : type(Type::invalid), token(nullptr) {
+            }
 
-            operator bool() const { return type != Type::invalid; }
+            operator bool() const {
+                return type != Type::invalid;
+            }
         };
 
         // Represents a function type, either as an unresolved name/index, or as an explicit type, or
@@ -147,8 +161,7 @@ namespace WAVM {
             // Thunks that are called after parsing all declarations.
             std::vector<std::function<void(ModuleState *)>> postDeclarationCallbacks;
 
-            ModuleState(ParseState *inParseState, IR::Module &inModule)
-                    : parseState(inParseState), module(inModule) {
+            ModuleState(ParseState *inParseState, IR::Module &inModule) : parseState(inParseState), module(inModule) {
             }
         };
 
@@ -160,10 +173,7 @@ namespace WAVM {
             ModuleState *moduleState;
             struct FunctionState *functionState;
 
-            CursorState(const Token *inNextToken,
-                        ParseState *inParseState,
-                        ModuleState *inModuleState = nullptr,
-                        struct FunctionState *inFunctionState = nullptr)
+            CursorState(const Token *inNextToken, ParseState *inParseState, ModuleState *inModuleState = nullptr, struct FunctionState *inFunctionState = nullptr)
                     : nextToken(inNextToken), parseState(inParseState), moduleState(inModuleState),
                       functionState(inFunctionState) {
             }
@@ -188,20 +198,13 @@ namespace WAVM {
 
         IR::ReferenceType parseReferenceType(CursorState *cursor);
 
-        IR::FunctionType parseFunctionType(CursorState *cursor,
-                                           NameToIndexMap &outLocalNameToIndexMap,
-                                           std::vector<std::string> &outLocalDisassemblyNames);
+        IR::FunctionType parseFunctionType(CursorState *cursor, NameToIndexMap &outLocalNameToIndexMap, std::vector<std::string> &outLocalDisassemblyNames);
 
-        UnresolvedFunctionType parseFunctionTypeRefAndOrDecl(
-                CursorState *cursor,
-                NameToIndexMap &outLocalNameToIndexMap,
-                std::vector<std::string> &outLocalDisassemblyNames);
+        UnresolvedFunctionType parseFunctionTypeRefAndOrDecl(CursorState *cursor, NameToIndexMap &outLocalNameToIndexMap, std::vector<std::string> &outLocalDisassemblyNames);
 
-        IR::IndexedFunctionType resolveFunctionType(ModuleState *moduleState,
-                                                    const UnresolvedFunctionType &unresolvedType);
+        IR::IndexedFunctionType resolveFunctionType(ModuleState *moduleState, const UnresolvedFunctionType &unresolvedType);
 
-        IR::IndexedFunctionType getUniqueFunctionTypeIndex(ModuleState *moduleState,
-                                                           IR::FunctionType functionType);
+        IR::IndexedFunctionType getUniqueFunctionTypeIndex(ModuleState *moduleState, IR::FunctionType functionType);
 
         // Literal parsing.
         bool tryParseHexit(const char *&nextChar, U8 &outValue);
@@ -237,60 +240,42 @@ namespace WAVM {
 
         bool tryParseNameOrIndexRef(CursorState *cursor, Reference &outRef);
 
-        bool tryParseAndResolveNameOrIndexRef(CursorState *cursor,
-                                              const NameToIndexMap &nameToIndexMap,
-                                              Uptr maxIndex,
-                                              const char *context,
-                                              Uptr &outIndex);
+        bool tryParseAndResolveNameOrIndexRef(CursorState *cursor, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const char *context, Uptr &outIndex);
 
-        Uptr parseAndResolveNameOrIndexRef(CursorState *cursor,
-                                           const NameToIndexMap &nameToIndexMap,
-                                           Uptr maxIndex,
-                                           const char *context);
+        Uptr parseAndResolveNameOrIndexRef(CursorState *cursor, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const char *context);
 
-        void bindName(ParseState *parseState,
-                      NameToIndexMap &nameToIndexMap,
-                      const Name &name,
-                      Uptr index);
+        void bindName(ParseState *parseState, NameToIndexMap &nameToIndexMap, const Name &name, Uptr index);
 
-        Uptr resolveRef(ParseState *parseState,
-                        const NameToIndexMap &nameToIndexMap,
-                        Uptr maxIndex,
-                        const Reference &ref);
+        Uptr resolveRef(ParseState *parseState, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const Reference &ref);
 
         // Finds the parenthesis closing the current s-expression.
         void findClosingParenthesis(CursorState *cursor, const Token *openingParenthesisToken);
 
         // Parses the surrounding parentheses for an inner parser, and handles recovery at the closing
         // parenthesis.
-        template<typename ParseInner>
-        static void parseParenthesized(CursorState *cursor, ParseInner parseInner) {
+        template<typename ParseInner> static void parseParenthesized(CursorState *cursor, ParseInner parseInner) {
             const Token *openingParenthesisToken = cursor->nextToken;
             require(cursor, t_leftParenthesis);
             try {
                 parseInner();
                 require(cursor, t_rightParenthesis);
-            }
-            catch (RecoverParseException) {
+            } catch (RecoverParseException) {
                 findClosingParenthesis(cursor, openingParenthesisToken);
             }
         }
 
         // Tries to parse '(' tagType parseInner ')', handling recovery at the closing parenthesis.
         // Returns true if any tokens were consumed.
-        template<typename ParseInner>
-        static bool tryParseParenthesizedTagged(CursorState *cursor,
-                                                TokenType tagType,
-                                                ParseInner parseInner) {
+        template<typename ParseInner> static bool tryParseParenthesizedTagged(CursorState *cursor, TokenType tagType, ParseInner parseInner) {
             const Token *openingParenthesisToken = cursor->nextToken;
-            if (cursor->nextToken[0].type != t_leftParenthesis ||
-                cursor->nextToken[1].type != tagType) { return false; }
+            if (cursor->nextToken[0].type != t_leftParenthesis || cursor->nextToken[1].type != tagType) {
+                return false;
+            }
             try {
                 cursor->nextToken += 2;
                 parseInner();
                 require(cursor, t_rightParenthesis);
-            }
-            catch (RecoverParseException) {
+            } catch (RecoverParseException) {
                 findClosingParenthesis(cursor, openingParenthesisToken);
             }
             return true;

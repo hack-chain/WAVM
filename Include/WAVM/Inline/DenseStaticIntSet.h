@@ -13,9 +13,10 @@ namespace WAVM {
     // maxIndexPlusOne). It uses 1 bit of storage for each integer in the range, and many operations
     // look at all bits, so it's best suited to small ranges. However, this avoids heap allocations,
     // and so is pretty fast for sets of small integers (e.g. U8).
-    template<typename Index, Uptr maxIndexPlusOne>
-    struct DenseStaticIntSet {
-        DenseStaticIntSet() { memset(elements, 0, sizeof(elements)); }
+    template<typename Index, Uptr maxIndexPlusOne> struct DenseStaticIntSet {
+        DenseStaticIntSet() {
+            memset(elements, 0, sizeof(elements));
+        }
 
         DenseStaticIntSet(Index index) {
             memset(elements, 0, sizeof(elements));
@@ -26,15 +27,14 @@ namespace WAVM {
 
         inline bool contains(Index index) const {
             wavmAssert((Uptr) index < maxIndexPlusOne);
-            return (elements[index / indicesPerElement]
-                    & (Element(1) << (index % indicesPerElement)))
-                   != 0;
+            return (elements[index / indicesPerElement] & (Element(1) << (index % indicesPerElement))) != 0;
         }
 
         bool isEmpty() const {
             Element combinedElements = 0;
-            for (Uptr elementIndex = 0;
-                 elementIndex < numElements; ++elementIndex) { combinedElements |= elements[elementIndex]; }
+            for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
+                combinedElements |= elements[elementIndex];
+            }
             return combinedElements == 0;
         }
 
@@ -44,9 +44,8 @@ namespace WAVM {
                 if (elements[elementIndex]) {
                     // Find the index of the lowest set bit in the element using
                     // countTrailingZeroes.
-                    const Index result
-                            = (Index) (elementIndex * indicesPerElement
-                                       + Platform::countTrailingZeroes(elements[elementIndex]));
+                    const Index result = (Index) (elementIndex * indicesPerElement +
+                                                  Platform::countTrailingZeroes(elements[elementIndex]));
                     wavmAssert(contains(result));
                     return result;
                 }
@@ -60,11 +59,11 @@ namespace WAVM {
                 if (~elements[elementIndex] != 0) {
                     // Find the index of the lowest set bit in the element using
                     // countTrailingZeroes.
-                    const Index result
-                            = (Index) (elementIndex * indicesPerElement
-                                       + Platform::countTrailingZeroes(~elements[elementIndex]));
-                    if (result >= maxIndexPlusOne) { break; }
-                    else {
+                    const Index result = (Index) (elementIndex * indicesPerElement +
+                                                  Platform::countTrailingZeroes(~elements[elementIndex]));
+                    if (result >= maxIndexPlusOne) {
+                        break;
+                    } else {
                         wavmAssert(!contains(result));
                         return result;
                     }
@@ -83,7 +82,9 @@ namespace WAVM {
         inline void addRange(Index rangeMin, Index rangeMax) {
             wavmAssert(rangeMin <= rangeMax);
             wavmAssert((Uptr) rangeMax < maxIndexPlusOne);
-            for (Index index = rangeMin; index <= rangeMax; ++index) { add(index); }
+            for (Index index = rangeMin; index <= rangeMax; ++index) {
+                add(index);
+            }
         }
 
         inline bool remove(Index index) {
@@ -97,37 +98,32 @@ namespace WAVM {
 
         friend DenseStaticIntSet operator~(const DenseStaticIntSet &set) {
             DenseStaticIntSet result;
-            for (Uptr elementIndex = 0; elementIndex <
-                                        numElements; ++elementIndex) { result.elements[elementIndex] = ~set.elements[elementIndex]; }
-            return result;
-        }
-
-        friend DenseStaticIntSet operator|(const DenseStaticIntSet &left,
-                                           const DenseStaticIntSet &right) {
-            DenseStaticIntSet result;
             for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
-                result.elements[elementIndex]
-                        = left.elements[elementIndex] | right.elements[elementIndex];
+                result.elements[elementIndex] = ~set.elements[elementIndex];
             }
             return result;
         }
 
-        friend DenseStaticIntSet operator&(const DenseStaticIntSet &left,
-                                           const DenseStaticIntSet &right) {
+        friend DenseStaticIntSet operator|(const DenseStaticIntSet &left, const DenseStaticIntSet &right) {
             DenseStaticIntSet result;
             for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
-                result.elements[elementIndex]
-                        = left.elements[elementIndex] & right.elements[elementIndex];
+                result.elements[elementIndex] = left.elements[elementIndex] | right.elements[elementIndex];
             }
             return result;
         }
 
-        friend DenseStaticIntSet operator^(const DenseStaticIntSet &left,
-                                           const DenseStaticIntSet &right) {
+        friend DenseStaticIntSet operator&(const DenseStaticIntSet &left, const DenseStaticIntSet &right) {
             DenseStaticIntSet result;
             for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
-                result.elements[elementIndex]
-                        = left.elements[elementIndex] ^ right.elements[elementIndex];
+                result.elements[elementIndex] = left.elements[elementIndex] & right.elements[elementIndex];
+            }
+            return result;
+        }
+
+        friend DenseStaticIntSet operator^(const DenseStaticIntSet &left, const DenseStaticIntSet &right) {
+            DenseStaticIntSet result;
+            for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
+                result.elements[elementIndex] = left.elements[elementIndex] ^ right.elements[elementIndex];
             }
             return result;
         }
@@ -146,7 +142,9 @@ namespace WAVM {
             return memcmp(left.elements, right.elements, sizeof(DenseStaticIntSet::elements)) < 0;
         }
 
-        Uptr getHash(Uptr seed = 0) const { return XXH<Uptr>(elements, sizeof(elements), seed); }
+        Uptr getHash(Uptr seed = 0) const {
+            return XXH<Uptr>(elements, sizeof(elements), seed);
+        }
 
     private:
         typedef Uptr Element;
@@ -159,8 +157,7 @@ namespace WAVM {
         Element elements[numElements];
     };
 
-    template<typename Index, Uptr maxIndexPlusOne>
-    struct Hash<DenseStaticIntSet<Index, maxIndexPlusOne>> {
+    template<typename Index, Uptr maxIndexPlusOne> struct Hash<DenseStaticIntSet<Index, maxIndexPlusOne>> {
         Uptr operator()(const DenseStaticIntSet<Index, maxIndexPlusOne> &set, Uptr seed = 0) const {
             return set.getHash(seed);
         }

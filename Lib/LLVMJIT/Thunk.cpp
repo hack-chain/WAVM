@@ -32,26 +32,21 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType) {
     Lock<Platform::Mutex> invokeThunkLock(invokeThunkMutex);
 
     // Reuse cached invoke thunks for the same function type.
-    Runtime::Function *&invokeThunkFunction
-            = invokeThunkTypeToFunctionMap.getOrAdd(functionType, nullptr);
-    if (invokeThunkFunction) { return reinterpret_cast<InvokeThunkPointer>(const_cast<U8 *>(invokeThunkFunction->code)); }
+    Runtime::Function *&invokeThunkFunction = invokeThunkTypeToFunctionMap.getOrAdd(functionType, nullptr);
+    if (invokeThunkFunction) {
+        return reinterpret_cast<InvokeThunkPointer>(const_cast<U8 *>(invokeThunkFunction->code));
+    }
 
     // Create a FunctionMutableData object for the thunk.
-    FunctionMutableData *functionMutableData
-            = new FunctionMutableData("thnk!C to WASM thunk!" + asString(functionType));
+    FunctionMutableData *functionMutableData = new FunctionMutableData(
+            "thnk!C to WASM thunk!" + asString(functionType));
 
     // Create a LLVM module and a LLVM function for the thunk.
     LLVMContext llvmContext;
     llvm::Module llvmModule("", llvmContext);
-    auto llvmFunctionType = llvm::FunctionType::get(
-            llvmContext.i8PtrType, {llvmContext.i8PtrType, llvmContext.i8PtrType}, false);
-    auto function = llvm::Function::Create(
-            llvmFunctionType, llvm::Function::ExternalLinkage, "thunk", &llvmModule);
-    setRuntimeFunctionPrefix(llvmContext,
-                             function,
-                             emitLiteralPointer(functionMutableData, llvmContext.iptrType),
-                             emitLiteral(llvmContext, Uptr(UINTPTR_MAX)),
-                             emitLiteral(llvmContext, functionType.getEncoding().impl));
+    auto llvmFunctionType = llvm::FunctionType::get(llvmContext.i8PtrType, {llvmContext.i8PtrType, llvmContext.i8PtrType}, false);
+    auto function = llvm::Function::Create(llvmFunctionType, llvm::Function::ExternalLinkage, "thunk", &llvmModule);
+    setRuntimeFunctionPrefix(llvmContext, function, emitLiteralPointer(functionMutableData, llvmContext.iptrType), emitLiteral(llvmContext, Uptr(UINTPTR_MAX)), emitLiteral(llvmContext, functionType.getEncoding().impl));
 
     llvm::Value *calleeFunction = &*(function->args().begin() + 0);
     llvm::Value *contextPointer = &*(function->args().begin() + 1);
@@ -70,27 +65,16 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType) {
         const U32 numArgBytes = getTypeByteWidth(parameterType);
         argDataOffset = (argDataOffset + numArgBytes - 1) & -numArgBytes;
 
-        arguments.push_back(emitContext.loadFromUntypedPointer(
-                emitContext.irBuilder.CreateInBoundsGEP(
-                        contextPointer,
-                        {emitLiteral(llvmContext,
-                                     argDataOffset + offsetof(ContextRuntimeData, thunkArgAndReturnData))}),
-                asLLVMType(llvmContext, parameterType),
-                numArgBytes));
+        arguments.push_back(emitContext.loadFromUntypedPointer(emitContext.irBuilder.CreateInBoundsGEP(contextPointer, {emitLiteral(llvmContext,
+                                                                                                                                    argDataOffset +
+                                                                                                                                    offsetof(ContextRuntimeData, thunkArgAndReturnData))}), asLLVMType(llvmContext, parameterType), numArgBytes));
 
         argDataOffset += numArgBytes;
     }
 
     // Call the function.
-    llvm::Value *functionCode = emitContext.irBuilder.CreateInBoundsGEP(
-            calleeFunction, {emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code)))});
-    ValueVector results = emitContext.emitCallOrInvoke(
-            emitContext.irBuilder.CreatePointerCast(
-                    functionCode,
-                    asLLVMType(llvmContext, functionType, IR::CallingConvention::wasm)->getPointerTo()),
-            arguments,
-            functionType,
-            IR::CallingConvention::wasm);
+    llvm::Value *functionCode = emitContext.irBuilder.CreateInBoundsGEP(calleeFunction, {emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code)))});
+    ValueVector results = emitContext.emitCallOrInvoke(emitContext.irBuilder.CreatePointerCast(functionCode, asLLVMType(llvmContext, functionType, IR::CallingConvention::wasm)->getPointerTo()), arguments, functionType, IR::CallingConvention::wasm);
 
     // If the function has a return value, write it to the context invoke return memory.
     wavmAssert(results.size() == functionType.results().size());
@@ -103,18 +87,12 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType) {
         resultOffset = (resultOffset + resultNumBytes - 1) & -I8(resultNumBytes);
         wavmAssert(resultOffset < maxThunkArgAndReturnBytes);
 
-        emitContext.irBuilder.CreateStore(
-                results[resultIndex],
-                emitContext.irBuilder.CreatePointerCast(
-                        emitContext.irBuilder.CreateInBoundsGEP(newContextPointer,
-                                                                {emitLiteral(llvmContext, resultOffset)}),
-                        asLLVMType(llvmContext, resultType)->getPointerTo()));
+        emitContext.irBuilder.CreateStore(results[resultIndex], emitContext.irBuilder.CreatePointerCast(emitContext.irBuilder.CreateInBoundsGEP(newContextPointer, {emitLiteral(llvmContext, resultOffset)}), asLLVMType(llvmContext, resultType)->getPointerTo()));
 
         resultOffset += resultNumBytes;
     }
 
-    emitContext.irBuilder.CreateRet(
-            emitContext.irBuilder.CreateLoad(emitContext.contextPointerVariable));
+    emitContext.irBuilder.CreateRet(emitContext.irBuilder.CreateLoad(emitContext.contextPointerVariable));
 
     // Compile the LLVM IR to object code.
     std::vector<U8> objectBytes = compileLLVMModule(llvmContext, std::move(llvmModule), false);
@@ -131,38 +109,31 @@ InvokeThunkPointer LLVMJIT::getInvokeThunk(FunctionType functionType) {
     return reinterpret_cast<InvokeThunkPointer>(const_cast<U8 *>(invokeThunkFunction->code));
 }
 
-Runtime::Function *LLVMJIT::getIntrinsicThunk(void *nativeFunction,
-                                              FunctionType functionType,
-                                              CallingConvention callingConvention,
-                                              const char *debugName) {
+Runtime::Function *LLVMJIT::getIntrinsicThunk(void *nativeFunction, FunctionType functionType, CallingConvention callingConvention, const char *debugName) {
     Lock<Platform::Mutex> intrinsicThunkLock(intrinsicThunkMutex);
 
-    wavmAssert(callingConvention == CallingConvention::intrinsic
-               || callingConvention == CallingConvention::intrinsicWithContextSwitch);
+    wavmAssert(callingConvention == CallingConvention::intrinsic ||
+               callingConvention == CallingConvention::intrinsicWithContextSwitch);
 
     LLVMContext llvmContext;
 
     // Reuse cached intrinsic thunks for the same function type.
-    Runtime::Function *&intrinsicThunkFunction
-            = intrinsicFunctionToThunkFunctionMap.getOrAdd(nativeFunction, nullptr);
-    if (intrinsicThunkFunction) { return intrinsicThunkFunction; }
+    Runtime::Function *&intrinsicThunkFunction = intrinsicFunctionToThunkFunctionMap.getOrAdd(nativeFunction, nullptr);
+    if (intrinsicThunkFunction) {
+        return intrinsicThunkFunction;
+    }
 
     // Create a FunctionMutableData object for the thunk.
-    FunctionMutableData *functionMutableData
-            = new FunctionMutableData(std::string("thnk!WASM to C thunk!(") + debugName + ')');
+    FunctionMutableData *functionMutableData = new FunctionMutableData(
+            std::string("thnk!WASM to C thunk!(") + debugName + ')');
 
     // Create a LLVM module containing a single function with the same signature as the native
     // function, but with the WASM calling convention.
     llvm::Module llvmModule("", llvmContext);
     auto llvmFunctionType = asLLVMType(llvmContext, functionType, CallingConvention::wasm);
-    auto function = llvm::Function::Create(
-            llvmFunctionType, llvm::Function::ExternalLinkage, "thunk", &llvmModule);
+    auto function = llvm::Function::Create(llvmFunctionType, llvm::Function::ExternalLinkage, "thunk", &llvmModule);
     function->setCallingConv(asLLVMCallingConv(callingConvention));
-    setRuntimeFunctionPrefix(llvmContext,
-                             function,
-                             emitLiteralPointer(functionMutableData, llvmContext.iptrType),
-                             emitLiteral(llvmContext, Uptr(UINTPTR_MAX)),
-                             emitLiteral(llvmContext, functionType.getEncoding().impl));
+    setRuntimeFunctionPrefix(llvmContext, function, emitLiteralPointer(functionMutableData, llvmContext.iptrType), emitLiteral(llvmContext, Uptr(UINTPTR_MAX)), emitLiteral(llvmContext, functionType.getEncoding().impl));
 
     EmitContext emitContext(llvmContext, nullptr);
     emitContext.irBuilder.SetInsertPoint(llvm::BasicBlock::Create(llvmContext, "entry", function));
@@ -174,11 +145,9 @@ Runtime::Function *LLVMJIT::getIntrinsicThunk(void *nativeFunction,
         args.push_back(&*argIt);
     }
 
-    llvm::Type *llvmNativeFunctionType
-            = asLLVMType(llvmContext, functionType, callingConvention)->getPointerTo();
+    llvm::Type *llvmNativeFunctionType = asLLVMType(llvmContext, functionType, callingConvention)->getPointerTo();
     llvm::Value *llvmNativeFunction = emitLiteralPointer(nativeFunction, llvmNativeFunctionType);
-    ValueVector results
-            = emitContext.emitCallOrInvoke(llvmNativeFunction, args, functionType, callingConvention);
+    ValueVector results = emitContext.emitCallOrInvoke(llvmNativeFunction, args, functionType, callingConvention);
 
     // Emit the function return.
     emitContext.emitReturn(functionType.results(), results);

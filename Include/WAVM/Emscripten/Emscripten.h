@@ -21,15 +21,10 @@ namespace WAVM {
             Runtime::GCPointer<Runtime::Memory> emscriptenMemory;
         };
 
-        EMSCRIPTEN_API Instance *instantiate(Runtime::Compartment *compartment,
-                                             const IR::Module &module);
+        EMSCRIPTEN_API Instance *instantiate(Runtime::Compartment *compartment, const IR::Module &module);
 
-        EMSCRIPTEN_API void initializeGlobals(Runtime::Context *context,
-                                              const IR::Module &module,
-                                              Runtime::ModuleInstance *moduleInstance);
+        EMSCRIPTEN_API void initializeGlobals(Runtime::Context *context, const IR::Module &module, Runtime::ModuleInstance *moduleInstance);
 
-        EMSCRIPTEN_API void injectCommandArgs(Emscripten::Instance *instance,
-                                              const std::vector<const char *> &argStrings,
-                                              std::vector<IR::Value> &outInvokeArgs);
+        EMSCRIPTEN_API void injectCommandArgs(Emscripten::Instance *instance, const std::vector<const char *> &argStrings, std::vector<IR::Value> &outInvokeArgs);
     }
 }

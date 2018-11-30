@@ -10,11 +10,7 @@ namespace WAVM {
     namespace Platform {
         struct Signal {
             enum class Type {
-                invalid = 0,
-                accessViolation,
-                stackOverflow,
-                intDivideByZeroOrOverflow,
-                unhandledException
+                invalid = 0, accessViolation, stackOverflow, intDivideByZeroOrOverflow, unhandledException
             };
 
             Type type = Type::invalid;
@@ -30,9 +26,7 @@ namespace WAVM {
             };
         };
 
-        PLATFORM_API bool catchSignals(
-                const std::function<void()> &thunk,
-                const std::function<bool(Signal signal, const CallStack &)> &filter);
+        PLATFORM_API bool catchSignals(const std::function<void()> &thunk, const std::function<bool(Signal signal, const CallStack &)> &filter);
 
         typedef bool (*SignalHandler)(Signal, const CallStack &);
 
@@ -45,9 +39,7 @@ namespace WAVM {
         // Calls a thunk, catching any platform exceptions raised.
         // If a platform exception is caught, the exception is passed to the handler function, and true
         // is returned. If no exceptions are caught, false is returned.
-        PLATFORM_API bool catchPlatformExceptions(
-                const std::function<void()> &thunk,
-                const std::function<void(void *, const CallStack &)> &handler);
+        PLATFORM_API bool catchPlatformExceptions(const std::function<void()> &thunk, const std::function<void(void *, const CallStack &)> &handler);
 
         [[noreturn]] PLATFORM_API void raisePlatformException(void *data);
 

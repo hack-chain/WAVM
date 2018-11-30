@@ -225,11 +225,9 @@ namespace libunwind {
 
         static int64_t getSLEB128(pint_t &addr, pint_t end);
 
-        pint_t getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
-                           pint_t datarelBase = 0);
+        pint_t getEncodedP(pint_t &addr, pint_t end, uint8_t encoding, pint_t datarelBase = 0);
 
-        bool findFunctionName(pint_t addr, char *buf, size_t bufLen,
-                              unw_word_t *offset);
+        bool findFunctionName(pint_t addr, char *buf, size_t bufLen, unw_word_t *offset);
 
         bool findUnwindSections(pint_t targetAddr, UnwindInfoSections &info);
 
@@ -300,9 +298,7 @@ namespace libunwind {
         return result;
     }
 
-    inline LocalAddressSpace::pint_t
-    LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding,
-                                   pint_t datarelBase) {
+    inline LocalAddressSpace::pint_t LocalAddressSpace::getEncodedP(pint_t &addr, pint_t end, uint8_t encoding, pint_t datarelBase) {
         pint_t startAddr = addr;
         const uint8_t *p = (uint8_t *) addr;
         pint_t result;
@@ -392,8 +388,7 @@ namespace libunwind {
         return result;
     }
 
-    inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr,
-                                                      UnwindInfoSections &info) {
+    inline bool LocalAddressSpace::findUnwindSections(pint_t targetAddr, UnwindInfoSections &info) {
 #ifdef __APPLE__
         dyld_unwind_sections dyldInfo;
         if (_dyld_find_unwind_sections((void *)targetAddr, &dyldInfo)) {
@@ -479,99 +474,95 @@ namespace libunwind {
         };
 
         dl_iterate_cb_data cb_data = {this, &info, targetAddr};
-        int found = dl_iterate_phdr(
-                [](struct dl_phdr_info *pinfo, size_t, void *data) -> int {
-                    auto cbdata = static_cast<dl_iterate_cb_data *>(data);
-                    bool found_obj = false;
-                    bool found_hdr = false;
+        int found = dl_iterate_phdr([](struct dl_phdr_info *pinfo, size_t, void *data) -> int {
+            auto cbdata = static_cast<dl_iterate_cb_data *>(data);
+            bool found_obj = false;
+            bool found_hdr = false;
 
-                    assert(cbdata);
-                    assert(cbdata->sects);
+            assert(cbdata);
+            assert(cbdata->sects);
 
-                    if (cbdata->targetAddr < pinfo->dlpi_addr) {
-                        return false;
-                    }
+            if (cbdata->targetAddr < pinfo->dlpi_addr) {
+                return false;
+            }
 
 #if !defined(Elf_Half)
-                    typedef ElfW(Half) Elf_Half;
+            typedef ElfW(Half) Elf_Half;
 #endif
 #if !defined(Elf_Phdr)
-                    typedef ElfW(Phdr) Elf_Phdr;
+            typedef ElfW(Phdr) Elf_Phdr;
 #endif
 #if !defined(Elf_Addr) && defined(__ANDROID__)
-                    typedef ElfW(Addr) Elf_Addr;
+            typedef ElfW(Addr) Elf_Addr;
 #endif
 
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 #if !defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
 #error "_LIBUNWIND_SUPPORT_DWARF_UNWIND requires _LIBUNWIND_SUPPORT_DWARF_INDEX on this platform."
 #endif
-                    size_t object_length;
+            size_t object_length;
 #if defined(__ANDROID__)
-                    Elf_Addr image_base =
-                        pinfo->dlpi_phnum
-                            ? reinterpret_cast<Elf_Addr>(pinfo->dlpi_phdr) -
-                                  reinterpret_cast<const Elf_Phdr *>(pinfo->dlpi_phdr)
-                                      ->p_offset
-                            : 0;
+            Elf_Addr image_base =
+                pinfo->dlpi_phnum
+                    ? reinterpret_cast<Elf_Addr>(pinfo->dlpi_phdr) -
+                          reinterpret_cast<const Elf_Phdr *>(pinfo->dlpi_phdr)
+                              ->p_offset
+                    : 0;
 #endif
 
-                    for (Elf_Half i = 0; i < pinfo->dlpi_phnum; i++) {
-                        const Elf_Phdr *phdr = &pinfo->dlpi_phdr[i];
-                        if (phdr->p_type == PT_LOAD) {
-                            uintptr_t begin = pinfo->dlpi_addr + phdr->p_vaddr;
+            for (Elf_Half i = 0; i < pinfo->dlpi_phnum; i++) {
+                const Elf_Phdr *phdr = &pinfo->dlpi_phdr[i];
+                if (phdr->p_type == PT_LOAD) {
+                    uintptr_t begin = pinfo->dlpi_addr + phdr->p_vaddr;
 #if defined(__ANDROID__)
-                            if (pinfo->dlpi_addr == 0 && phdr->p_vaddr < image_base)
-                              begin = begin + image_base;
+                    if (pinfo->dlpi_addr == 0 && phdr->p_vaddr < image_base)
+                      begin = begin + image_base;
 #endif
-                            uintptr_t end = begin + phdr->p_memsz;
-                            if (cbdata->targetAddr >= begin && cbdata->targetAddr < end) {
-                                cbdata->sects->dso_base = begin;
-                                object_length = phdr->p_memsz;
-                                found_obj = true;
-                            }
-                        } else if (phdr->p_type == PT_GNU_EH_FRAME) {
-                            EHHeaderParser<LocalAddressSpace>::EHHeaderInfo hdrInfo;
-                            uintptr_t eh_frame_hdr_start = pinfo->dlpi_addr + phdr->p_vaddr;
-#if defined(__ANDROID__)
-                            if (pinfo->dlpi_addr == 0 && phdr->p_vaddr < image_base)
-                              eh_frame_hdr_start = eh_frame_hdr_start + image_base;
-#endif
-                            cbdata->sects->dwarf_index_section = eh_frame_hdr_start;
-                            cbdata->sects->dwarf_index_section_length = phdr->p_memsz;
-                            EHHeaderParser<LocalAddressSpace>::decodeEHHdr(
-                                    *cbdata->addressSpace, eh_frame_hdr_start, phdr->p_memsz,
-                                    hdrInfo);
-                            cbdata->sects->dwarf_section = hdrInfo.eh_frame_ptr;
-                            found_hdr = true;
-                        }
+                    uintptr_t end = begin + phdr->p_memsz;
+                    if (cbdata->targetAddr >= begin && cbdata->targetAddr < end) {
+                        cbdata->sects->dso_base = begin;
+                        object_length = phdr->p_memsz;
+                        found_obj = true;
                     }
+                } else if (phdr->p_type == PT_GNU_EH_FRAME) {
+                    EHHeaderParser<LocalAddressSpace>::EHHeaderInfo hdrInfo;
+                    uintptr_t eh_frame_hdr_start = pinfo->dlpi_addr + phdr->p_vaddr;
+#if defined(__ANDROID__)
+                    if (pinfo->dlpi_addr == 0 && phdr->p_vaddr < image_base)
+                      eh_frame_hdr_start = eh_frame_hdr_start + image_base;
+#endif
+                    cbdata->sects->dwarf_index_section = eh_frame_hdr_start;
+                    cbdata->sects->dwarf_index_section_length = phdr->p_memsz;
+                    EHHeaderParser<LocalAddressSpace>::decodeEHHdr(*cbdata->addressSpace, eh_frame_hdr_start, phdr->p_memsz, hdrInfo);
+                    cbdata->sects->dwarf_section = hdrInfo.eh_frame_ptr;
+                    found_hdr = true;
+                }
+            }
 
-                    if (found_obj && found_hdr) {
-                        cbdata->sects->dwarf_section_length = object_length;
-                        return true;
-                    } else {
-                        return false;
-                    }
+            if (found_obj && found_hdr) {
+                cbdata->sects->dwarf_section_length = object_length;
+                return true;
+            } else {
+                return false;
+            }
 #else // defined(_LIBUNWIND_ARM_EHABI)
-                    for (Elf_Half i = 0; i < pinfo->dlpi_phnum; i++) {
-                      const Elf_Phdr *phdr = &pinfo->dlpi_phdr[i];
-                      if (phdr->p_type == PT_LOAD) {
-                        uintptr_t begin = pinfo->dlpi_addr + phdr->p_vaddr;
-                        uintptr_t end = begin + phdr->p_memsz;
-                        if (cbdata->targetAddr >= begin && cbdata->targetAddr < end)
-                          found_obj = true;
-                      } else if (phdr->p_type == PT_ARM_EXIDX) {
-                        uintptr_t exidx_start = pinfo->dlpi_addr + phdr->p_vaddr;
-                        cbdata->sects->arm_section = exidx_start;
-                        cbdata->sects->arm_section_length = phdr->p_memsz;
-                        found_hdr = true;
-                      }
-                    }
-                    return found_obj && found_hdr;
+            for (Elf_Half i = 0; i < pinfo->dlpi_phnum; i++) {
+              const Elf_Phdr *phdr = &pinfo->dlpi_phdr[i];
+              if (phdr->p_type == PT_LOAD) {
+                uintptr_t begin = pinfo->dlpi_addr + phdr->p_vaddr;
+                uintptr_t end = begin + phdr->p_memsz;
+                if (cbdata->targetAddr >= begin && cbdata->targetAddr < end)
+                  found_obj = true;
+              } else if (phdr->p_type == PT_ARM_EXIDX) {
+                uintptr_t exidx_start = pinfo->dlpi_addr + phdr->p_vaddr;
+                cbdata->sects->arm_section = exidx_start;
+                cbdata->sects->arm_section_length = phdr->p_memsz;
+                found_hdr = true;
+              }
+            }
+            return found_obj && found_hdr;
 #endif
-                },
-                &cb_data);
+        }, &cb_data);
         return static_cast<bool>(found);
 #endif
 
@@ -590,9 +581,7 @@ namespace libunwind {
 #endif
     }
 
-    inline bool LocalAddressSpace::findFunctionName(pint_t addr, char *buf,
-                                                    size_t bufLen,
-                                                    unw_word_t *offset) {
+    inline bool LocalAddressSpace::findFunctionName(pint_t addr, char *buf, size_t bufLen, unw_word_t *offset) {
 #if !defined(_LIBUNWIND_IS_BAREMETAL) && !defined(_WIN32)
         Dl_info dyldInfo;
         if (dladdr((void *) addr, &dyldInfo)) {

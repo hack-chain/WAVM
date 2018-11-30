@@ -60,9 +60,13 @@ namespace WAVM {
 #endif
         }
 
-        inline U64 floorLogTwo(U64 value) { return value <= 1 ? 0 : 63 - countLeadingZeroes(value); }
+        inline U64 floorLogTwo(U64 value) {
+            return value <= 1 ? 0 : 63 - countLeadingZeroes(value);
+        }
 
-        inline U32 floorLogTwo(U32 value) { return value <= 1 ? 0 : 31 - countLeadingZeroes(value); }
+        inline U32 floorLogTwo(U32 value) {
+            return value <= 1 ? 0 : 31 - countLeadingZeroes(value);
+        }
 
         inline U64 ceilLogTwo(U64 value) {
             return value <= 1 ? 0 : 63 - countLeadingZeroes(value * 2 - 1);
@@ -120,13 +124,12 @@ namespace WAVM {
         // so it can be overwritten by the second copy safely.
 
         inline void bytewiseMemMove(U8 *dest, U8 *source, Uptr numBytes) {
-            const Uptr numNonOverlappingBytes
-                    = source < dest && source + numBytes > dest ? dest - source : numBytes;
+            const Uptr numNonOverlappingBytes = source < dest && source + numBytes > dest ? dest - source : numBytes;
 
             if (numNonOverlappingBytes != numBytes) {
-                bytewiseMemCopy(dest + numNonOverlappingBytes,
-                                source + numNonOverlappingBytes,
-                                numBytes - numNonOverlappingBytes);
+                bytewiseMemCopy(
+                        dest + numNonOverlappingBytes,
+                        source + numNonOverlappingBytes, numBytes - numNonOverlappingBytes);
             }
 
             bytewiseMemCopy(dest, source, numNonOverlappingBytes);

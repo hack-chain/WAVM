@@ -39,8 +39,7 @@ namespace libunwind {
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 
 /// Cache of recently found FDEs.
-    template<typename A>
-    class _LIBUNWIND_HIDDEN DwarfFDECache {
+    template<typename A> class _LIBUNWIND_HIDDEN DwarfFDECache {
         typedef typename A::pint_t pint_t;
     public:
         static pint_t findFDE(pint_t mh, pint_t pc);
@@ -49,9 +48,7 @@ namespace libunwind {
 
         static void removeAllIn(pint_t mh);
 
-        static void iterateCacheEntries(void (*func)(unw_word_t ip_start,
-                                                     unw_word_t ip_end,
-                                                     unw_word_t fde, unw_word_t mh));
+        static void iterateCacheEntries(void (*func)(unw_word_t ip_start, unw_word_t ip_end, unw_word_t fde, unw_word_t mh));
 
     private:
 
@@ -76,31 +73,22 @@ namespace libunwind {
         static entry _initialBuffer[64];
     };
 
-    template<typename A>
-    typename DwarfFDECache<A>::entry *
-            DwarfFDECache<A>::_buffer = _initialBuffer;
+    template<typename A> typename DwarfFDECache<A>::entry *DwarfFDECache<A>::_buffer = _initialBuffer;
 
-    template<typename A>
-    typename DwarfFDECache<A>::entry *
-            DwarfFDECache<A>::_bufferUsed = _initialBuffer;
+    template<typename A> typename DwarfFDECache<A>::entry *DwarfFDECache<A>::_bufferUsed = _initialBuffer;
 
-    template<typename A>
-    typename DwarfFDECache<A>::entry *
-            DwarfFDECache<A>::_bufferEnd = &_initialBuffer[64];
+    template<typename A> typename DwarfFDECache<A>::entry *DwarfFDECache<A>::_bufferEnd = &_initialBuffer[64];
 
-    template<typename A>
-    typename DwarfFDECache<A>::entry DwarfFDECache<A>::_initialBuffer[64];
+    template<typename A> typename DwarfFDECache<A>::entry DwarfFDECache<A>::_initialBuffer[64];
 
-    template<typename A>
-    RWMutex DwarfFDECache<A>::_lock;
+    template<typename A> RWMutex DwarfFDECache<A>::_lock;
 
 #ifdef __APPLE__
     template <typename A>
     bool DwarfFDECache<A>::_registeredForDyldUnloads = false;
 #endif
 
-    template<typename A>
-    typename A::pint_t DwarfFDECache<A>::findFDE(pint_t mh, pint_t pc) {
+    template<typename A> typename A::pint_t DwarfFDECache<A>::findFDE(pint_t mh, pint_t pc) {
         pint_t result = 0;
         _LIBUNWIND_LOG_IF_FALSE(_lock.lock_shared());
         for (entry *p = _buffer; p < _bufferUsed; ++p) {
@@ -115,9 +103,7 @@ namespace libunwind {
         return result;
     }
 
-    template<typename A>
-    void DwarfFDECache<A>::add(pint_t mh, pint_t ip_start, pint_t ip_end,
-                               pint_t fde) {
+    template<typename A> void DwarfFDECache<A>::add(pint_t mh, pint_t ip_start, pint_t ip_end, pint_t fde) {
 #if !defined(_LIBUNWIND_NO_HEAP)
         _LIBUNWIND_LOG_IF_FALSE(_lock.lock());
         if (_bufferUsed >= _bufferEnd) {
@@ -147,8 +133,7 @@ namespace libunwind {
 #endif
     }
 
-    template<typename A>
-    void DwarfFDECache<A>::removeAllIn(pint_t mh) {
+    template<typename A> void DwarfFDECache<A>::removeAllIn(pint_t mh) {
         _LIBUNWIND_LOG_IF_FALSE(_lock.lock());
         entry *d = _buffer;
         for (const entry *s = _buffer; s < _bufferUsed; ++s) {
@@ -169,9 +154,7 @@ namespace libunwind {
     }
 #endif
 
-    template<typename A>
-    void DwarfFDECache<A>::iterateCacheEntries(void (*func)(
-            unw_word_t ip_start, unw_word_t ip_end, unw_word_t fde, unw_word_t mh)) {
+    template<typename A> void DwarfFDECache<A>::iterateCacheEntries(void (*func)(unw_word_t ip_start, unw_word_t ip_end, unw_word_t fde, unw_word_t mh)) {
         _LIBUNWIND_LOG_IF_FALSE(_lock.lock());
         for (entry *p = _buffer; p < _bufferUsed; ++p) {
             (*func)(p->ip_start, p->ip_end, p->fde, p->mh);
@@ -378,13 +361,19 @@ namespace libunwind {
     public:
         // NOTE: provide a class specific placement deallocation function (S5.3.4 p20)
         // This avoids an unnecessary dependency to libc++abi.
-        void operator delete(void *, size_t) {}
+        void operator delete(void *, size_t) {
+        }
 
-        virtual ~AbstractUnwindCursor() {}
+        virtual ~AbstractUnwindCursor() {
+        }
 
-        virtual bool validReg(int) { _LIBUNWIND_ABORT("validReg not implemented"); }
+        virtual bool validReg(int) {
+            _LIBUNWIND_ABORT("validReg not implemented");
+        }
 
-        virtual unw_word_t getReg(int) { _LIBUNWIND_ABORT("getReg not implemented"); }
+        virtual unw_word_t getReg(int) {
+            _LIBUNWIND_ABORT("getReg not implemented");
+        }
 
         virtual void setReg(int, unw_word_t) {
             _LIBUNWIND_ABORT("setReg not implemented");
@@ -402,13 +391,17 @@ namespace libunwind {
             _LIBUNWIND_ABORT("setFloatReg not implemented");
         }
 
-        virtual int step() { _LIBUNWIND_ABORT("step not implemented"); }
+        virtual int step() {
+            _LIBUNWIND_ABORT("step not implemented");
+        }
 
         virtual void getInfo(unw_proc_info_t *) {
             _LIBUNWIND_ABORT("getInfo not implemented");
         }
 
-        virtual void jumpto() { _LIBUNWIND_ABORT("jumpto not implemented"); }
+        virtual void jumpto() {
+            _LIBUNWIND_ABORT("jumpto not implemented");
+        }
 
         virtual bool isSignalFrame() {
             _LIBUNWIND_ABORT("isSignalFrame not implemented");
@@ -433,15 +426,15 @@ namespace libunwind {
 
 /// UnwindCursor contains all state (including all register values) during
 /// an unwind.  This is normally stack allocated inside a unw_cursor_t.
-    template<typename A, typename R>
-    class UnwindCursor : public AbstractUnwindCursor {
+    template<typename A, typename R> class UnwindCursor : public AbstractUnwindCursor {
         typedef typename A::pint_t pint_t;
     public:
         UnwindCursor(unw_context_t *context, A &as);
 
         UnwindCursor(A &as, void *threadArg);
 
-        virtual             ~UnwindCursor() {}
+        virtual             ~UnwindCursor() {
+        }
 
         virtual bool validReg(int);
 
@@ -495,15 +488,11 @@ namespace libunwind {
 
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 
-        bool getInfoFromDwarfSection(pint_t pc, const UnwindInfoSections &sects,
-                                     uint32_t fdeSectionOffsetHint = 0);
+        bool getInfoFromDwarfSection(pint_t pc, const UnwindInfoSections &sects, uint32_t fdeSectionOffsetHint = 0);
 
         int stepWithDwarfFDE() {
-            return DwarfInstructions<A, R>::stepWithDwarf(_addressSpace,
-                                                          (pint_t)
-            this->getReg(UNW_REG_IP),
-                    (pint_t) _info.unwind_info,
-                    _registers);
+            return DwarfInstructions<A, R>::stepWithDwarf(_addressSpace, (pint_t)
+            this->getReg(UNW_REG_IP), (pint_t) _info.unwind_info, _registers);
         }
 
 #endif
@@ -718,17 +707,14 @@ namespace libunwind {
     };
 
 
-    template<typename A, typename R>
-    UnwindCursor<A, R>::UnwindCursor(unw_context_t *context, A &as)
-            : _addressSpace(as), _registers(context), _unwindInfoMissing(false),
-              _isSignalFrame(false) {
-        static_assert((check_fit<UnwindCursor < A, R>, unw_cursor_t > ::does_fit),
-                      "UnwindCursor<> does not fit in unw_cursor_t");
+    template<typename A, typename R> UnwindCursor<A, R>::UnwindCursor(unw_context_t *context, A &as)
+            : _addressSpace(as), _registers(context), _unwindInfoMissing(false), _isSignalFrame(false) {
+        static_assert((check_fit<UnwindCursor < A, R>, unw_cursor_t >
+                                                       ::does_fit), "UnwindCursor<> does not fit in unw_cursor_t");
         memset(&_info, 0, sizeof(_info));
     }
 
-    template<typename A, typename R>
-    UnwindCursor<A, R>::UnwindCursor(A &as, void *)
+    template<typename A, typename R> UnwindCursor<A, R>::UnwindCursor(A &as, void *)
             : _addressSpace(as), _unwindInfoMissing(false), _isSignalFrame(false) {
         memset(&_info, 0, sizeof(_info));
         // FIXME
@@ -736,38 +722,31 @@ namespace libunwind {
     }
 
 
-    template<typename A, typename R>
-    bool UnwindCursor<A, R>::validReg(int regNum) {
+    template<typename A, typename R> bool UnwindCursor<A, R>::validReg(int regNum) {
         return _registers.validRegister(regNum);
     }
 
-    template<typename A, typename R>
-    unw_word_t UnwindCursor<A, R>::getReg(int regNum) {
+    template<typename A, typename R> unw_word_t UnwindCursor<A, R>::getReg(int regNum) {
         return _registers.getRegister(regNum);
     }
 
-    template<typename A, typename R>
-    void UnwindCursor<A, R>::setReg(int regNum, unw_word_t value) {
+    template<typename A, typename R> void UnwindCursor<A, R>::setReg(int regNum, unw_word_t value) {
         _registers.setRegister(regNum, (typename A::pint_t) value);
     }
 
-    template<typename A, typename R>
-    bool UnwindCursor<A, R>::validFloatReg(int regNum) {
+    template<typename A, typename R> bool UnwindCursor<A, R>::validFloatReg(int regNum) {
         return _registers.validFloatRegister(regNum);
     }
 
-    template<typename A, typename R>
-    unw_fpreg_t UnwindCursor<A, R>::getFloatReg(int regNum) {
+    template<typename A, typename R> unw_fpreg_t UnwindCursor<A, R>::getFloatReg(int regNum) {
         return _registers.getFloatRegister(regNum);
     }
 
-    template<typename A, typename R>
-    void UnwindCursor<A, R>::setFloatReg(int regNum, unw_fpreg_t value) {
+    template<typename A, typename R> void UnwindCursor<A, R>::setFloatReg(int regNum, unw_fpreg_t value) {
         _registers.setFloatRegister(regNum, value);
     }
 
-    template<typename A, typename R>
-    void UnwindCursor<A, R>::jumpto() {
+    template<typename A, typename R> void UnwindCursor<A, R>::jumpto() {
         _registers.jumpto();
     }
 
@@ -777,13 +756,11 @@ namespace libunwind {
     }
 #endif
 
-    template<typename A, typename R>
-    const char *UnwindCursor<A, R>::getRegisterName(int regNum) {
+    template<typename A, typename R> const char *UnwindCursor<A, R>::getRegisterName(int regNum) {
         return _registers.getRegisterName(regNum);
     }
 
-    template<typename A, typename R>
-    bool UnwindCursor<A, R>::isSignalFrame() {
+    template<typename A, typename R> bool UnwindCursor<A, R>::isSignalFrame() {
         return _isSignalFrame;
     }
 
@@ -992,49 +969,36 @@ namespace libunwind {
 
 #if defined(_LIBUNWIND_SUPPORT_DWARF_UNWIND)
 
-    template<typename A, typename R>
-    bool UnwindCursor<A, R>::getInfoFromDwarfSection(pint_t pc,
-                                                     const UnwindInfoSections &sects,
-                                                     uint32_t fdeSectionOffsetHint) {
+    template<typename A, typename R> bool UnwindCursor<A, R>::getInfoFromDwarfSection(pint_t pc, const UnwindInfoSections &sects, uint32_t fdeSectionOffsetHint) {
         typename CFI_Parser<A>::FDE_Info fdeInfo;
         typename CFI_Parser<A>::CIE_Info cieInfo;
         bool foundFDE = false;
         bool foundInCache = false;
         // If compact encoding table gave offset into dwarf section, go directly there
         if (fdeSectionOffsetHint != 0) {
-            foundFDE = CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section,
-                                              (uint32_t) sects.dwarf_section_length,
-                                              sects.dwarf_section + fdeSectionOffsetHint,
-                                              &fdeInfo, &cieInfo);
+            foundFDE = CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section, (uint32_t) sects.dwarf_section_length,
+                                              sects.dwarf_section + fdeSectionOffsetHint, &fdeInfo, &cieInfo);
         }
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
         if (!foundFDE && (sects.dwarf_index_section != 0)) {
-            foundFDE = EHHeaderParser<A>::findFDE(
-                    _addressSpace, pc, sects.dwarf_index_section,
-                    (uint32_t) sects.dwarf_index_section_length, &fdeInfo, &cieInfo);
+            foundFDE = EHHeaderParser<A>::findFDE(_addressSpace, pc, sects.dwarf_index_section, (uint32_t) sects.dwarf_index_section_length, &fdeInfo, &cieInfo);
         }
 #endif
         if (!foundFDE) {
             // otherwise, search cache of previously found FDEs.
             pint_t cachedFDE = DwarfFDECache<A>::findFDE(sects.dso_base, pc);
             if (cachedFDE != 0) {
-                foundFDE =
-                        CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section,
-                                               (uint32_t) sects.dwarf_section_length,
-                                               cachedFDE, &fdeInfo, &cieInfo);
+                foundFDE = CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section, (uint32_t) sects.dwarf_section_length, cachedFDE, &fdeInfo, &cieInfo);
                 foundInCache = foundFDE;
             }
         }
         if (!foundFDE) {
             // Still not found, do full scan of __eh_frame section.
-            foundFDE = CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section,
-                                              (uint32_t) sects.dwarf_section_length, 0,
-                                              &fdeInfo, &cieInfo);
+            foundFDE = CFI_Parser<A>::findFDE(_addressSpace, pc, sects.dwarf_section, (uint32_t) sects.dwarf_section_length, 0, &fdeInfo, &cieInfo);
         }
         if (foundFDE) {
             typename CFI_Parser<A>::PrologInfo prolog;
-            if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo, cieInfo, pc,
-                                                    &prolog)) {
+            if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo, cieInfo, pc, &prolog)) {
                 // Save off parsed FDE info
                 _info.start_ip = fdeInfo.pcStart;
                 _info.end_ip = fdeInfo.pcEnd;
@@ -1053,8 +1017,7 @@ namespace libunwind {
 #if defined(_LIBUNWIND_SUPPORT_DWARF_INDEX)
                     if (sects.dwarf_index_section == 0)
 #endif
-                        DwarfFDECache<A>::add(sects.dso_base, fdeInfo.pcStart, fdeInfo.pcEnd,
-                                              fdeInfo.fdeStart);
+                        DwarfFDECache<A>::add(sects.dso_base, fdeInfo.pcStart, fdeInfo.pcEnd, fdeInfo.fdeStart);
                 }
                 return true;
             }
@@ -1323,8 +1286,7 @@ namespace libunwind {
 #endif // defined(_LIBUNWIND_SUPPORT_COMPACT_UNWIND)
 
 
-    template<typename A, typename R>
-    void UnwindCursor<A, R>::setInfoBasedOnIPRegister(bool isReturnAddress) {
+    template<typename A, typename R> void UnwindCursor<A, R>::setInfoBasedOnIPRegister(bool isReturnAddress) {
         pint_t
         pc = (pint_t)
         this->getReg(UNW_REG_IP);
@@ -1392,12 +1354,10 @@ namespace libunwind {
         if (cachedFDE != 0) {
             CFI_Parser<LocalAddressSpace>::FDE_Info fdeInfo;
             CFI_Parser<LocalAddressSpace>::CIE_Info cieInfo;
-            const char *msg = CFI_Parser<A>::decodeFDE(_addressSpace,
-                                                       cachedFDE, &fdeInfo, &cieInfo);
+            const char *msg = CFI_Parser<A>::decodeFDE(_addressSpace, cachedFDE, &fdeInfo, &cieInfo);
             if (msg == NULL) {
                 typename CFI_Parser<A>::PrologInfo prolog;
-                if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo, cieInfo,
-                                                        pc, &prolog)) {
+                if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo, cieInfo, pc, &prolog)) {
                     // save off parsed FDE info
                     _info.start_ip = fdeInfo.pcStart;
                     _info.end_ip = fdeInfo.pcEnd;
@@ -1426,8 +1386,7 @@ namespace libunwind {
                 // Double check this FDE is for a function that includes the pc.
                 if ((fdeInfo.pcStart <= pc) && (pc < fdeInfo.pcEnd)) {
                     typename CFI_Parser<A>::PrologInfo prolog;
-                    if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo,
-                                                            cieInfo, pc, &prolog)) {
+                    if (CFI_Parser<A>::parseFDEInstructions(_addressSpace, fdeInfo, cieInfo, pc, &prolog)) {
                         // save off parsed FDE info
                         _info.start_ip = fdeInfo.pcStart;
                         _info.end_ip = fdeInfo.pcEnd;
@@ -1450,8 +1409,7 @@ namespace libunwind {
         _unwindInfoMissing = true;
     }
 
-    template<typename A, typename R>
-    int UnwindCursor<A, R>::step() {
+    template<typename A, typename R> int UnwindCursor<A, R>::step() {
         // Bottom of stack is defined is when unwind info cannot be found.
         if (_unwindInfoMissing)
             return UNW_STEP_END;
@@ -1482,17 +1440,13 @@ namespace libunwind {
         return result;
     }
 
-    template<typename A, typename R>
-    void UnwindCursor<A, R>::getInfo(unw_proc_info_t *info) {
+    template<typename A, typename R> void UnwindCursor<A, R>::getInfo(unw_proc_info_t *info) {
         *info = _info;
     }
 
-    template<typename A, typename R>
-    bool UnwindCursor<A, R>::getFunctionName(char *buf, size_t bufLen,
-                                             unw_word_t *offset) {
+    template<typename A, typename R> bool UnwindCursor<A, R>::getFunctionName(char *buf, size_t bufLen, unw_word_t *offset) {
         return _addressSpace.findFunctionName((pint_t)
-        this->getReg(UNW_REG_IP),
-                buf, bufLen, offset);
+        this->getReg(UNW_REG_IP), buf, bufLen, offset);
     }
 
 } // namespace libunwind

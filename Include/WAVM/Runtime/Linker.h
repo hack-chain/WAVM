@@ -14,11 +14,7 @@ namespace WAVM {
     namespace Runtime {
         // An abstract resolver: maps module+export name pairs to a Runtime::Object.
         struct Resolver {
-            virtual bool resolve(const std::string &moduleName,
-                                 const std::string &exportName,
-                                 IR::ExternType type,
-                                 Object *&outObject)
-            = 0;
+            virtual bool resolve(const std::string &moduleName, const std::string &exportName, IR::ExternType type, Object *&outObject) = 0;
         };
 
         // Links a module using the given resolver, returning an array mapping import indices to

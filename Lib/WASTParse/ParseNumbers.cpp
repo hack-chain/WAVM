@@ -74,11 +74,14 @@ static U64 parseHexUnsignedInt(const char *&nextChar, ParseState *parseState, U6
             ++nextChar;
             continue;
         }
-        if (!tryParseHexit(nextChar, hexit)) { break; }
+        if (!tryParseHexit(nextChar, hexit)) {
+            break;
+        }
         if (result > (maxValue - hexit) / 16) {
             parseErrorf(parseState, firstHexit, "integer literal is too large");
             result = maxValue;
-            while (tryParseHexit(nextChar, hexit)) {};
+            while (tryParseHexit(nextChar, hexit)) {
+            };
             break;
         }
         wavmAssert(result * 16 + hexit >= result);
@@ -90,10 +93,7 @@ static U64 parseHexUnsignedInt(const char *&nextChar, ParseState *parseState, U6
 // Parses an unsigned integer from digits, advancing nextChar past the parsed digits.
 // Assumes it will only be called for input that's already been accepted by the lexer as a decimal
 // integer.
-static U64 parseDecimalUnsignedInt(const char *&nextChar,
-                                   ParseState *parseState,
-                                   U64 maxValue,
-                                   const char *context) {
+static U64 parseDecimalUnsignedInt(const char *&nextChar, ParseState *parseState, U64 maxValue, const char *context) {
     U64 result = 0;
     const char *firstDigit = nextChar;
     while (true) {
@@ -101,7 +101,9 @@ static U64 parseDecimalUnsignedInt(const char *&nextChar,
             ++nextChar;
             continue;
         }
-        if (*nextChar < '0' || *nextChar > '9') { break; }
+        if (*nextChar < '0' || *nextChar > '9') {
+            break;
+        }
 
         const U8 digit = *nextChar - '0';
         ++nextChar;
@@ -109,7 +111,9 @@ static U64 parseDecimalUnsignedInt(const char *&nextChar,
         if (result > U64(maxValue - digit) / 10) {
             parseErrorf(parseState, firstDigit, "%s is too large", context);
             result = maxValue;
-            while ((*nextChar >= '0' && *nextChar <= '9') || *nextChar == '_') { ++nextChar; };
+            while ((*nextChar >= '0' && *nextChar <= '9') || *nextChar == '_') {
+                ++nextChar;
+            };
             break;
         }
         wavmAssert(result * 10 + digit >= result);
@@ -121,8 +125,7 @@ static U64 parseDecimalUnsignedInt(const char *&nextChar,
 // Parses a floating-point NaN, advancing nextChar past the parsed characters.
 // Assumes it will only be called for input that's already been accepted by the lexer as a literal
 // NaN.
-template<typename Float>
-Float parseNaN(const char *&nextChar, ParseState *parseState) {
+template<typename Float> Float parseNaN(const char *&nextChar, ParseState *parseState) {
     const char *firstChar = nextChar;
 
     typedef FloatComponents<Float> FloatComponents;
@@ -136,8 +139,7 @@ Float parseNaN(const char *&nextChar, ParseState *parseState) {
     if (*nextChar == ':') {
         ++nextChar;
 
-        const U64 significandBits
-                = parseHexUnsignedInt(nextChar, parseState, FloatComponents::maxSignificand);
+        const U64 significandBits = parseHexUnsignedInt(nextChar, parseState, FloatComponents::maxSignificand);
         if (!significandBits) {
             parseErrorf(parseState, firstChar, "NaN significand must be non-zero");
             resultComponents.bits.significand = 1;
@@ -145,8 +147,8 @@ Float parseNaN(const char *&nextChar, ParseState *parseState) {
         resultComponents.bits.significand = typename FloatComponents::Bits(significandBits);
     } else {
         // If the NaN's significand isn't specified, just set the top bit.
-        resultComponents.bits.significand = typename FloatComponents::Bits(1)
-                << (FloatComponents::numSignificandBits - 1);
+        resultComponents.bits.significand =
+                typename FloatComponents::Bits(1) << (FloatComponents::numSignificandBits - 1);
     }
 
     return resultComponents.value;
@@ -155,8 +157,7 @@ Float parseNaN(const char *&nextChar, ParseState *parseState) {
 // Parses a floating-point infinity. Does not advance nextChar.
 // Assumes it will only be called for input that's already been accepted by the lexer as a literal
 // infinity.
-template<typename Float>
-Float parseInfinity(const char *nextChar) {
+template<typename Float> Float parseInfinity(const char *nextChar) {
     // Floating point infinite is represented by max exponent with a zero significand.
     typedef FloatComponents<Float> FloatComponents;
     FloatComponents resultComponents;
@@ -166,11 +167,11 @@ Float parseInfinity(const char *nextChar) {
     return resultComponents.value;
 }
 
-template<typename Float>
-static NO_UBSAN Float uncheckedCast(F64 f64) { return Float(f64); }
+template<typename Float> static NO_UBSAN Float uncheckedCast(F64 f64) {
+    return Float(f64);
+}
 
-template<typename DestFloat>
-static F64 getMaxCastableF64() {
+template<typename DestFloat> static F64 getMaxCastableF64() {
     typedef FloatComponents<F64> F64Components;
     typedef FloatComponents<DestFloat> DestComponents;
 
@@ -178,13 +179,11 @@ static F64 getMaxCastableF64() {
     f64Components.bits.sign = 0;
 
     // Set the F64 exponent to the maximum exponent of the destination type.
-    f64Components.bits.exponent
-            = U64(DestComponents::maxNormalExponent) + F64Components::exponentBias;
+    f64Components.bits.exponent = U64(DestComponents::maxNormalExponent) + F64Components::exponentBias;
 
     // Set the F64 significand to the highest value that rounds to the maximum normal significand of
     // the destination type.
-    const Uptr deltaSignificandBits
-            = F64Components::numSignificandBits - DestComponents::numSignificandBits;
+    const Uptr deltaSignificandBits = F64Components::numSignificandBits - DestComponents::numSignificandBits;
     f64Components.bits.significand = U64(DestComponents::maxSignificand) << deltaSignificandBits;
     f64Components.bits.significand |= ((U64(1) << deltaSignificandBits) - 1) >> 1;
 
@@ -193,8 +192,7 @@ static F64 getMaxCastableF64() {
 
 // Parses a floating point literal, advancing nextChar past the parsed characters. Assumes it will
 // only be called for input that's already been accepted by the lexer as a float literal.
-template<typename Float>
-Float parseFloat(const char *&nextChar, ParseState *parseState) {
+template<typename Float> Float parseFloat(const char *&nextChar, ParseState *parseState) {
     // Scan the token's characters for underscores, and make a copy of it without the underscores
     // for strtod.
     const char *firstChar = nextChar;
@@ -202,13 +200,14 @@ Float parseFloat(const char *&nextChar, ParseState *parseState) {
     bool hasUnderscores = false;
     while (true) {
         // Determine whether the next character is still part of the number.
-        const bool isNumericChar
-                = (*nextChar >= '0' && *nextChar <= '9') || (*nextChar >= 'a' && *nextChar <= 'f')
-                  || (*nextChar >= 'A' && *nextChar <= 'F') || *nextChar == 'x' || *nextChar == 'X'
-                  || *nextChar == 'p' || *nextChar == 'P' || *nextChar == '+' || *nextChar == '-'
-                  || *nextChar == '.' || *nextChar == '_';
+        const bool isNumericChar = (*nextChar >= '0' && *nextChar <= '9') || (*nextChar >= 'a' && *nextChar <= 'f') ||
+                                   (*nextChar >= 'A' && *nextChar <= 'F') || *nextChar == 'x' || *nextChar == 'X' ||
+                                   *nextChar == 'p' || *nextChar == 'P' || *nextChar == '+' || *nextChar == '-' ||
+                                   *nextChar == '.' || *nextChar == '_';
 
-        if (!isNumericChar) { break; }
+        if (!isNumericChar) {
+            break;
+        }
 
         if (*nextChar == '_' && !hasUnderscores) {
             // If this is the first underscore encountered, copy the preceding characters of the
@@ -226,12 +225,16 @@ Float parseFloat(const char *&nextChar, ParseState *parseState) {
 
     // Pass the underscore-free string to parseNonSpecialF64 instead of the original input string.
     const char *noUnderscoreFirstChar = firstChar;
-    if (hasUnderscores) { noUnderscoreFirstChar = noUnderscoreString.c_str(); }
+    if (hasUnderscores) {
+        noUnderscoreFirstChar = noUnderscoreString.c_str();
+    }
 
     // Use David Gay's strtod to parse a floating point number.
     char *endChar = nullptr;
     F64 f64 = parseNonSpecialF64(noUnderscoreFirstChar, &endChar);
-    if (endChar == noUnderscoreFirstChar) { Errors::fatalf("strtod failed to parse number accepted by lexer"); }
+    if (endChar == noUnderscoreFirstChar) {
+        Errors::fatalf("strtod failed to parse number accepted by lexer");
+    }
 
     const F64 maxCastableF64 = getMaxCastableF64<Float>();
     if (f64 < -maxCastableF64 || f64 > maxCastableF64) {
@@ -243,11 +246,7 @@ Float parseFloat(const char *&nextChar, ParseState *parseState) {
 
 // Tries to parse an numeric literal token as an integer, advancing cursor->nextToken.
 // Returns true if it matched a token.
-template<typename UnsignedInt>
-bool tryParseInt(CursorState *cursor,
-                 UnsignedInt &outUnsignedInt,
-                 I64 minSignedValue,
-                 U64 maxUnsignedValue) {
+template<typename UnsignedInt> bool tryParseInt(CursorState *cursor, UnsignedInt &outUnsignedInt, I64 minSignedValue, U64 maxUnsignedValue) {
     bool isNegative = false;
     U64 u64 = 0;
 
@@ -255,15 +254,11 @@ bool tryParseInt(CursorState *cursor,
     switch (cursor->nextToken->type) {
         case t_decimalInt:
             isNegative = parseSign(nextChar);
-            u64 = parseDecimalUnsignedInt(nextChar,
-                                          cursor->parseState,
-                                          isNegative ? -U64(minSignedValue) : maxUnsignedValue,
-                                          "int literal");
+            u64 = parseDecimalUnsignedInt(nextChar, cursor->parseState, isNegative ? -U64(minSignedValue) : maxUnsignedValue, "int literal");
             break;
         case t_hexInt:
             isNegative = parseSign(nextChar);
-            u64 = parseHexUnsignedInt(
-                    nextChar, cursor->parseState, isNegative ? -U64(minSignedValue) : maxUnsignedValue);
+            u64 = parseHexUnsignedInt(nextChar, cursor->parseState, isNegative ? -U64(minSignedValue) : maxUnsignedValue);
             break;
         default:
             return false;
@@ -279,8 +274,7 @@ bool tryParseInt(CursorState *cursor,
 
 // Tries to parse a numeric literal literal token as a float, advancing cursor->nextToken.
 // Returns true if it matched a token.
-template<typename Float>
-bool tryParseFloat(CursorState *cursor, Float &outFloat) {
+template<typename Float> bool tryParseFloat(CursorState *cursor, Float &outFloat) {
     const char *nextChar = cursor->parseState->string + cursor->nextToken->begin;
     switch (cursor->nextToken->type) {
         case t_decimalInt:
@@ -381,32 +375,42 @@ V128 WAST::parseV128(CursorState *cursor) {
     switch (cursor->nextToken->type) {
         case t_i8:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 16; ++laneIndex) { result.i8[laneIndex] = parseI8(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 16; ++laneIndex) {
+                result.i8[laneIndex] = parseI8(cursor);
+            }
             break;
         case t_i16:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 8; ++laneIndex) { result.i16[laneIndex] = parseI16(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 8; ++laneIndex) {
+                result.i16[laneIndex] = parseI16(cursor);
+            }
             break;
         case t_i32:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 4; ++laneIndex) { result.i32[laneIndex] = parseI32(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 4; ++laneIndex) {
+                result.i32[laneIndex] = parseI32(cursor);
+            }
             break;
         case t_i64:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 2; ++laneIndex) { result.i64[laneIndex] = parseI64(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 2; ++laneIndex) {
+                result.i64[laneIndex] = parseI64(cursor);
+            }
             break;
         case t_f32:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 4; ++laneIndex) { result.f32[laneIndex] = parseF32(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 4; ++laneIndex) {
+                result.f32[laneIndex] = parseF32(cursor);
+            }
             break;
         case t_f64:
             ++cursor->nextToken;
-            for (Uptr laneIndex = 0; laneIndex < 2; ++laneIndex) { result.f64[laneIndex] = parseF64(cursor); }
+            for (Uptr laneIndex = 0; laneIndex < 2; ++laneIndex) {
+                result.f64[laneIndex] = parseF64(cursor);
+            }
             break;
         default:
-            parseErrorf(cursor->parseState,
-                        cursor->nextToken,
-                        "expected 'i8', 'i16', 'i32', 'i64', 'f32', or 'f64'");
+            parseErrorf(cursor->parseState, cursor->nextToken, "expected 'i8', 'i16', 'i32', 'i64', 'f32', or 'f64'");
     };
 
     return result;

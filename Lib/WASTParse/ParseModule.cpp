@@ -10,33 +10,27 @@ using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::WAST;
 
-static bool tryParseSizeConstraints(CursorState *cursor,
-                                    U64 maxMax,
-                                    SizeConstraints &outSizeConstraints) {
+static bool tryParseSizeConstraints(CursorState *cursor, U64 maxMax, SizeConstraints &outSizeConstraints) {
     outSizeConstraints.min = 0;
     outSizeConstraints.max = UINT64_MAX;
 
     // Parse a minimum.
-    if (!tryParseI64(cursor, outSizeConstraints.min)) { return false; }
-    else {
+    if (!tryParseI64(cursor, outSizeConstraints.min)) {
+        return false;
+    } else {
         // Parse an optional maximum.
-        if (!tryParseI64(cursor, outSizeConstraints.max)) { outSizeConstraints.max = UINT64_MAX; }
-        else {
+        if (!tryParseI64(cursor, outSizeConstraints.max)) {
+            outSizeConstraints.max = UINT64_MAX;
+        } else {
             // Validate that the maximum size is within the limit, and that the size contraints is
             // not disjoint.
             if (outSizeConstraints.max > maxMax) {
-                parseErrorf(cursor->parseState,
-                            cursor->nextToken - 1,
-                            "maximum size exceeds limit (%" PRIu64 ">%" PRIu64 ")",
-                            outSizeConstraints.max,
-                            maxMax);
+                parseErrorf(cursor->parseState, cursor->nextToken -
+                                                1, "maximum size exceeds limit (%" PRIu64 ">%" PRIu64 ")", outSizeConstraints.max, maxMax);
                 outSizeConstraints.max = maxMax;
             } else if (outSizeConstraints.max < outSizeConstraints.min) {
-                parseErrorf(cursor->parseState,
-                            cursor->nextToken - 1,
-                            "maximum size is less than minimum size (%" PRIu64 "<%" PRIu64 ")",
-                            outSizeConstraints.max,
-                            outSizeConstraints.min);
+                parseErrorf(cursor->parseState, cursor->nextToken -
+                                                1, "maximum size is less than minimum size (%" PRIu64 "<%" PRIu64 ")", outSizeConstraints.max, outSizeConstraints.min);
                 outSizeConstraints.max = outSizeConstraints.min;
             }
         }
@@ -55,16 +49,21 @@ static SizeConstraints parseSizeConstraints(CursorState *cursor, U64 maxMax) {
 
 static GlobalType parseGlobalType(CursorState *cursor) {
     GlobalType result;
-    result.isMutable = tryParseParenthesizedTagged(
-            cursor, t_mut, [&] { result.valueType = parseValueType(cursor); });
-    if (!result.isMutable) { result.valueType = parseValueType(cursor); }
+    result.isMutable = tryParseParenthesizedTagged(cursor, t_mut, [&] {
+        result.valueType = parseValueType(cursor);
+    });
+    if (!result.isMutable) {
+        result.valueType = parseValueType(cursor);
+    }
     return result;
 }
 
 static TypeTuple parseTypeTuple(CursorState *cursor) {
     std::vector<ValueType> parameters;
     ValueType elementType;
-    while (tryParseValueType(cursor, elementType)) { parameters.push_back(elementType); }
+    while (tryParseValueType(cursor, elementType)) {
+        parameters.push_back(elementType);
+    }
     return TypeTuple(parameters);
 }
 
@@ -106,8 +105,7 @@ static UnresolvedInitializerExpression parseInitializerExpression(CursorState *c
                 if (!tryParseNameOrIndexRef(cursor, globalRef)) {
                     parseErrorf(cursor->parseState, cursor->nextToken, "expected global name or index");
                 }
-                result = UnresolvedInitializerExpression(
-                        UnresolvedInitializerExpression::Type::get_global, globalRef);
+                result = UnresolvedInitializerExpression(UnresolvedInitializerExpression::Type::get_global, globalRef);
                 break;
             }
             case t_ref_null: {
@@ -124,9 +122,7 @@ static UnresolvedInitializerExpression parseInitializerExpression(CursorState *c
     return result;
 }
 
-static InitializerExpression resolveInitializerExpression(
-        ModuleState *moduleState,
-        UnresolvedInitializerExpression unresolvedExpression) {
+static InitializerExpression resolveInitializerExpression(ModuleState *moduleState, UnresolvedInitializerExpression unresolvedExpression) {
     switch (unresolvedExpression.type) {
         case UnresolvedInitializerExpression::Type::i32_const:
             return InitializerExpression(unresolvedExpression.i32);
@@ -139,11 +135,7 @@ static InitializerExpression resolveInitializerExpression(
         case UnresolvedInitializerExpression::Type::v128_const:
             return InitializerExpression(unresolvedExpression.v128);
         case UnresolvedInitializerExpression::Type::get_global:
-            return InitializerExpression(InitializerExpression::Type::get_global,
-                                         resolveRef(moduleState->parseState,
-                                                    moduleState->globalNameToIndexMap,
-                                                    moduleState->module.globals.size(),
-                                                    unresolvedExpression.globalRef));
+            return InitializerExpression(InitializerExpression::Type::get_global, resolveRef(moduleState->parseState, moduleState->globalNameToIndexMap, moduleState->module.globals.size(), unresolvedExpression.globalRef));
         case UnresolvedInitializerExpression::Type::ref_null:
             return InitializerExpression(nullptr);
         case UnresolvedInitializerExpression::Type::error:
@@ -154,25 +146,13 @@ static InitializerExpression resolveInitializerExpression(
 }
 
 static void errorIfFollowsDefinitions(CursorState *cursor) {
-    if (cursor->moduleState->module.functions.defs.size()
-        || cursor->moduleState->module.tables.defs.size()
-        || cursor->moduleState->module.memories.defs.size()
-        || cursor->moduleState->module.globals.defs.size()) {
-        parseErrorf(cursor->parseState,
-                    cursor->nextToken,
-                    "import declarations must precede all definitions");
+    if (cursor->moduleState->module.functions.defs.size() || cursor->moduleState->module.tables.defs.size() ||
+        cursor->moduleState->module.memories.defs.size() || cursor->moduleState->module.globals.defs.size()) {
+        parseErrorf(cursor->parseState, cursor->nextToken, "import declarations must precede all definitions");
     }
 }
 
-template<typename Def, typename Type, typename DisassemblyName>
-static Uptr createImport(CursorState *cursor,
-                         Name name,
-                         std::string &&moduleName,
-                         std::string &&exportName,
-                         NameToIndexMap &nameToIndexMap,
-                         IndexSpace<Def, Type> &indexSpace,
-                         std::vector<DisassemblyName> &disassemblyNameArray,
-                         Type type) {
+template<typename Def, typename Type, typename DisassemblyName> static Uptr createImport(CursorState *cursor, Name name, std::string &&moduleName, std::string &&exportName, NameToIndexMap &nameToIndexMap, IndexSpace<Def, Type> &indexSpace, std::vector<DisassemblyName> &disassemblyNameArray, Type type) {
     const Uptr importIndex = indexSpace.imports.size();
     bindName(cursor->parseState, nameToIndexMap, name, indexSpace.size());
     disassemblyNameArray.push_back({name.getString()});
@@ -221,76 +201,37 @@ static void parseImport(CursorState *cursor) {
             case t_func: {
                 NameToIndexMap localNameToIndexMap;
                 std::vector<std::string> localDissassemblyNames;
-                const UnresolvedFunctionType unresolvedFunctionType = parseFunctionTypeRefAndOrDecl(
-                        cursor, localNameToIndexMap, localDissassemblyNames);
-                const Uptr importIndex = createImport(cursor,
-                                                      name,
-                                                      std::move(moduleName),
-                                                      std::move(exportName),
-                                                      cursor->moduleState->functionNameToIndexMap,
-                                                      cursor->moduleState->module.functions,
-                                                      cursor->moduleState->disassemblyNames.functions,
-                                                      {UINTPTR_MAX});
+                const UnresolvedFunctionType unresolvedFunctionType = parseFunctionTypeRefAndOrDecl(cursor, localNameToIndexMap, localDissassemblyNames);
+                const Uptr importIndex = createImport(cursor, name, std::move(moduleName), std::move(exportName), cursor->moduleState->functionNameToIndexMap, cursor->moduleState->module.functions, cursor->moduleState->disassemblyNames.functions, {UINTPTR_MAX});
                 cursor->moduleState->disassemblyNames.functions.back().locals = localDissassemblyNames;
 
                 // Resolve the function import type after all type declarations have been parsed.
-                cursor->moduleState->postTypeCallbacks.push_back(
-                        [unresolvedFunctionType, importIndex](ModuleState *moduleState) {
-                            moduleState->module.functions.imports[importIndex].type
-                                    = resolveFunctionType(moduleState, unresolvedFunctionType);
-                        });
+                cursor->moduleState->postTypeCallbacks.push_back([unresolvedFunctionType, importIndex](ModuleState *moduleState) {
+                    moduleState->module.functions.imports[importIndex].type = resolveFunctionType(moduleState, unresolvedFunctionType);
+                });
                 break;
             }
             case t_table: {
                 const SizeConstraints sizeConstraints = parseSizeConstraints(cursor, IR::maxTableElems);
                 const bool isShared = parseOptionalSharedDeclaration(cursor);
                 const ReferenceType elementType = parseReferenceType(cursor);
-                createImport(cursor,
-                             name,
-                             std::move(moduleName),
-                             std::move(exportName),
-                             cursor->moduleState->tableNameToIndexMap,
-                             cursor->moduleState->module.tables,
-                             cursor->moduleState->disassemblyNames.tables,
-                             {elementType, isShared, sizeConstraints});
+                createImport(cursor, name, std::move(moduleName), std::move(exportName), cursor->moduleState->tableNameToIndexMap, cursor->moduleState->module.tables, cursor->moduleState->disassemblyNames.tables, {elementType, isShared, sizeConstraints});
                 break;
             }
             case t_memory: {
-                const SizeConstraints sizeConstraints
-                        = parseSizeConstraints(cursor, IR::maxMemoryPages);
+                const SizeConstraints sizeConstraints = parseSizeConstraints(cursor, IR::maxMemoryPages);
                 const bool isShared = parseOptionalSharedDeclaration(cursor);
-                createImport(cursor,
-                             name,
-                             std::move(moduleName),
-                             std::move(exportName),
-                             cursor->moduleState->memoryNameToIndexMap,
-                             cursor->moduleState->module.memories,
-                             cursor->moduleState->disassemblyNames.memories,
-                             MemoryType{isShared, sizeConstraints});
+                createImport(cursor, name, std::move(moduleName), std::move(exportName), cursor->moduleState->memoryNameToIndexMap, cursor->moduleState->module.memories, cursor->moduleState->disassemblyNames.memories, MemoryType{isShared, sizeConstraints});
                 break;
             }
             case t_global: {
                 const GlobalType globalType = parseGlobalType(cursor);
-                createImport(cursor,
-                             name,
-                             std::move(moduleName),
-                             std::move(exportName),
-                             cursor->moduleState->globalNameToIndexMap,
-                             cursor->moduleState->module.globals,
-                             cursor->moduleState->disassemblyNames.globals,
-                             globalType);
+                createImport(cursor, name, std::move(moduleName), std::move(exportName), cursor->moduleState->globalNameToIndexMap, cursor->moduleState->module.globals, cursor->moduleState->disassemblyNames.globals, globalType);
                 break;
             }
             case t_exception_type: {
                 TypeTuple params = parseTypeTuple(cursor);
-                createImport(cursor,
-                             name,
-                             std::move(moduleName),
-                             std::move(exportName),
-                             cursor->moduleState->exceptionTypeNameToIndexMap,
-                             cursor->moduleState->module.exceptionTypes,
-                             cursor->moduleState->disassemblyNames.exceptionTypes,
-                             ExceptionType{params});
+                createImport(cursor, name, std::move(moduleName), std::move(exportName), cursor->moduleState->exceptionTypeNameToIndexMap, cursor->moduleState->module.exceptionTypes, cursor->moduleState->disassemblyNames.exceptionTypes, ExceptionType{params});
                 break;
             }
             default:
@@ -340,34 +281,19 @@ static void parseExport(CursorState *cursor) {
             Uptr &exportedObjectIndex = moduleState->module.exports[exportIndex].index;
             switch (exportKind) {
                 case ExternKind::function:
-                    exportedObjectIndex = resolveRef(moduleState->parseState,
-                                                     moduleState->functionNameToIndexMap,
-                                                     moduleState->module.functions.size(),
-                                                     exportRef);
+                    exportedObjectIndex = resolveRef(moduleState->parseState, moduleState->functionNameToIndexMap, moduleState->module.functions.size(), exportRef);
                     break;
                 case ExternKind::table:
-                    exportedObjectIndex = resolveRef(moduleState->parseState,
-                                                     moduleState->tableNameToIndexMap,
-                                                     moduleState->module.tables.size(),
-                                                     exportRef);
+                    exportedObjectIndex = resolveRef(moduleState->parseState, moduleState->tableNameToIndexMap, moduleState->module.tables.size(), exportRef);
                     break;
                 case ExternKind::memory:
-                    exportedObjectIndex = resolveRef(moduleState->parseState,
-                                                     moduleState->memoryNameToIndexMap,
-                                                     moduleState->module.memories.size(),
-                                                     exportRef);
+                    exportedObjectIndex = resolveRef(moduleState->parseState, moduleState->memoryNameToIndexMap, moduleState->module.memories.size(), exportRef);
                     break;
                 case ExternKind::global:
-                    exportedObjectIndex = resolveRef(moduleState->parseState,
-                                                     moduleState->globalNameToIndexMap,
-                                                     moduleState->module.globals.size(),
-                                                     exportRef);
+                    exportedObjectIndex = resolveRef(moduleState->parseState, moduleState->globalNameToIndexMap, moduleState->module.globals.size(), exportRef);
                     break;
                 case ExternKind::exceptionType:
-                    exportedObjectIndex = resolveRef(moduleState->parseState,
-                                                     moduleState->exceptionTypeNameToIndexMap,
-                                                     moduleState->module.exceptionTypes.size(),
-                                                     exportRef);
+                    exportedObjectIndex = resolveRef(moduleState->parseState, moduleState->exceptionTypeNameToIndexMap, moduleState->module.exceptionTypes.size(), exportRef);
                     break;
                 default:
                     Errors::unreachable();
@@ -387,15 +313,13 @@ static void parseType(CursorState *cursor) {
 
         NameToIndexMap parameterNameToIndexMap;
         std::vector<std::string> localDisassemblyNames;
-        FunctionType functionType
-                = parseFunctionType(cursor, parameterNameToIndexMap, localDisassemblyNames);
+        FunctionType functionType = parseFunctionType(cursor, parameterNameToIndexMap, localDisassemblyNames);
 
         const Uptr functionTypeIndex = cursor->moduleState->module.types.size();
         cursor->moduleState->module.types.push_back(functionType);
         cursor->moduleState->functionTypeToIndexMap.set(functionType, functionTypeIndex);
 
-        bindName(
-                cursor->parseState, cursor->moduleState->typeNameToIndexMap, name, functionTypeIndex);
+        bindName(cursor->parseState, cursor->moduleState->typeNameToIndexMap, name, functionTypeIndex);
         cursor->moduleState->disassemblyNames.types.push_back(name.getString());
     });
 }
@@ -428,88 +352,62 @@ static void parseData(CursorState *cursor) {
 
     // Parse a list of strings that contains the segment's data.
     std::string dataString;
-    while (tryParseString(cursor, dataString)) {};
+    while (tryParseString(cursor, dataString)) {
+    };
 
     // Create the data segment.
-    std::vector<U8> dataVector((const U8 *) dataString.data(),
-                               (const U8 *) dataString.data() + dataString.size());
+    std::vector<U8> dataVector((const U8 *) dataString.data(), (const U8 *) dataString.data() + dataString.size());
     const Uptr dataSegmentIndex = cursor->moduleState->module.dataSegments.size();
-    cursor->moduleState->module.dataSegments.push_back(
-            {isActive, UINTPTR_MAX, InitializerExpression(), std::move(dataVector)});
+    cursor->moduleState->module.dataSegments.push_back({isActive, UINTPTR_MAX, InitializerExpression(), std::move(dataVector)});
 
     // Enqueue a callback that is called after all declarations are parsed to resolve the memory to
     // put the data segment in, and the base offset.
     if (isActive) {
         cursor->moduleState->postDeclarationCallbacks.push_back([=](ModuleState *moduleState) {
             if (!moduleState->module.memories.size()) {
-                parseErrorf(
-                        moduleState->parseState,
-                        firstToken,
-                        "data segments aren't allowed in modules without any memory declarations");
+                parseErrorf(moduleState->parseState, firstToken, "data segments aren't allowed in modules without any memory declarations");
             } else {
                 DataSegment &dataSegment = moduleState->module.dataSegments[dataSegmentIndex];
-                dataSegment.memoryIndex = memoryRef
-                                          ? resolveRef(moduleState->parseState,
-                                                       moduleState->memoryNameToIndexMap,
-                                                       moduleState->module.memories.size(),
-                                                       memoryRef)
-                                          : 0;
+                dataSegment.memoryIndex = memoryRef ? resolveRef(moduleState->parseState, moduleState->memoryNameToIndexMap, moduleState->module.memories.size(), memoryRef) : 0;
                 dataSegment.baseOffset = resolveInitializerExpression(moduleState, baseAddress);
             }
         });
     }
 }
 
-static Uptr parseElemSegmentBody(CursorState *cursor,
-                                 bool isActive,
-                                 Reference tableRef,
-                                 UnresolvedInitializerExpression baseIndex,
-                                 const Token *elemToken) {
+static Uptr parseElemSegmentBody(CursorState *cursor, bool isActive, Reference tableRef, UnresolvedInitializerExpression baseIndex, const Token *elemToken) {
     // Allocate the elementReferences array on the heap so it doesn't need to be copied for the
     // post-declaration callback.
-    std::shared_ptr<std::vector<Reference>> elementReferences
-            = std::make_shared<std::vector<Reference>>();
+    std::shared_ptr<std::vector<Reference>> elementReferences = std::make_shared<std::vector<Reference>>();
 
     Reference elementRef;
-    while (tryParseNameOrIndexRef(cursor, elementRef)) { elementReferences->push_back(elementRef); };
+    while (tryParseNameOrIndexRef(cursor, elementRef)) {
+        elementReferences->push_back(elementRef);
+    };
 
     // Create the elem segment.
     const Uptr elemSegmentIndex = cursor->moduleState->module.elemSegments.size();
-    cursor->moduleState->module.elemSegments.push_back(
-            {isActive, UINTPTR_MAX, InitializerExpression(), std::vector<Uptr>()});
+    cursor->moduleState->module.elemSegments.push_back({isActive, UINTPTR_MAX, InitializerExpression(), std::vector<Uptr>()});
 
     // Enqueue a callback that is called after all declarations are parsed to resolve the table
     // elements' references.
-    cursor->moduleState->postDeclarationCallbacks.push_back(
-            [isActive, tableRef, elemSegmentIndex, elementReferences, elemToken, baseIndex](
-                    ModuleState *moduleState) {
-                ElemSegment &elemSegment = moduleState->module.elemSegments[elemSegmentIndex];
+    cursor->moduleState->postDeclarationCallbacks.push_back([isActive, tableRef, elemSegmentIndex, elementReferences, elemToken, baseIndex](ModuleState *moduleState) {
+        ElemSegment &elemSegment = moduleState->module.elemSegments[elemSegmentIndex];
 
-                if (isActive) {
-                    if (!moduleState->module.tables.size()) {
-                        parseErrorf(
-                                moduleState->parseState,
-                                elemToken,
-                                "elem segments aren't allowed in modules without any table declarations");
-                    } else {
-                        elemSegment.tableIndex = tableRef
-                                                 ? resolveRef(moduleState->parseState,
-                                                              moduleState->tableNameToIndexMap,
-                                                              moduleState->module.tables.size(),
-                                                              tableRef)
-                                                 : 0;
-                        elemSegment.baseOffset = resolveInitializerExpression(moduleState, baseIndex);
-                    }
-                }
+        if (isActive) {
+            if (!moduleState->module.tables.size()) {
+                parseErrorf(moduleState->parseState, elemToken, "elem segments aren't allowed in modules without any table declarations");
+            } else {
+                elemSegment.tableIndex = tableRef ? resolveRef(moduleState->parseState, moduleState->tableNameToIndexMap, moduleState->module.tables.size(), tableRef) : 0;
+                elemSegment.baseOffset = resolveInitializerExpression(moduleState, baseIndex);
+            }
+        }
 
-                elemSegment.indices.resize(elementReferences->size());
-                for (Uptr elementIndex = 0; elementIndex < elementReferences->size(); ++elementIndex) {
-                    elemSegment.indices[elementIndex] = resolveRef(moduleState->parseState,
-                                                                   moduleState->functionNameToIndexMap,
-                                                                   moduleState->module.functions.size(),
-                                                                   (*elementReferences)[elementIndex]);
-                }
-            });
+        elemSegment.indices.resize(elementReferences->size());
+        for (Uptr elementIndex = 0; elementIndex < elementReferences->size(); ++elementIndex) {
+            elemSegment.indices[elementIndex] = resolveRef(moduleState->parseState, moduleState->functionNameToIndexMap, moduleState->module.functions.size(), (*elementReferences)[elementIndex]);
+        }
+    });
 
     return elementReferences->size();
 }
@@ -543,19 +441,7 @@ static void parseElem(CursorState *cursor) {
     parseElemSegmentBody(cursor, isActive, tableRef, baseIndex, elemToken);
 }
 
-template<typename Def,
-        typename Type,
-        typename ParseImport,
-        typename ParseDef,
-        typename DisassemblyName>
-static void parseObjectDefOrImport(CursorState *cursor,
-                                   NameToIndexMap &nameToIndexMap,
-                                   IR::IndexSpace<Def, Type> &indexSpace,
-                                   std::vector<DisassemblyName> &disassemblyNameArray,
-                                   TokenType declarationTag,
-                                   IR::ExternKind kind,
-                                   ParseImport parseImportFunc,
-                                   ParseDef parseDefFunc) {
+template<typename Def, typename Type, typename ParseImport, typename ParseDef, typename DisassemblyName> static void parseObjectDefOrImport(CursorState *cursor, NameToIndexMap &nameToIndexMap, IR::IndexSpace<Def, Type> &indexSpace, std::vector<DisassemblyName> &disassemblyNameArray, TokenType declarationTag, IR::ExternKind kind, ParseImport parseImportFunc, ParseDef parseDefFunc) {
     const Token *declarationTagToken = cursor->nextToken;
     require(cursor, declarationTag);
 
@@ -565,10 +451,11 @@ static void parseObjectDefOrImport(CursorState *cursor,
     // Handle inline export declarations.
     while (true) {
         const bool isExport = tryParseParenthesizedTagged(cursor, t_export, [&] {
-            cursor->moduleState->module.exports.push_back(
-                    {parseUTF8String(cursor), kind, indexSpace.size()});
+            cursor->moduleState->module.exports.push_back({parseUTF8String(cursor), kind, indexSpace.size()});
         });
-        if (!isExport) { break; }
+        if (!isExport) {
+            break;
+        }
     };
 
     // Handle an inline import declaration.
@@ -582,14 +469,7 @@ static void parseObjectDefOrImport(CursorState *cursor,
     });
     if (isImport) {
         Type importType = parseImportFunc(cursor);
-        createImport(cursor,
-                     name,
-                     std::move(importModuleName),
-                     std::move(exportName),
-                     nameToIndexMap,
-                     indexSpace,
-                     disassemblyNameArray,
-                     importType);
+        createImport(cursor, name, std::move(importModuleName), std::move(exportName), nameToIndexMap, indexSpace, disassemblyNameArray, importType);
     } else {
         Def def = parseDefFunc(cursor, declarationTagToken);
         bindName(cursor->parseState, nameToIndexMap, name, indexSpace.size());
@@ -599,128 +479,91 @@ static void parseObjectDefOrImport(CursorState *cursor,
 }
 
 static void parseFunc(CursorState *cursor) {
-    parseObjectDefOrImport(
-            cursor,
-            cursor->moduleState->functionNameToIndexMap,
-            cursor->moduleState->module.functions,
-            cursor->moduleState->disassemblyNames.functions,
-            t_func,
-            ExternKind::function,
-            [&](CursorState *cursor) {
-                // Parse the imported function's type.
-                NameToIndexMap localNameToIndexMap;
-                std::vector<std::string> localDisassemblyNames;
-                const UnresolvedFunctionType unresolvedFunctionType
-                        = parseFunctionTypeRefAndOrDecl(cursor, localNameToIndexMap, localDisassemblyNames);
+    parseObjectDefOrImport(cursor, cursor->moduleState->functionNameToIndexMap, cursor->moduleState->module.functions, cursor->moduleState->disassemblyNames.functions, t_func, ExternKind::function, [&](CursorState *cursor) {
+        // Parse the imported function's type.
+        NameToIndexMap localNameToIndexMap;
+        std::vector<std::string> localDisassemblyNames;
+        const UnresolvedFunctionType unresolvedFunctionType = parseFunctionTypeRefAndOrDecl(cursor, localNameToIndexMap, localDisassemblyNames);
 
-                // Resolve the function import type after all type declarations have been parsed.
-                const Uptr importIndex = cursor->moduleState->module.functions.imports.size();
-                cursor->moduleState->postTypeCallbacks.push_back(
-                        [unresolvedFunctionType, importIndex](ModuleState *moduleState) {
-                            moduleState->module.functions.imports[importIndex].type
-                                    = resolveFunctionType(moduleState, unresolvedFunctionType);
-                        });
-                return IndexedFunctionType{UINTPTR_MAX};
-            },
-            parseFunctionDef);
+        // Resolve the function import type after all type declarations have been parsed.
+        const Uptr importIndex = cursor->moduleState->module.functions.imports.size();
+        cursor->moduleState->postTypeCallbacks.push_back([unresolvedFunctionType, importIndex](ModuleState *moduleState) {
+            moduleState->module.functions.imports[importIndex].type = resolveFunctionType(moduleState, unresolvedFunctionType);
+        });
+        return IndexedFunctionType{UINTPTR_MAX};
+    }, parseFunctionDef);
 }
 
 static void parseTable(CursorState *cursor) {
-    parseObjectDefOrImport(
-            cursor,
-            cursor->moduleState->tableNameToIndexMap,
-            cursor->moduleState->module.tables,
-            cursor->moduleState->disassemblyNames.tables,
-            t_table,
-            ExternKind::table,
+    parseObjectDefOrImport(cursor, cursor->moduleState->tableNameToIndexMap, cursor->moduleState->module.tables, cursor->moduleState->disassemblyNames.tables, t_table, ExternKind::table,
             // Parse a table import.
-            [](CursorState *cursor) {
-                const SizeConstraints sizeConstraints = parseSizeConstraints(cursor, IR::maxTableElems);
-                const bool isShared = parseOptionalSharedDeclaration(cursor);
-                const ReferenceType elementType = parseReferenceType(cursor);
-                return TableType{elementType, isShared, sizeConstraints};
-            },
+                           [](CursorState *cursor) {
+                               const SizeConstraints sizeConstraints = parseSizeConstraints(cursor, IR::maxTableElems);
+                               const bool isShared = parseOptionalSharedDeclaration(cursor);
+                               const ReferenceType elementType = parseReferenceType(cursor);
+                               return TableType{elementType, isShared, sizeConstraints};
+                           },
             // Parse a table definition.
-            [](CursorState *cursor, const Token *) {
-                // Parse the table type.
-                SizeConstraints sizeConstraints;
-                const bool hasSizeConstraints
-                        = tryParseSizeConstraints(cursor, IR::maxTableElems, sizeConstraints);
-                const bool isShared = parseOptionalSharedDeclaration(cursor);
+                           [](CursorState *cursor, const Token *) {
+                               // Parse the table type.
+                               SizeConstraints sizeConstraints;
+                               const bool hasSizeConstraints = tryParseSizeConstraints(cursor, IR::maxTableElems, sizeConstraints);
+                               const bool isShared = parseOptionalSharedDeclaration(cursor);
 
-                const ReferenceType elementType = parseReferenceType(cursor);
+                               const ReferenceType elementType = parseReferenceType(cursor);
 
-                // If we couldn't parse an explicit size constraints, the table definition must contain
-                // an elem segment that implicitly defines the size.
-                if (!hasSizeConstraints) {
-                    parseParenthesized(cursor, [&] {
-                        require(cursor, t_elem);
+                               // If we couldn't parse an explicit size constraints, the table definition must contain
+                               // an elem segment that implicitly defines the size.
+                               if (!hasSizeConstraints) {
+                                   parseParenthesized(cursor, [&] {
+                                       require(cursor, t_elem);
 
-                        const Uptr tableIndex = cursor->moduleState->module.tables.size();
-                        const Uptr numElements
-                                = parseElemSegmentBody(cursor,
-                                                       true,
-                                                       Reference(tableIndex),
-                                                       UnresolvedInitializerExpression((I32) 0),
-                                                       cursor->nextToken - 1);
-                        sizeConstraints.min = sizeConstraints.max = numElements;
-                    });
-                }
+                                       const Uptr tableIndex = cursor->moduleState->module.tables.size();
+                                       const Uptr numElements = parseElemSegmentBody(cursor, true, Reference(tableIndex), UnresolvedInitializerExpression((I32) 0),
+                                                                                     cursor->nextToken - 1);
+                                       sizeConstraints.min = sizeConstraints.max = numElements;
+                                   });
+                               }
 
-                return TableDef{TableType(elementType, isShared, sizeConstraints)};
-            });
+                               return TableDef{TableType(elementType, isShared, sizeConstraints)};
+                           });
 }
 
 static void parseMemory(CursorState *cursor) {
-    parseObjectDefOrImport(
-            cursor,
-            cursor->moduleState->memoryNameToIndexMap,
-            cursor->moduleState->module.memories,
-            cursor->moduleState->disassemblyNames.memories,
-            t_memory,
-            ExternKind::memory,
+    parseObjectDefOrImport(cursor, cursor->moduleState->memoryNameToIndexMap, cursor->moduleState->module.memories, cursor->moduleState->disassemblyNames.memories, t_memory, ExternKind::memory,
             // Parse a memory import.
-            [](CursorState *cursor) {
-                const SizeConstraints sizeConstraints
-                        = parseSizeConstraints(cursor, IR::maxMemoryPages);
-                const bool isShared = parseOptionalSharedDeclaration(cursor);
-                return MemoryType{isShared, sizeConstraints};
-            },
+                           [](CursorState *cursor) {
+                               const SizeConstraints sizeConstraints = parseSizeConstraints(cursor, IR::maxMemoryPages);
+                               const bool isShared = parseOptionalSharedDeclaration(cursor);
+                               return MemoryType{isShared, sizeConstraints};
+                           },
             // Parse a memory definition
-            [](CursorState *cursor, const Token *) {
-                SizeConstraints sizeConstraints;
-                if (!tryParseSizeConstraints(cursor, IR::maxMemoryPages, sizeConstraints)) {
-                    std::string dataString;
+                           [](CursorState *cursor, const Token *) {
+                               SizeConstraints sizeConstraints;
+                               if (!tryParseSizeConstraints(cursor, IR::maxMemoryPages, sizeConstraints)) {
+                                   std::string dataString;
 
-                    parseParenthesized(cursor, [&] {
-                        require(cursor, t_data);
+                                   parseParenthesized(cursor, [&] {
+                                       require(cursor, t_data);
 
-                        while (tryParseString(cursor, dataString)) {};
-                    });
+                                       while (tryParseString(cursor, dataString)) {
+                                       };
+                                   });
 
-                    std::vector<U8> dataVector((const U8 *) dataString.data(),
-                                               (const U8 *) dataString.data() + dataString.size());
-                    sizeConstraints.min = sizeConstraints.max
-                            = (dataVector.size() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
-                    cursor->moduleState->module.dataSegments.push_back(
-                            {true,
-                             cursor->moduleState->module.memories.size(),
-                             InitializerExpression(I32(0)),
-                             std::move(dataVector)});
-                }
+                                   std::vector<U8> dataVector((const U8 *) dataString.data(),
+                                                              (const U8 *) dataString.data() + dataString.size());
+                                   sizeConstraints.min = sizeConstraints.max =
+                                           (dataVector.size() + IR::numBytesPerPage - 1) / IR::numBytesPerPage;
+                                   cursor->moduleState->module.dataSegments.push_back({true, cursor->moduleState->module.memories.size(), InitializerExpression(I32(0)), std::move(dataVector)});
+                               }
 
-                const bool isShared = parseOptionalSharedDeclaration(cursor);
-                return MemoryDef{MemoryType(isShared, sizeConstraints)};
-            });
+                               const bool isShared = parseOptionalSharedDeclaration(cursor);
+                               return MemoryDef{MemoryType(isShared, sizeConstraints)};
+                           });
 }
 
 static void parseGlobal(CursorState *cursor) {
-    parseObjectDefOrImport(cursor,
-                           cursor->moduleState->globalNameToIndexMap,
-                           cursor->moduleState->module.globals,
-                           cursor->moduleState->disassemblyNames.globals,
-                           t_global,
-                           ExternKind::global,
+    parseObjectDefOrImport(cursor, cursor->moduleState->globalNameToIndexMap, cursor->moduleState->module.globals, cursor->moduleState->disassemblyNames.globals, t_global, ExternKind::global,
             // Parse a global import.
                            parseGlobalType,
             // Parse a global definition
@@ -729,22 +572,14 @@ static void parseGlobal(CursorState *cursor) {
                                // It's safe to immediately resolve the initializer expression,
                                // because global definitions must occur after global imports, and
                                // global initializers may only reference imported globals.
-                               const UnresolvedInitializerExpression unresolvedInitializerExpression
-                                       = parseInitializerExpression(cursor);
-                               const InitializerExpression initializerExpression
-                                       = resolveInitializerExpression(cursor->moduleState,
-                                                                      unresolvedInitializerExpression);
+                               const UnresolvedInitializerExpression unresolvedInitializerExpression = parseInitializerExpression(cursor);
+                               const InitializerExpression initializerExpression = resolveInitializerExpression(cursor->moduleState, unresolvedInitializerExpression);
                                return GlobalDef{globalType, initializerExpression};
                            });
 }
 
 static void parseExceptionType(CursorState *cursor) {
-    parseObjectDefOrImport(cursor,
-                           cursor->moduleState->exceptionTypeNameToIndexMap,
-                           cursor->moduleState->module.exceptionTypes,
-                           cursor->moduleState->disassemblyNames.exceptionTypes,
-                           t_exception_type,
-                           ExternKind::exceptionType,
+    parseObjectDefOrImport(cursor, cursor->moduleState->exceptionTypeNameToIndexMap, cursor->moduleState->module.exceptionTypes, cursor->moduleState->disassemblyNames.exceptionTypes, t_exception_type, ExternKind::exceptionType,
             // Parse an exception type import.
                            [](CursorState *cursor) {
                                TypeTuple params = parseTypeTuple(cursor);
@@ -765,12 +600,8 @@ static void parseStart(CursorState *cursor) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected function name or index");
     }
 
-    cursor->moduleState->postDeclarationCallbacks.push_back([functionRef](
-            ModuleState *moduleState) {
-        moduleState->module.startFunctionIndex = resolveRef(moduleState->parseState,
-                                                            moduleState->functionNameToIndexMap,
-                                                            moduleState->module.functions.size(),
-                                                            functionRef);
+    cursor->moduleState->postDeclarationCallbacks.push_back([functionRef](ModuleState *moduleState) {
+        moduleState->module.startFunctionIndex = resolveRef(moduleState->parseState, moduleState->functionNameToIndexMap, moduleState->module.functions.size(), functionRef);
     });
 }
 
@@ -830,12 +661,16 @@ void WAST::parseModuleBody(CursorState *cursor, IR::Module &outModule) {
 
         // Process the callbacks requested after all type declarations have been parsed.
         if (!cursor->parseState->unresolvedErrors.size()) {
-            for (const auto &callback : cursor->moduleState->postTypeCallbacks) { callback(&moduleState); }
+            for (const auto &callback : cursor->moduleState->postTypeCallbacks) {
+                callback(&moduleState);
+            }
         }
 
         // Process the callbacks requested after all declarations have been parsed.
         if (!cursor->parseState->unresolvedErrors.size()) {
-            for (const auto &callback : cursor->moduleState->postDeclarationCallbacks) { callback(&moduleState); }
+            for (const auto &callback : cursor->moduleState->postDeclarationCallbacks) {
+                callback(&moduleState);
+            }
         }
 
         // Validate the module's definitions (excluding function code, which is validated as it is
@@ -844,12 +679,8 @@ void WAST::parseModuleBody(CursorState *cursor, IR::Module &outModule) {
             try {
                 IR::validatePreCodeSections(outModule);
                 IR::validatePostCodeSections(outModule, moduleState.deferredCodeValidationState);
-            }
-            catch (ValidationException validationException) {
-                parseErrorf(cursor->parseState,
-                            firstToken,
-                            "validation exception: %s",
-                            validationException.message.c_str());
+            } catch (ValidationException validationException) {
+                parseErrorf(cursor->parseState, firstToken, "validation exception: %s", validationException.message.c_str());
             }
         }
 
@@ -859,17 +690,14 @@ void WAST::parseModuleBody(CursorState *cursor, IR::Module &outModule) {
         wavmAssert(outModule.memories.size() == moduleState.disassemblyNames.memories.size());
         wavmAssert(outModule.globals.size() == moduleState.disassemblyNames.globals.size());
         IR::setDisassemblyNames(outModule, moduleState.disassemblyNames);
-    }
-    catch (RecoverParseException) {
+    } catch (RecoverParseException) {
         cursor->moduleState = nullptr;
         throw RecoverParseException();
     }
     cursor->moduleState = nullptr;
 }
 
-bool WAST::parseModule(const char *string,
-                       Uptr stringLength,
-                       IR::Module &outModule) {
+bool WAST::parseModule(const char *string, Uptr stringLength, IR::Module &outModule) {
 
     // Lex the string.
     LineInfo *lineInfo = nullptr;
@@ -889,10 +717,8 @@ bool WAST::parseModule(const char *string,
             parseModuleBody(&cursor, outModule);
         }
         require(&cursor, t_eof);
-    }
-    catch (RecoverParseException) {
-    }
-    catch (FatalParseException) {
+    } catch (RecoverParseException) {
+    } catch (FatalParseException) {
     }
 
     // Resolve line information for any errors, and write them to outErrors.

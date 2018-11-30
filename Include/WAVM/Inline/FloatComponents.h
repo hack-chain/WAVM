@@ -3,12 +3,10 @@
 #include "WAVM/Inline/BasicTypes.h"
 
 namespace WAVM {
-    template<typename Float>
-    struct FloatComponents;
+    template<typename Float> struct FloatComponents;
 
     // The components of a 64-bit float
-    template<>
-    struct FloatComponents<F64> {
+    template<> struct FloatComponents<F64> {
         typedef U64 Bits;
         typedef F64 Float;
 
@@ -35,8 +33,7 @@ namespace WAVM {
     };
 
     // The components of a 32-bit float.
-    template<>
-    struct FloatComponents<F32> {
+    template<> struct FloatComponents<F32> {
         typedef U32 Bits;
         typedef F32 Float;
 

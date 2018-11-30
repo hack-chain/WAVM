@@ -32,13 +32,7 @@ namespace WAVM {
             // Information about an in-scope control structure.
             struct ControlContext {
                 enum class Type : U8 {
-                    function,
-                    block,
-                    ifThen,
-                    ifElse,
-                    loop,
-                    try_,
-                    catch_
+                    function, block, ifThen, ifElse, loop, try_, catch_
                 };
 
                 Type type;
@@ -62,11 +56,7 @@ namespace WAVM {
             std::vector<BranchTarget> branchTargetStack;
             std::vector<llvm::Value *> stack;
 
-            EmitFunctionContext(LLVMContext &inLLVMContext,
-                                EmitModuleContext &inModuleContext,
-                                const IR::Module &inIRModule,
-                                const IR::FunctionDef &inFunctionDef,
-                                llvm::Function *inLLVMFunction)
+            EmitFunctionContext(LLVMContext &inLLVMContext, EmitModuleContext &inModuleContext, const IR::Module &inIRModule, const IR::FunctionDef &inFunctionDef, llvm::Function *inLLVMFunction)
                     : EmitContext(inLLVMContext, inModuleContext.defaultMemoryOffset), moduleContext(inModuleContext),
                       irModule(inIRModule), functionDef(inFunctionDef),
                       functionType(inIRModule.types[inFunctionDef.type.index]), function(inLLVMFunction),
@@ -77,16 +67,14 @@ namespace WAVM {
 
             // Operand stack manipulation
             llvm::Value *pop() {
-                wavmAssert(stack.size() - (controlStack.size() ? controlStack.back().outerStackSize : 0)
-                           >= 1);
+                wavmAssert(stack.size() - (controlStack.size() ? controlStack.back().outerStackSize : 0) >= 1);
                 llvm::Value *result = stack.back();
                 stack.pop_back();
                 return result;
             }
 
             void popMultiple(llvm::Value **outValues, Uptr num) {
-                wavmAssert(stack.size() - (controlStack.size() ? controlStack.back().outerStackSize : 0)
-                           >= num);
+                wavmAssert(stack.size() - (controlStack.size() ? controlStack.back().outerStackSize : 0) >= num);
                 std::copy(stack.end() - num, stack.end(), outValues);
                 stack.resize(stack.size() - num);
             }
@@ -95,10 +83,14 @@ namespace WAVM {
                 return stack[stack.size() - offset - 1];
             }
 
-            void push(llvm::Value *value) { stack.push_back(value); }
+            void push(llvm::Value *value) {
+                stack.push_back(value);
+            }
 
             void pushMultiple(llvm::Value **values, Uptr numValues) {
-                for (Uptr valueIndex = 0; valueIndex < numValues; ++valueIndex) { push(values[valueIndex]); }
+                for (Uptr valueIndex = 0; valueIndex < numValues; ++valueIndex) {
+                    push(values[valueIndex]);
+                }
             }
 
             // Creates a PHI node for the argument of branches to a basic block.
@@ -114,8 +106,7 @@ namespace WAVM {
 
             // Coerces an I32 value to an I1, and vice-versa.
             llvm::Value *coerceI32ToBool(llvm::Value *i32Value) {
-                return irBuilder.CreateICmpNE(i32Value,
-                                              llvmContext.typedZeroConstants[(Uptr) IR::ValueType::i32]);
+                return irBuilder.CreateICmpNE(i32Value, llvmContext.typedZeroConstants[(Uptr) IR::ValueType::i32]);
             }
 
             llvm::Value *coerceBoolToI32(llvm::Value *boolValue) {
@@ -129,38 +120,21 @@ namespace WAVM {
             void trapDivideByZero(llvm::Value *divisor);
 
             // Traps on (x / 0) or (INT_MIN / -1).
-            void trapDivideByZeroOrIntegerOverflow(IR::ValueType type,
-                                                   llvm::Value *left,
-                                                   llvm::Value *right);
+            void trapDivideByZeroOrIntegerOverflow(IR::ValueType type, llvm::Value *left, llvm::Value *right);
 
-            llvm::Value *callLLVMIntrinsic(const std::initializer_list<llvm::Type *> &typeArguments,
-                                           llvm::Intrinsic::ID id,
-                                           llvm::ArrayRef<llvm::Value *> arguments) {
-                return irBuilder.CreateCall(moduleContext.getLLVMIntrinsic(typeArguments, id),
-                                            arguments);
+            llvm::Value *callLLVMIntrinsic(const std::initializer_list<llvm::Type *> &typeArguments, llvm::Intrinsic::ID id, llvm::ArrayRef<llvm::Value *> arguments) {
+                return irBuilder.CreateCall(moduleContext.getLLVMIntrinsic(typeArguments, id), arguments);
             }
 
             // Emits a call to a WAVM intrinsic function.
-            ValueVector emitRuntimeIntrinsic(const char *intrinsicName,
-                                             IR::FunctionType intrinsicType,
-                                             const std::initializer_list<llvm::Value *> &args);
+            ValueVector emitRuntimeIntrinsic(const char *intrinsicName, IR::FunctionType intrinsicType, const std::initializer_list<llvm::Value *> &args);
 
             // A helper function to emit a conditional call to a non-returning intrinsic function.
-            void emitConditionalTrapIntrinsic(llvm::Value *booleanCondition,
-                                              const char *intrinsicName,
-                                              IR::FunctionType intrinsicType,
-                                              const std::initializer_list<llvm::Value *> &args);
+            void emitConditionalTrapIntrinsic(llvm::Value *booleanCondition, const char *intrinsicName, IR::FunctionType intrinsicType, const std::initializer_list<llvm::Value *> &args);
 
-            void pushControlStack(ControlContext::Type type,
-                                  IR::TypeTuple resultTypes,
-                                  llvm::BasicBlock *endBlock,
-                                  const PHIVector &endPHIs,
-                                  llvm::BasicBlock *elseBlock = nullptr,
-                                  const ValueVector &elseArgs = {});
+            void pushControlStack(ControlContext::Type type, IR::TypeTuple resultTypes, llvm::BasicBlock *endBlock, const PHIVector &endPHIs, llvm::BasicBlock *elseBlock = nullptr, const ValueVector &elseArgs = {});
 
-            void pushBranchTarget(IR::TypeTuple branchArgumentType,
-                                  llvm::BasicBlock *branchTargetBlock,
-                                  const PHIVector &branchTargetPHIs);
+            void pushBranchTarget(IR::TypeTuple branchArgumentType, llvm::BasicBlock *branchTargetBlock, const PHIVector &branchTargetPHIs);
 
             void branchToEndOfControlContext();
 
@@ -173,7 +147,9 @@ namespace WAVM {
             // are unreachable until the control stack is popped.
             void enterUnreachable();
 
-            llvm::Value *identity(llvm::Value *value, llvm::Type *type) { return value; }
+            llvm::Value *identity(llvm::Value *value, llvm::Type *type) {
+                return value;
+            }
 
             llvm::Value *sext(llvm::Value *value, llvm::Type *type) {
                 return irBuilder.CreateSExt(value, type);
@@ -191,39 +167,15 @@ namespace WAVM {
 
             llvm::Value *emitF64Promote(llvm::Value *operand);
 
-            template<typename Float>
-            llvm::Value *emitTruncFloatToInt(IR::ValueType destType,
-                                             bool isSigned,
-                                             Float minBounds,
-                                             Float maxBounds,
-                                             llvm::Value *operand);
+            template<typename Float> llvm::Value *emitTruncFloatToInt(IR::ValueType destType, bool isSigned, Float minBounds, Float maxBounds, llvm::Value *operand);
 
-            template<typename Int, typename Float>
-            llvm::Value *emitTruncFloatToIntSat(llvm::Type *destType,
-                                                bool isSigned,
-                                                Float minFloatBounds,
-                                                Float maxFloatBounds,
-                                                Int minIntBounds,
-                                                Int maxIntBounds,
-                                                llvm::Value *operand);
+            template<typename Int, typename Float> llvm::Value *emitTruncFloatToIntSat(llvm::Type *destType, bool isSigned, Float minFloatBounds, Float maxFloatBounds, Int minIntBounds, Int maxIntBounds, llvm::Value *operand);
 
-            template<typename Int, typename Float, Uptr numElements>
-            llvm::Value *emitTruncVectorFloatToIntSat(llvm::Type *destType,
-                                                      bool isSigned,
-                                                      Float minFloatBounds,
-                                                      Float maxFloatBounds,
-                                                      Int minIntBounds,
-                                                      Int maxIntBounds,
-                                                      Int nanResult,
-                                                      llvm::Value *operand);
+            template<typename Int, typename Float, Uptr numElements> llvm::Value *emitTruncVectorFloatToIntSat(llvm::Type *destType, bool isSigned, Float minFloatBounds, Float maxFloatBounds, Int minIntBounds, Int maxIntBounds, Int nanResult, llvm::Value *operand);
 
-            llvm::Value *emitBitSelect(llvm::Value *mask,
-                                       llvm::Value *trueValue,
-                                       llvm::Value *falseValue);
+            llvm::Value *emitBitSelect(llvm::Value *mask, llvm::Value *trueValue, llvm::Value *falseValue);
 
-            llvm::Value *emitVectorSelect(llvm::Value *condition,
-                                          llvm::Value *trueValue,
-                                          llvm::Value *falseValue);
+            llvm::Value *emitVectorSelect(llvm::Value *condition, llvm::Value *trueValue, llvm::Value *falseValue);
 
             void trapIfMisalignedAtomic(llvm::Value *address, U32 naturalAlignmentLog2);
 
@@ -259,7 +211,9 @@ namespace WAVM {
 
 #undef VISIT_OPCODE
 
-            void unknown(IR::Opcode opcode) { Errors::unreachable(); }
+            void unknown(IR::Opcode opcode) {
+                Errors::unreachable();
+            }
         };
     }
 }

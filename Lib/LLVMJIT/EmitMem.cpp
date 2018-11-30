@@ -11,9 +11,7 @@ using namespace WAVM::LLVMJIT;
 // Bounds checks a sandboxed memory address + offset, and returns an offset relative to the memory
 // base address that is guaranteed to be within the virtual address space allocated for the linear
 // memory object.
-static llvm::Value *getOffsetAndBoundedAddress(EmitContext &emitContext,
-                                               llvm::Value *address,
-                                               U32 offset) {
+static llvm::Value *getOffsetAndBoundedAddress(EmitContext &emitContext, llvm::Value *address, U32 offset) {
     // zext the 32-bit address to 64-bits.
     // This is crucial for security, as LLVM will otherwise implicitly sign extend it to 64-bits in
     // the GEP below, interpreting it as a signed offset and allowing access to memory outside the
@@ -22,10 +20,7 @@ static llvm::Value *getOffsetAndBoundedAddress(EmitContext &emitContext,
 
     // Add the offset to the byte index.
     if (offset) {
-        address = emitContext.irBuilder.CreateAdd(
-                address,
-                emitContext.irBuilder.CreateZExt(emitLiteral(emitContext.llvmContext, offset),
-                                                 emitContext.llvmContext.i64Type));
+        address = emitContext.irBuilder.CreateAdd(address, emitContext.irBuilder.CreateZExt(emitLiteral(emitContext.llvmContext, offset), emitContext.llvmContext.i64Type));
     }
 
     // If HAS_64BIT_ADDRESS_SPACE, the memory has enough virtual address space allocated to ensure
@@ -35,8 +30,7 @@ static llvm::Value *getOffsetAndBoundedAddress(EmitContext &emitContext,
     return address;
 }
 
-llvm::Value *EmitFunctionContext::coerceAddressToPointer(llvm::Value *boundedAddress,
-                                                         llvm::Type *memoryType) {
+llvm::Value *EmitFunctionContext::coerceAddressToPointer(llvm::Value *boundedAddress, llvm::Type *memoryType) {
     llvm::Value *memoryBasePointer = irBuilder.CreateLoad(memoryBasePointerVariable);
     llvm::Value *bytePointer = irBuilder.CreateInBoundsGEP(memoryBasePointer, boundedAddress);
 
@@ -53,22 +47,14 @@ llvm::Value *EmitFunctionContext::coerceAddressToPointer(llvm::Value *boundedAdd
 void EmitFunctionContext::memory_grow(MemoryImm imm) {
     errorUnless(imm.memoryIndex == 0);
     llvm::Value *deltaNumPages = pop();
-    ValueVector previousNumPages = emitRuntimeIntrinsic(
-            "memory.grow",
-            FunctionType(TypeTuple(ValueType::i32),
-                         TypeTuple({ValueType::i32, inferValueType<Uptr>()})),
-            {deltaNumPages,
-             getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
+    ValueVector previousNumPages = emitRuntimeIntrinsic("memory.grow", FunctionType(TypeTuple(ValueType::i32), TypeTuple({ValueType::i32, inferValueType<Uptr>()})), {deltaNumPages, getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
     wavmAssert(previousNumPages.size() == 1);
     push(previousNumPages[0]);
 }
 
 void EmitFunctionContext::memory_size(MemoryImm imm) {
     errorUnless(imm.memoryIndex == 0);
-    ValueVector currentNumPages = emitRuntimeIntrinsic(
-            "memory.size",
-            FunctionType(TypeTuple(ValueType::i32), TypeTuple(inferValueType<Uptr>())),
-            {getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
+    ValueVector currentNumPages = emitRuntimeIntrinsic("memory.size", FunctionType(TypeTuple(ValueType::i32), TypeTuple(inferValueType<Uptr>())), {getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
     wavmAssert(currentNumPages.size() == 1);
     push(currentNumPages[0]);
 }
@@ -81,28 +67,11 @@ void EmitFunctionContext::memory_init(DataSegmentAndMemImm imm) {
     auto numBytes = pop();
     auto sourceOffset = pop();
     auto destAddress = pop();
-    emitRuntimeIntrinsic(
-            "memory.init",
-            FunctionType({},
-                         TypeTuple({ValueType::i32,
-                                    ValueType::i32,
-                                    ValueType::i32,
-                                    inferValueType<Uptr>(),
-                                    inferValueType<Uptr>(),
-                                    inferValueType<Uptr>()})),
-            {destAddress,
-             sourceOffset,
-             numBytes,
-             moduleContext.moduleInstanceId,
-             getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex]),
-             emitLiteral(llvmContext, imm.dataSegmentIndex)});
+    emitRuntimeIntrinsic("memory.init", FunctionType({}, TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>(), inferValueType<Uptr>(), inferValueType<Uptr>()})), {destAddress, sourceOffset, numBytes, moduleContext.moduleInstanceId, getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex]), emitLiteral(llvmContext, imm.dataSegmentIndex)});
 }
 
 void EmitFunctionContext::memory_drop(DataSegmentImm imm) {
-    emitRuntimeIntrinsic(
-            "memory.drop",
-            FunctionType({}, TypeTuple({inferValueType<Uptr>(), inferValueType<Uptr>()})),
-            {moduleContext.moduleInstanceId, emitLiteral(llvmContext, imm.dataSegmentIndex)});
+    emitRuntimeIntrinsic("memory.drop", FunctionType({}, TypeTuple({inferValueType<Uptr>(), inferValueType<Uptr>()})), {moduleContext.moduleInstanceId, emitLiteral(llvmContext, imm.dataSegmentIndex)});
 }
 
 void EmitFunctionContext::memory_copy(MemoryImm imm) {
@@ -110,15 +79,7 @@ void EmitFunctionContext::memory_copy(MemoryImm imm) {
     auto sourceAddress = pop();
     auto destAddress = pop();
 
-    emitRuntimeIntrinsic(
-            "memory.copy",
-            FunctionType(
-                    {},
-                    TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})),
-            {destAddress,
-             sourceAddress,
-             numBytes,
-             getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
+    emitRuntimeIntrinsic("memory.copy", FunctionType({}, TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})), {destAddress, sourceAddress, numBytes, getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
 }
 
 void EmitFunctionContext::memory_fill(MemoryImm imm) {
@@ -126,15 +87,7 @@ void EmitFunctionContext::memory_fill(MemoryImm imm) {
     auto value = pop();
     auto destAddress = pop();
 
-    emitRuntimeIntrinsic(
-            "memory.fill",
-            FunctionType(
-                    {},
-                    TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})),
-            {destAddress,
-             value,
-             numBytes,
-             getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
+    emitRuntimeIntrinsic("memory.fill", FunctionType({}, TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})), {destAddress, value, numBytes, getMemoryIdFromOffset(llvmContext, moduleContext.memoryOffsets[imm.memoryIndex])});
 }
 
 //
@@ -221,14 +174,10 @@ EMIT_LOAD_OP(v128, load, llvmContext.i64x2Type, 4, identity)
 
 void EmitFunctionContext::trapIfMisalignedAtomic(llvm::Value *address, U32 alignmentLog2) {
     if (alignmentLog2 > 0) {
-        emitConditionalTrapIntrinsic(
-                irBuilder.CreateICmpNE(
-                        llvmContext.typedZeroConstants[(Uptr) ValueType::i64],
-                        irBuilder.CreateAnd(address,
-                                            emitLiteral(llvmContext, (U64(1) << alignmentLog2) - 1))),
-                "misalignedAtomicTrap",
-                FunctionType(TypeTuple{}, TypeTuple{ValueType::i64}),
-                {address});
+        emitConditionalTrapIntrinsic(irBuilder.CreateICmpNE(llvmContext.typedZeroConstants[(Uptr) ValueType::i64], irBuilder.CreateAnd(address, emitLiteral(llvmContext,
+                                                                                                                                                            (U64(1)
+                                                                                                                                                                    << alignmentLog2) -
+                                                                                                                                                            1))), "misalignedAtomicTrap", FunctionType(TypeTuple{}, TypeTuple{ValueType::i64}), {address});
     }
 }
 
@@ -237,13 +186,7 @@ void EmitFunctionContext::atomic_wake(AtomicLoadOrStoreImm<2> imm) {
     llvm::Value *address = pop();
     llvm::Value *boundedAddress = getOffsetAndBoundedAddress(*this, address, imm.offset);
     trapIfMisalignedAtomic(boundedAddress, imm.alignmentLog2);
-    push(emitRuntimeIntrinsic(
-            "atomic_wake",
-            FunctionType(TypeTuple{ValueType::i32},
-                         TypeTuple{ValueType::i32, ValueType::i32, ValueType::i64}),
-            {address,
-             numWaiters,
-             getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
+    push(emitRuntimeIntrinsic("atomic_wake", FunctionType(TypeTuple{ValueType::i32}, TypeTuple{ValueType::i32, ValueType::i32, ValueType::i64}), {address, numWaiters, getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
 }
 
 void EmitFunctionContext::i32_atomic_wait(AtomicLoadOrStoreImm<2> imm) {
@@ -252,15 +195,7 @@ void EmitFunctionContext::i32_atomic_wait(AtomicLoadOrStoreImm<2> imm) {
     llvm::Value *address = pop();
     llvm::Value *boundedAddress = getOffsetAndBoundedAddress(*this, address, imm.offset);
     trapIfMisalignedAtomic(boundedAddress, imm.alignmentLog2);
-    push(emitRuntimeIntrinsic(
-            "atomic_wait_i32",
-            FunctionType(
-                    TypeTuple{ValueType::i32},
-                    TypeTuple{ValueType::i32, ValueType::i32, ValueType::f64, inferValueType<Uptr>()}),
-            {address,
-             expectedValue,
-             timeout,
-             getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
+    push(emitRuntimeIntrinsic("atomic_wait_i32", FunctionType(TypeTuple{ValueType::i32}, TypeTuple{ValueType::i32, ValueType::i32, ValueType::f64, inferValueType<Uptr>()}), {address, expectedValue, timeout, getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
 }
 
 void EmitFunctionContext::i64_atomic_wait(AtomicLoadOrStoreImm<3> imm) {
@@ -269,15 +204,7 @@ void EmitFunctionContext::i64_atomic_wait(AtomicLoadOrStoreImm<3> imm) {
     llvm::Value *address = pop();
     llvm::Value *boundedAddress = getOffsetAndBoundedAddress(*this, address, imm.offset);
     trapIfMisalignedAtomic(boundedAddress, imm.alignmentLog2);
-    push(emitRuntimeIntrinsic(
-            "atomic_wait_i64",
-            FunctionType(
-                    TypeTuple{ValueType::i32},
-                    TypeTuple{ValueType::i32, ValueType::i64, ValueType::f64, inferValueType<Uptr>()}),
-            {address,
-             expectedValue,
-             timeout,
-             getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
+    push(emitRuntimeIntrinsic("atomic_wait_i64", FunctionType(TypeTuple{ValueType::i32}, TypeTuple{ValueType::i32, ValueType::i64, ValueType::f64, inferValueType<Uptr>()}), {address, expectedValue, timeout, getMemoryIdFromOffset(llvmContext, moduleContext.defaultMemoryOffset)})[0]);
 }
 
 #define EMIT_ATOMIC_LOAD_OP(valueTypeId, name, llvmMemoryType, naturalAlignmentLog2, memToValue)   \

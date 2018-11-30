@@ -14,25 +14,18 @@ inline llvm::Value *getTriviallyNonConstantZero(llvm::IRBuilder<> &irBuilder, ll
     return irBuilder.CreateLoad(zeroAlloca);
 }
 
-inline llvm::Value *createFCmpWithWorkaround(llvm::IRBuilder<> &irBuilder,
-                                             llvm::CmpInst::Predicate predicate,
-                                             llvm::Value *left,
-                                             llvm::Value *right) {
+inline llvm::Value *createFCmpWithWorkaround(llvm::IRBuilder<> &irBuilder, llvm::CmpInst::Predicate predicate, llvm::Value *left, llvm::Value *right) {
     // Work around a bug in the LLVM IRBuilder constant folder that will fold FCmpUNO(X, X) where
     // X is a constant expression to false, even though it would be true if X evaluates to a NaN. To
     // work around the bug, add a constant zero to the operand in a way that can easily be elided in
     // optimization, and use it as one of the operands: FCmpUNO(X, X+0).
     if (left == right) {
-        right
-                = irBuilder.CreateFAdd(right, getTriviallyNonConstantZero(irBuilder, right->getType()));
+        right = irBuilder.CreateFAdd(right, getTriviallyNonConstantZero(irBuilder, right->getType()));
     }
     return irBuilder.CreateFCmp(predicate, left, right);
 }
 
-inline llvm::Value *createICmpWithWorkaround(llvm::IRBuilder<> &irBuilder,
-                                             llvm::CmpInst::Predicate predicate,
-                                             llvm::Value *left,
-                                             llvm::Value *right) {
+inline llvm::Value *createICmpWithWorkaround(llvm::IRBuilder<> &irBuilder, llvm::CmpInst::Predicate predicate, llvm::Value *left, llvm::Value *right) {
     // Work around a bug in the LLVM IRBuilder constant folder:
     //   ICmp(T x, bitcast <floating point type> y to T)
     // will be folded to:

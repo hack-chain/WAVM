@@ -28,25 +28,45 @@ namespace WAVM {
                 Runtime::Function *function;
             };
 
-            UntaggedValue(I32 inI32) { i32 = inI32; }
+            UntaggedValue(I32 inI32) {
+                i32 = inI32;
+            }
 
-            UntaggedValue(I64 inI64) { i64 = inI64; }
+            UntaggedValue(I64 inI64) {
+                i64 = inI64;
+            }
 
-            UntaggedValue(U32 inU32) { u32 = inU32; }
+            UntaggedValue(U32 inU32) {
+                u32 = inU32;
+            }
 
-            UntaggedValue(U64 inU64) { u64 = inU64; }
+            UntaggedValue(U64 inU64) {
+                u64 = inU64;
+            }
 
-            UntaggedValue(F32 inF32) { f32 = inF32; }
+            UntaggedValue(F32 inF32) {
+                f32 = inF32;
+            }
 
-            UntaggedValue(F64 inF64) { f64 = inF64; }
+            UntaggedValue(F64 inF64) {
+                f64 = inF64;
+            }
 
-            UntaggedValue(V128 inV128) { v128 = inV128; }
+            UntaggedValue(V128 inV128) {
+                v128 = inV128;
+            }
 
-            UntaggedValue(Runtime::Object *inObject) { object = inObject; }
+            UntaggedValue(Runtime::Object *inObject) {
+                object = inObject;
+            }
 
-            UntaggedValue(Runtime::Function *inFunction) { function = inFunction; }
+            UntaggedValue(Runtime::Function *inFunction) {
+                function = inFunction;
+            }
 
-            UntaggedValue() { memset(this, 0, sizeof(*this)); }
+            UntaggedValue() {
+                memset(this, 0, sizeof(*this));
+            }
         };
 
         // A boxed value: may hold any value that can be passed to a function invoked through the
@@ -54,31 +74,41 @@ namespace WAVM {
         struct Value : UntaggedValue {
             ValueType type;
 
-            Value(I32 inI32) : UntaggedValue(inI32), type(ValueType::i32) {}
+            Value(I32 inI32) : UntaggedValue(inI32), type(ValueType::i32) {
+            }
 
-            Value(I64 inI64) : UntaggedValue(inI64), type(ValueType::i64) {}
+            Value(I64 inI64) : UntaggedValue(inI64), type(ValueType::i64) {
+            }
 
-            Value(U32 inU32) : UntaggedValue(inU32), type(ValueType::i32) {}
+            Value(U32 inU32) : UntaggedValue(inU32), type(ValueType::i32) {
+            }
 
-            Value(U64 inU64) : UntaggedValue(inU64), type(ValueType::i64) {}
+            Value(U64 inU64) : UntaggedValue(inU64), type(ValueType::i64) {
+            }
 
-            Value(F32 inF32) : UntaggedValue(inF32), type(ValueType::f32) {}
+            Value(F32 inF32) : UntaggedValue(inF32), type(ValueType::f32) {
+            }
 
-            Value(F64 inF64) : UntaggedValue(inF64), type(ValueType::f64) {}
+            Value(F64 inF64) : UntaggedValue(inF64), type(ValueType::f64) {
+            }
 
-            Value(const V128 &inV128) : UntaggedValue(inV128), type(ValueType::v128) {}
+            Value(const V128 &inV128) : UntaggedValue(inV128), type(ValueType::v128) {
+            }
 
             Value(std::nullptr_t) : UntaggedValue((Runtime::Object *) nullptr), type(ValueType::nullref) {
             }
 
-            Value(Runtime::Object *inObject) : UntaggedValue(inObject), type(ValueType::anyref) {}
+            Value(Runtime::Object *inObject) : UntaggedValue(inObject), type(ValueType::anyref) {
+            }
 
             Value(Runtime::Function *inFunction) : UntaggedValue(inFunction), type(ValueType::anyfunc) {
             }
 
-            Value(ValueType inType, UntaggedValue inValue) : UntaggedValue(inValue), type(inType) {}
+            Value(ValueType inType, UntaggedValue inValue) : UntaggedValue(inValue), type(inType) {
+            }
 
-            Value() : type(ValueType::any) {}
+            Value() : type(ValueType::any) {
+            }
 
             friend std::string asString(const Value &value) {
                 switch (value.type) {
@@ -97,11 +127,8 @@ namespace WAVM {
                         // buffer needs 27 characters:
                         // (anyref|anyfunc) 0xHHHHHHHHHHHHHHHH\0
                         char buffer[27];
-                        snprintf(buffer,
-                                 sizeof(buffer),
-                                 "%s 0x%.16" PRIxPTR,
-                                 value.type == ValueType::anyref ? "anyref" : "anyfunc",
-                                 reinterpret_cast<Uptr>(value.object));
+                        snprintf(buffer, sizeof(buffer), "%s 0x%.16" PRIxPTR, value.type ==
+                                                                              ValueType::anyref ? "anyref" : "anyfunc", reinterpret_cast<Uptr>(value.object));
                         return std::string(buffer);
                     }
                     case ValueType::nullref:
@@ -113,8 +140,7 @@ namespace WAVM {
 
             friend bool operator==(const Value &left, const Value &right) {
                 if (left.type != right.type) {
-                    return isReferenceType(left.type) && isReferenceType(right.type)
-                           && left.object == right.object;
+                    return isReferenceType(left.type) && isReferenceType(right.type) && left.object == right.object;
                 }
                 switch (left.type) {
                     case ValueType::i32:
@@ -135,7 +161,9 @@ namespace WAVM {
                 };
             }
 
-            friend bool operator!=(const Value &left, const Value &right) { return !(left == right); }
+            friend bool operator!=(const Value &left, const Value &right) {
+                return !(left == right);
+            }
         };
 
         // A boxed value: may hold any value that can be returned from a function invoked through the
@@ -143,27 +171,40 @@ namespace WAVM {
         struct ValueTuple {
             std::vector<Value> values;
 
-            ValueTuple(ValueType inType, UntaggedValue inValue) : values({Value(inType, inValue)}) {}
+            ValueTuple(ValueType inType, UntaggedValue inValue) : values({Value(inType, inValue)}) {
+            }
 
             ValueTuple(TypeTuple types, UntaggedValue *inValues) {
                 values.reserve(types.size());
-                for (ValueType type : types) { values.push_back(Value(type, *inValues++)); }
+                for (ValueType type : types) {
+                    values.push_back(Value(type, *inValues++));
+                }
             }
 
-            ValueTuple(const Value &inValue) : values({inValue}) {}
+            ValueTuple(const Value &inValue) : values({inValue}) {
+            }
 
-            ValueTuple() {}
+            ValueTuple() {
+            }
 
-            Uptr size() const { return values.size(); }
+            Uptr size() const {
+                return values.size();
+            }
 
-            Value &operator[](Uptr index) { return values[index]; }
+            Value &operator[](Uptr index) {
+                return values[index];
+            }
 
-            const Value &operator[](Uptr index) const { return values[index]; }
+            const Value &operator[](Uptr index) const {
+                return values[index];
+            }
 
             friend std::string asString(const ValueTuple &valueTuple) {
                 std::string result = "(";
                 for (Uptr elementIndex = 0; elementIndex < valueTuple.size(); ++elementIndex) {
-                    if (elementIndex != 0) { result += ", "; }
+                    if (elementIndex != 0) {
+                        result += ", ";
+                    }
                     result += asString(valueTuple[elementIndex]);
                 }
                 result += ")";
@@ -171,9 +212,13 @@ namespace WAVM {
             }
 
             friend bool operator==(const ValueTuple &left, const ValueTuple &right) {
-                if (left.size() != right.size()) { return false; }
+                if (left.size() != right.size()) {
+                    return false;
+                }
                 for (Uptr valueIndex = 0; valueIndex < left.size(); ++valueIndex) {
-                    if (left[valueIndex] != right[valueIndex]) { return false; }
+                    if (left[valueIndex] != right[valueIndex]) {
+                        return false;
+                    }
                 }
                 return true;
             }

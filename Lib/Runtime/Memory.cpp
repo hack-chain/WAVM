@@ -24,10 +24,7 @@ static Uptr getPlatformPagesPerWebAssemblyPageLog2() {
     return IR::numBytesPerPageLog2 - Platform::getPageSizeLog2();
 }
 
-static Memory *createMemoryImpl(Compartment *compartment,
-                                IR::MemoryType type,
-                                Uptr numPages,
-                                std::string &&debugName) {
+static Memory *createMemoryImpl(Compartment *compartment, IR::MemoryType type, Uptr numPages, std::string &&debugName) {
     Memory *memory = new Memory(compartment, type, std::move(debugName));
 
     // On a 64-bit runtime, allocate 8GB of address space for the memory.
@@ -59,12 +56,12 @@ static Memory *createMemoryImpl(Compartment *compartment,
     return memory;
 }
 
-Memory *Runtime::createMemory(Compartment *compartment,
-                              IR::MemoryType type,
-                              std::string &&debugName) {
+Memory *Runtime::createMemory(Compartment *compartment, IR::MemoryType type, std::string &&debugName) {
     wavmAssert(type.size.min <= UINTPTR_MAX);
     Memory *memory = createMemoryImpl(compartment, type, Uptr(type.size.min), std::move(debugName));
-    if (!memory) { return nullptr; }
+    if (!memory) {
+        return nullptr;
+    }
 
     // Add the memory to the compartment's memories IndexMap.
     {
@@ -85,9 +82,10 @@ Memory *Runtime::cloneMemory(Memory *memory, Compartment *newCompartment) {
     Lock<Platform::Mutex> resizingLock(memory->resizingMutex);
     const Uptr numPages = memory->numPages.load(std::memory_order_acquire);
     std::string debugName = memory->debugName;
-    Memory *newMemory
-            = createMemoryImpl(newCompartment, memory->type, numPages, std::move(debugName));
-    if (!newMemory) { return nullptr; }
+    Memory *newMemory = createMemoryImpl(newCompartment, memory->type, numPages, std::move(debugName));
+    if (!newMemory) {
+        return nullptr;
+    }
 
     // Copy the memory contents to the new memory.
     memcpy(newMemory->baseAddress, memory->baseAddress, numPages * IR::numBytesPerPage);
@@ -132,8 +130,7 @@ Runtime::Memory::~Memory() {
     // Free the virtual address space.
     const Uptr pageBytesLog2 = Platform::getPageSizeLog2();
     if (numReservedBytes > 0) {
-        Platform::freeVirtualPages(baseAddress,
-                                   (numReservedBytes >> pageBytesLog2) + numGuardPages);
+        Platform::freeVirtualPages(baseAddress, (numReservedBytes >> pageBytesLog2) + numGuardPages);
     }
     baseAddress = nullptr;
     numPages = numReservedBytes = 0;
@@ -165,28 +162,35 @@ Uptr Runtime::getMemoryMaxPages(Memory *memory) {
 }
 
 Iptr Runtime::growMemory(Memory *memory, Uptr numPagesToGrow) {
-    if (numPagesToGrow == 0) { return memory->numPages.load(std::memory_order_seq_cst); }
+    if (numPagesToGrow == 0) {
+        return memory->numPages.load(std::memory_order_seq_cst);
+    }
 
     Lock<Platform::Mutex> resizingLock(memory->resizingMutex);
     const Uptr previousNumPages = memory->numPages.load(std::memory_order_acquire);
 
     // If the number of pages to grow would cause the memory's size to exceed its maximum,
     // return -1.
-    if (numPagesToGrow > memory->type.size.max
-        || previousNumPages > memory->type.size.max - numPagesToGrow
-        || numPagesToGrow > IR::maxMemoryPages
-        || previousNumPages > IR::maxMemoryPages - numPagesToGrow) { return -1; }
+    if (numPagesToGrow > memory->type.size.max || previousNumPages > memory->type.size.max - numPagesToGrow ||
+        numPagesToGrow > IR::maxMemoryPages || previousNumPages > IR::maxMemoryPages - numPagesToGrow) {
+        return -1;
+    }
 
     // Try to commit the new pages, and return -1 if the commit fails.
-    if (!Platform::commitVirtualPages(memory->baseAddress + previousNumPages * IR::numBytesPerPage,
-                                      numPagesToGrow << getPlatformPagesPerWebAssemblyPageLog2())) { return -1; }
+    if (!Platform::commitVirtualPages(
+            memory->baseAddress + previousNumPages * IR::numBytesPerPage,
+            numPagesToGrow << getPlatformPagesPerWebAssemblyPageLog2())) {
+        return -1;
+    }
 
     memory->numPages.store(previousNumPages + numPagesToGrow, std::memory_order_release);
     return previousNumPages;
 }
 
 Iptr Runtime::shrinkMemory(Memory *memory, Uptr numPagesToShrink) {
-    if (numPagesToShrink == 0) { return memory->numPages.load(std::memory_order_acquire); }
+    if (numPagesToShrink == 0) {
+        return memory->numPages.load(std::memory_order_acquire);
+    }
 
     Lock<Platform::Mutex> resizingLock(memory->resizingMutex);
 
@@ -194,12 +198,14 @@ Iptr Runtime::shrinkMemory(Memory *memory, Uptr numPagesToShrink) {
 
     // If the number of pages to shrink would cause the memory's size to drop below its minimum,
     // return -1.
-    if (numPagesToShrink > previousNumPages
-        || previousNumPages - numPagesToShrink < memory->type.size.min) { return -1; }
+    if (numPagesToShrink > previousNumPages || previousNumPages - numPagesToShrink < memory->type.size.min) {
+        return -1;
+    }
 
     // Decommit the pages that were shrunk off the end of the memory.
-    Platform::decommitVirtualPages(memory->baseAddress + previousNumPages * IR::numBytesPerPage,
-                                   numPagesToShrink << getPlatformPagesPerWebAssemblyPageLog2());
+    Platform::decommitVirtualPages(
+            memory->baseAddress + previousNumPages * IR::numBytesPerPage,
+            numPagesToShrink << getPlatformPagesPerWebAssemblyPageLog2());
 
     memory->numPages.store(previousNumPages - numPagesToShrink, std::memory_order_release);
     return previousNumPages;
@@ -210,17 +216,16 @@ void Runtime::unmapMemoryPages(Memory *memory, Uptr pageIndex, Uptr numPages) {
     wavmAssert((pageIndex + numPages) * IR::numBytesPerPage <= memory->numReservedBytes);
 
     // Decommit the pages.
-    Platform::decommitVirtualPages(memory->baseAddress + pageIndex * IR::numBytesPerPage,
-                                   numPages << getPlatformPagesPerWebAssemblyPageLog2());
+    Platform::decommitVirtualPages(
+            memory->baseAddress + pageIndex * IR::numBytesPerPage,
+            numPages << getPlatformPagesPerWebAssemblyPageLog2());
 }
 
-U8 *Runtime::getMemoryBaseAddress(Memory *memory) { return memory->baseAddress; }
+U8 *Runtime::getMemoryBaseAddress(Memory *memory) {
+    return memory->baseAddress;
+}
 
-static U8 *getValidatedMemoryOffsetRangeImpl(Memory *memory,
-                                             U8 *memoryBase,
-                                             Uptr memoryNumBytes,
-                                             Uptr address,
-                                             Uptr numBytes) {
+static U8 *getValidatedMemoryOffsetRangeImpl(Memory *memory, U8 *memoryBase, Uptr memoryNumBytes, Uptr address, Uptr numBytes) {
     wavmAssert(memoryBase);
 
     numBytes = Platform::saturateToBounds(numBytes, memoryNumBytes);
@@ -233,8 +238,7 @@ U8 *Runtime::getReservedMemoryOffsetRange(Memory *memory, Uptr address, Uptr num
 
     // Validate that the range [offset..offset+numBytes) is contained by the memory's reserved
     // pages.
-    return ::getValidatedMemoryOffsetRangeImpl(
-            memory, memory->baseAddress, memory->numReservedBytes, address, numBytes);
+    return ::getValidatedMemoryOffsetRangeImpl(memory, memory->baseAddress, memory->numReservedBytes, address, numBytes);
 }
 
 U8 *Runtime::getValidatedMemoryOffsetRange(Memory *memory, Uptr address, Uptr numBytes) {
@@ -242,20 +246,12 @@ U8 *Runtime::getValidatedMemoryOffsetRange(Memory *memory, Uptr address, Uptr nu
 
     // Validate that the range [offset..offset+numBytes) is contained by the memory's committed
     // pages.
-    return ::getValidatedMemoryOffsetRangeImpl(
-            memory,
-            memory->baseAddress,
-            memory->numPages.load(std::memory_order_acquire) * IR::numBytesPerPage,
-            address,
-            numBytes);
+    return ::getValidatedMemoryOffsetRangeImpl(memory, memory->baseAddress,
+                                               memory->numPages.load(std::memory_order_acquire) *
+                                               IR::numBytesPerPage, address, numBytes);
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "memory.grow",
-                          I32,
-                          memory_grow,
-                          U32 deltaPages,
-                          Uptr memoryId) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.grow", I32, memory_grow, U32 deltaPages, Uptr memoryId) {
     Memory *memory = getMemoryFromRuntimeData(contextRuntimeData, memoryId);
     const Iptr numPreviousMemoryPages = growMemory(memory, (Uptr) deltaPages);
     wavmAssert(numPreviousMemoryPages <= UINT32_MAX);
@@ -269,18 +265,8 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.size", U32, memory_size, I64 m
     return U32(numMemoryPages);
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "memory.init",
-                          void,
-                          memory_init,
-                          U32 destAddress,
-                          U32 sourceOffset,
-                          U32 numBytes,
-                          Uptr moduleInstanceId,
-                          Uptr memoryId,
-                          Uptr dataSegmentIndex) {
-    ModuleInstance *moduleInstance
-            = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.init", void, memory_init, U32 destAddress, U32 sourceOffset, U32 numBytes, Uptr moduleInstanceId, Uptr memoryId, Uptr dataSegmentIndex) {
+    ModuleInstance *moduleInstance = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
     Lock<Platform::Mutex> passiveDataSegmentsLock(moduleInstance->passiveDataSegmentsMutex);
 
     if (!moduleInstance->passiveDataSegments.contains(dataSegmentIndex)) {
@@ -289,8 +275,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
         // Copy the passive data segment shared_ptr, and unlock the mutex. It's important to
         // explicitly unlock the mutex before calling memcpy, as memcpy might trigger a signal that
         // will unwind the stack without calling the Lock destructor.
-        std::shared_ptr<const std::vector<U8>> passiveDataSegmentBytes
-                = moduleInstance->passiveDataSegments[dataSegmentIndex];
+        std::shared_ptr<const std::vector<U8>> passiveDataSegmentBytes = moduleInstance->passiveDataSegments[dataSegmentIndex];
         passiveDataSegmentsLock.unlock();
 
         Memory *memory = getMemoryFromRuntimeData(contextRuntimeData, memoryId);
@@ -305,20 +290,13 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
                                           passiveDataSegmentBytes->size() - sourceOffset);
             }
         } else if (numBytes) {
-            Platform::bytewiseMemCopy(
-                    destPointer, passiveDataSegmentBytes->data() + sourceOffset, numBytes);
+            Platform::bytewiseMemCopy(destPointer, passiveDataSegmentBytes->data() + sourceOffset, numBytes);
         }
     }
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "memory.drop",
-                          void,
-                          memory_drop,
-                          Uptr moduleInstanceId,
-                          Uptr dataSegmentIndex) {
-    ModuleInstance *moduleInstance
-            = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.drop", void, memory_drop, Uptr moduleInstanceId, Uptr dataSegmentIndex) {
+    ModuleInstance *moduleInstance = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
     Lock<Platform::Mutex> passiveDataSegmentsLock(moduleInstance->passiveDataSegmentsMutex);
 
     if (!moduleInstance->passiveDataSegments.contains(dataSegmentIndex)) {
@@ -328,31 +306,21 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
     }
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "memory.copy",
-                          void,
-                          memory_copy,
-                          U32 destAddress,
-                          U32 sourceAddress,
-                          U32 numBytes,
-                          Uptr memoryId) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.copy", void, memory_copy, U32 destAddress, U32 sourceAddress, U32 numBytes, Uptr memoryId) {
     Memory *memory = getMemoryFromRuntimeData(contextRuntimeData, memoryId);
 
     U8 *destPointer = getReservedMemoryOffsetRange(memory, destAddress, numBytes);
     U8 *sourcePointer = getReservedMemoryOffsetRange(memory, sourceAddress, numBytes);
-    if (numBytes) { Platform::bytewiseMemMove(destPointer, sourcePointer, numBytes); }
+    if (numBytes) {
+        Platform::bytewiseMemMove(destPointer, sourcePointer, numBytes);
+    }
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "memory.fill",
-                          void,
-                          memory_fill,
-                          U32 destAddress,
-                          U32 value,
-                          U32 numBytes,
-                          Uptr memoryId) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "memory.fill", void, memory_fill, U32 destAddress, U32 value, U32 numBytes, Uptr memoryId) {
     Memory *memory = getMemoryFromRuntimeData(contextRuntimeData, memoryId);
 
     U8 *destPointer = getReservedMemoryOffsetRange(memory, destAddress, numBytes);
-    if (numBytes) { Platform::bytewiseMemSet(destPointer, U8(value), numBytes); }
+    if (numBytes) {
+        Platform::bytewiseMemSet(destPointer, U8(value), numBytes);
+    }
 }

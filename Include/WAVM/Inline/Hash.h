@@ -13,8 +13,7 @@
 #include "xxhash/xxhash.h"
 
 namespace WAVM {
-    template<typename Key>
-    struct Hash : std::hash<Key> {
+    template<typename Key> struct Hash : std::hash<Key> {
     };
 
     inline U32 XXH32_fixed(U32 data, U32 seed) {
@@ -52,74 +51,83 @@ namespace WAVM {
         return o;
     }
 
-    template<typename Hash>
-    inline Hash XXH(const void *data, Uptr numBytes, Hash seed);
+    template<typename Hash> inline Hash XXH(const void *data, Uptr numBytes, Hash seed);
 
-    template<>
-    inline U64 XXH<U64>(const void *data, Uptr numBytes, U64 seed) {
+    template<> inline U64 XXH<U64>(const void *data, Uptr numBytes, U64 seed) {
         return XXH64(data, numBytes, seed);
     }
 
-    template<>
-    struct Hash<U8> {
-        Uptr operator()(U8 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(U32(i), U32(seed))); }
+    template<> struct Hash<U8> {
+        Uptr operator()(U8 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(U32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<I8> {
-        Uptr operator()(I8 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(I32(i), U32(seed))); }
+    template<> struct Hash<I8> {
+        Uptr operator()(I8 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(I32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<U16> {
-        Uptr operator()(U16 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(U32(i), U32(seed))); }
+    template<> struct Hash<U16> {
+        Uptr operator()(U16 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(U32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<I16> {
-        Uptr operator()(I16 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(I32(i), U32(seed))); }
+    template<> struct Hash<I16> {
+        Uptr operator()(I16 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(I32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<U32> {
-        Uptr operator()(U32 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(U32(i), U32(seed))); }
+    template<> struct Hash<U32> {
+        Uptr operator()(U32 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(U32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<I32> {
-        Uptr operator()(I32 i, Uptr seed = 0) const { return Uptr(XXH32_fixed(I32(i), U32(seed))); }
+    template<> struct Hash<I32> {
+        Uptr operator()(I32 i, Uptr seed = 0) const {
+            return Uptr(XXH32_fixed(I32(i), U32(seed)));
+        }
     };
 
-    template<>
-    struct Hash<U64> {
-        Uptr operator()(U64 i, Uptr seed = 0) const { return Uptr(XXH64_fixed(U64(i), U64(seed))); }
+    template<> struct Hash<U64> {
+        Uptr operator()(U64 i, Uptr seed = 0) const {
+            return Uptr(XXH64_fixed(U64(i), U64(seed)));
+        }
     };
 
-    template<>
-    struct Hash<I64> {
-        Uptr operator()(I64 i, Uptr seed = 0) const { return Uptr(XXH64_fixed(I64(i), U64(seed))); }
+    template<> struct Hash<I64> {
+        Uptr operator()(I64 i, Uptr seed = 0) const {
+            return Uptr(XXH64_fixed(I64(i), U64(seed)));
+        }
     };
 
-    template<>
-    struct Hash<std::string> {
+    template<> struct Hash<std::string> {
         Uptr operator()(const std::string &string, Uptr seed = 0) const {
             return Uptr(XXH64(string.data(), string.size(), seed));
         }
     };
 
-    template<typename Element>
-    struct Hash<std::vector<Element>> {
+    template<typename Element> struct Hash<std::vector<Element>> {
         Uptr operator()(const std::vector<Element> &vector, Uptr seed = 0) const {
             Uptr hash = seed;
-            for (const Element &element : vector) { hash = Hash<Element>()(element, hash); }
+            for (const Element &element : vector) {
+                hash = Hash<Element>()(element, hash);
+            }
             return hash;
         }
     };
 
-    template<typename Key>
-    struct DefaultHashPolicy {
-        static bool areKeysEqual(const Key &left, const Key &right) { return left == right; }
+    template<typename Key> struct DefaultHashPolicy {
+        static bool areKeysEqual(const Key &left, const Key &right) {
+            return left == right;
+        }
 
-        static Uptr getKeyHash(const Key &key) { return Hash<Key>()(key); }
+        static Uptr getKeyHash(const Key &key) {
+            return Hash<Key>()(key);
+        }
     };
 }

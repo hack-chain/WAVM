@@ -30,10 +30,11 @@ namespace WAVM {
 
 typedef std::vector<StateIndex> StateSet;
 
-template<typename Element>
-void addUnique(std::vector<Element> &vector, const Element &element) {
+template<typename Element> void addUnique(std::vector<Element> &vector, const Element &element) {
     for (const auto &existingElement : vector) {
-        if (existingElement == element) { return; }
+        if (existingElement == element) {
+            return;
+        }
     }
     vector.push_back(element);
 }
@@ -50,12 +51,8 @@ StateIndex NFA::addState(Builder *builder) {
     return StateIndex(builder->nfaStates.size() - 1);
 }
 
-void NFA::addEdge(Builder *builder,
-                  StateIndex initialState,
-                  const CharSet &predicate,
-                  StateIndex nextState) {
-    CharSet &transitionPredicate
-            = builder->nfaStates[initialState].nextStateToPredicateMap.getOrAdd(nextState, CharSet{});
+void NFA::addEdge(Builder *builder, StateIndex initialState, const CharSet &predicate, StateIndex nextState) {
+    CharSet &transitionPredicate = builder->nfaStates[initialState].nextStateToPredicateMap.getOrAdd(nextState, CharSet{});
     transitionPredicate = transitionPredicate | predicate;
 }
 
@@ -66,8 +63,9 @@ void NFA::addEpsilonEdge(Builder *builder, StateIndex initialState, StateIndex n
 StateIndex NFA::getNonTerminalEdge(Builder *builder, StateIndex initialState, char c) {
     for (const auto &nextStateToPredicatePair :
             builder->nfaStates[initialState].nextStateToPredicateMap) {
-        if (nextStateToPredicatePair.key >= 0 &&
-            nextStateToPredicatePair.value.contains((U8) c)) { return nextStateToPredicatePair.key; }
+        if (nextStateToPredicatePair.key >= 0 && nextStateToPredicatePair.value.contains((U8) c)) {
+            return nextStateToPredicatePair.key;
+        }
     }
 
     return unmatchedCharacterTerminal;
@@ -120,8 +118,9 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
         StateIndex currentTerminalState = unmatchedCharacterTerminal | edgeDoesntConsumeInputFlag;
         bool hasCurrentTerminalState = false;
         for (auto stateIndex : epsilonClosureCurrentStateSet) {
-            if (stateIndex >= 0) { addUnique(nonTerminalCurrentStateSet, stateIndex); }
-            else {
+            if (stateIndex >= 0) {
+                addUnique(nonTerminalCurrentStateSet, stateIndex);
+            } else {
                 if (hasCurrentTerminalState) {
                     Errors::fatalf("NFA has multiple possible terminal states for the same input");
                 }
@@ -137,16 +136,14 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
             const NFAState &nfaState = builder->nfaStates[stateIndex];
             for (auto transition : nfaState.nextStateToPredicateMap) {
                 if (!stateIndexToLocalStateIndexMap.contains(transition.key)) {
-                    stateIndexToLocalStateIndexMap.set(
-                            transition.key, (StateIndex) localStateIndexToStateIndexMap.size());
+                    stateIndexToLocalStateIndexMap.set(transition.key, (StateIndex) localStateIndexToStateIndexMap.size());
                     localStateIndexToStateIndexMap.emplace_back(transition.key);
                 }
             }
         }
 
         if (!stateIndexToLocalStateIndexMap.contains(currentTerminalState)) {
-            stateIndexToLocalStateIndexMap.set(currentTerminalState,
-                                               (StateIndex) localStateIndexToStateIndexMap.size());
+            stateIndexToLocalStateIndexMap.set(currentTerminalState, (StateIndex) localStateIndexToStateIndexMap.size());
             localStateIndexToStateIndexMap.emplace_back(currentTerminalState);
         }
 
@@ -168,24 +165,26 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
             for (auto transition : nfaState.nextStateToPredicateMap) {
                 for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
                     if (transition.value.contains((char) charIndex)) {
-                        charToLocalStateSet[charIndex].add(
-                                stateIndexToLocalStateIndexMap[transition.key]);
+                        charToLocalStateSet[charIndex].add(stateIndexToLocalStateIndexMap[transition.key]);
                     }
                 }
             }
         }
 
-        const LocalStateSet currentTerminalStateLocalSet(
-                stateIndexToLocalStateIndexMap[currentTerminalState]);
+        const LocalStateSet currentTerminalStateLocalSet(stateIndexToLocalStateIndexMap[currentTerminalState]);
         for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
-            if (charToLocalStateSet[charIndex].isEmpty()) { charToLocalStateSet[charIndex] = currentTerminalStateLocalSet; }
+            if (charToLocalStateSet[charIndex].isEmpty()) {
+                charToLocalStateSet[charIndex] = currentTerminalStateLocalSet;
+            }
         }
 
         // Find the set of unique local state sets that follow this state set.
         std::vector<LocalStateSet> uniqueLocalNextStateSets;
         for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
             const LocalStateSet localStateSet = charToLocalStateSet[charIndex];
-            if (!localStateSet.isEmpty()) { addUnique(uniqueLocalNextStateSets, localStateSet); }
+            if (!localStateSet.isEmpty()) {
+                addUnique(uniqueLocalNextStateSets, localStateSet);
+            }
         }
 
         // For each unique local state set that follows this state set, find or create a
@@ -198,7 +197,9 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
                 LocalStateSet residualLocalStateSet = localNextStateSet;
                 while (true) {
                     const StateIndex localStateIndex = residualLocalStateSet.getSmallestMember();
-                    if (localStateIndex == numSupportedLocalStates) { break; }
+                    if (localStateIndex == numSupportedLocalStates) {
+                        break;
+                    }
 
                     nextStateSet.push_back(localStateIndexToStateIndexMap.at(localStateIndex));
                     residualLocalStateSet.remove(localStateIndex);
@@ -210,8 +211,9 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
             } else {
                 // Find an existing DFA state corresponding to this NFA state set.
                 const StateIndex *nextDFAState = nfaStateSetToDFAStateMap.get(nextStateSet);
-                if (nextDFAState) { localStateSetToDFAStateIndexMap.set(localNextStateSet, *nextDFAState); }
-                else {
+                if (nextDFAState) {
+                    localStateSetToDFAStateIndexMap.set(localNextStateSet, *nextDFAState);
+                } else {
                     // If no corresponding DFA state existing yet, create a new one and add it to
                     // the queue of pending states to process.
                     const StateIndex nextDFAStateIndex = (StateIndex) dfaStates.size();
@@ -230,8 +232,9 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
             const LocalStateSet &localStateSet = localStateSetToDFAStateIndex.key;
             const StateIndex nextDFAStateIndex = localStateSetToDFAStateIndex.value;
             for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
-                if (charToLocalStateSet[charIndex] ==
-                    localStateSet) { dfaState.nextStateByChar[charIndex] = nextDFAStateIndex; }
+                if (charToLocalStateSet[charIndex] == localStateSet) {
+                    dfaState.nextStateByChar[charIndex] = nextDFAStateIndex;
+                }
             }
         }
         maxDFANextStates = std::max(maxDFANextStates, (Uptr) uniqueLocalNextStateSets.size());
@@ -255,7 +258,9 @@ struct StateTransitionsByChar {
     }
 
     ~StateTransitionsByChar() {
-        if (nextStateByInitialState) { delete[] nextStateByInitialState; }
+        if (nextStateByInitialState) {
+            delete[] nextStateByInitialState;
+        }
     }
 
     void operator=(StateTransitionsByChar &&inMove) {
@@ -267,18 +272,12 @@ struct StateTransitionsByChar {
 
     bool operator<(const StateTransitionsByChar &right) const {
         wavmAssert(numStates == right.numStates);
-        return memcmp(nextStateByInitialState,
-                      right.nextStateByInitialState,
-                      sizeof(StateIndex) * numStates)
-               < 0;
+        return memcmp(nextStateByInitialState, right.nextStateByInitialState, sizeof(StateIndex) * numStates) < 0;
     }
 
     bool operator!=(const StateTransitionsByChar &right) const {
         wavmAssert(numStates == right.numStates);
-        return memcmp(nextStateByInitialState,
-                      right.nextStateByInitialState,
-                      sizeof(StateIndex) * numStates)
-               != 0;
+        return memcmp(nextStateByInitialState, right.nextStateByInitialState, sizeof(StateIndex) * numStates) != 0;
     }
 };
 
@@ -292,11 +291,9 @@ NFA::Machine::Machine(Builder *builder) {
     std::vector<StateTransitionsByChar> stateTransitionsByChar;
     for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
         stateTransitionsByChar.push_back(StateTransitionsByChar((U8) charIndex, dfaStates.size()));
-        stateTransitionsByChar[charIndex].nextStateByInitialState
-                = new StateIndex[dfaStates.size()];
+        stateTransitionsByChar[charIndex].nextStateByInitialState = new StateIndex[dfaStates.size()];
         for (Uptr stateIndex = 0; stateIndex < dfaStates.size(); ++stateIndex) {
-            stateTransitionsByChar[charIndex].nextStateByInitialState[stateIndex]
-                    = dfaStates[stateIndex].nextStateByChar[charIndex];
+            stateTransitionsByChar[charIndex].nextStateByInitialState[stateIndex] = dfaStates[stateIndex].nextStateByChar[charIndex];
         }
     }
 
@@ -323,8 +320,8 @@ NFA::Machine::Machine(Builder *builder) {
     stateAndOffsetToNextStateMap = new InternalStateIndex[numClasses * numStates];
     for (Uptr classIndex = 0; classIndex < numClasses; ++classIndex) {
         for (Uptr stateIndex = 0; stateIndex < numStates; ++stateIndex) {
-            stateAndOffsetToNextStateMap[stateIndex + classIndex * numStates] = InternalStateIndex(
-                    dfaStates[stateIndex].nextStateByChar[representativeCharsByClass[classIndex]]);
+            stateAndOffsetToNextStateMap[stateIndex + classIndex *
+                                                      numStates] = InternalStateIndex(dfaStates[stateIndex].nextStateByChar[representativeCharsByClass[classIndex]]);
         }
     }
 
@@ -351,14 +348,17 @@ void NFA::Machine::moveFrom(Machine &&inMachine) {
     numStates = inMachine.numStates;
 }
 
-static char nibbleToHexChar(U8 value) { return value < 10 ? ('0' + value) : 'a' + value - 10; }
+static char nibbleToHexChar(U8 value) {
+    return value < 10 ? ('0' + value) : 'a' + value - 10;
+}
 
 static std::string escapeString(const std::string &string) {
     std::string result;
     for (Uptr charIndex = 0; charIndex < string.size(); ++charIndex) {
         auto c = string[charIndex];
-        if (c == '\\') { result += "\\\\"; }
-        else if (c == '\"') {
+        if (c == '\\') {
+            result += "\\\\";
+        } else if (c == '\"') {
             result += "\\\"";
         } else if (c == '\n') {
             result += "\\n";
@@ -402,24 +402,34 @@ static std::string getGraphEdgeLabel(const CharSet &charSet) {
     std::string edgeLabel;
     U8 numSetChars = 0;
     for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
-        if (charSet.contains((char) charIndex)) { ++numSetChars; }
+        if (charSet.contains((char) charIndex)) {
+            ++numSetChars;
+        }
     }
-    if (numSetChars > 1) { edgeLabel += "["; }
+    if (numSetChars > 1) {
+        edgeLabel += "[";
+    }
     const bool isNegative = numSetChars >= 100;
-    if (isNegative) { edgeLabel += "^"; }
+    if (isNegative) {
+        edgeLabel += "^";
+    }
     for (Uptr charIndex = 0; charIndex < 256; ++charIndex) {
         if (charSet.contains((char) charIndex) != isNegative) {
             edgeLabel += getGraphEdgeCharLabel(charIndex);
-            if (charIndex + 2 < 256 && charSet.contains((char) charIndex + 1) != isNegative
-                && charSet.contains((char) charIndex + 2) != isNegative) {
+            if (charIndex + 2 < 256 && charSet.contains((char) charIndex + 1) != isNegative &&
+                charSet.contains((char) charIndex + 2) != isNegative) {
                 edgeLabel += "-";
                 charIndex += 2;
-                while (charIndex + 1 < 256 && charSet.contains((char) charIndex + 1) != isNegative) { ++charIndex; }
+                while (charIndex + 1 < 256 && charSet.contains((char) charIndex + 1) != isNegative) {
+                    ++charIndex;
+                }
                 edgeLabel += getGraphEdgeCharLabel(charIndex);
             }
         }
     }
-    if (numSetChars > 1) { edgeLabel += "]"; }
+    if (numSetChars > 1) {
+        edgeLabel += "]";
+    }
     return edgeLabel;
 }
 
@@ -430,30 +440,31 @@ std::string NFA::dumpNFAGraphViz(const Builder *builder) {
     for (Uptr stateIndex = 0; stateIndex < builder->nfaStates.size(); ++stateIndex) {
         const NFAState &nfaState = builder->nfaStates[stateIndex];
 
-        result += "state" + std::to_string(stateIndex) + "[shape=square label=\""
-                  + std::to_string(stateIndex) + "\"];\n";
+        result +=
+                "state" + std::to_string(stateIndex) + "[shape=square label=\"" + std::to_string(stateIndex) + "\"];\n";
 
         for (const auto &statePredicatePair : nfaState.nextStateToPredicateMap) {
             std::string edgeLabel = getGraphEdgeLabel(statePredicatePair.value);
-            std::string nextStateName = statePredicatePair.key < 0
-                                        ? "terminal" + std::to_string(-statePredicatePair.key)
-                                        : "state" + std::to_string(statePredicatePair.key);
-            result += "state" + std::to_string(stateIndex) + " -> " + nextStateName + "[label=\""
-                      + escapeString(edgeLabel) + "\"];\n";
-            if (statePredicatePair.key < 0) { terminalStates.add(statePredicatePair.key); }
+            std::string nextStateName =
+                    statePredicatePair.key < 0 ? "terminal" + std::to_string(-statePredicatePair.key) : "state" +
+                                                                                                        std::to_string(statePredicatePair.key);
+            result += "state" + std::to_string(stateIndex) + " -> " + nextStateName + "[label=\"" +
+                      escapeString(edgeLabel) + "\"];\n";
+            if (statePredicatePair.key < 0) {
+                terminalStates.add(statePredicatePair.key);
+            }
         }
 
         for (auto epsilonNextState : nfaState.epsilonNextStates) {
-            std::string nextStateName = epsilonNextState < 0
-                                        ? "terminal" + std::to_string(-epsilonNextState)
-                                        : "state" + std::to_string(epsilonNextState);
-            result += "state" + std::to_string(stateIndex) + " -> " + nextStateName
-                      + "[label=\"&epsilon;\"];\n";
+            std::string nextStateName =
+                    epsilonNextState < 0 ? "terminal" + std::to_string(-epsilonNextState) : "state" +
+                                                                                            std::to_string(epsilonNextState);
+            result += "state" + std::to_string(stateIndex) + " -> " + nextStateName + "[label=\"&epsilon;\"];\n";
         }
     }
     for (auto terminalState : terminalStates) {
-        result += "terminal" + std::to_string(-terminalState) + "[shape=octagon label=\""
-                  + std::to_string(maximumTerminalStateIndex - terminalState) + "\"];\n";
+        result += "terminal" + std::to_string(-terminalState) + "[shape=octagon label=\"" +
+                  std::to_string(maximumTerminalStateIndex - terminalState) + "\"];\n";
     }
     result += "}\n";
     return result;
@@ -474,8 +485,7 @@ std::string NFA::Machine::dumpDFAGraphViz() const {
     {
         HashMap<StateIndex, CharSet> transitions;
         for (Uptr classIndex = 0; classIndex < numClasses; ++classIndex) {
-            const InternalStateIndex nextState
-                    = stateAndOffsetToNextStateMap[0 + classIndex * numStates];
+            const InternalStateIndex nextState = stateAndOffsetToNextStateMap[0 + classIndex * numStates];
             CharSet &transitionPredicate = transitions.getOrAdd(nextState, CharSet{});
             transitionPredicate = classCharSets[classIndex] | transitionPredicate;
         }
@@ -486,23 +496,16 @@ std::string NFA::Machine::dumpDFAGraphViz() const {
                 result += "start" + std::to_string(startIndex) + "[shape=triangle label=\"\"];\n";
 
                 std::string edgeLabel = getGraphEdgeLabel(transitionPair.value);
-                std::string nextStateName
-                        = transitionPair.key < 0
-                          ? "terminal"
-                            + std::to_string(
-                                        -(transitionPair.key & ~edgeDoesntConsumeInputFlag))
-                          : "state" + std::to_string(transitionPair.key);
-                result += "start" + std::to_string(startIndex) + " -> " + nextStateName
-                          + "[label=\""
-                          + (transitionPair.key < 0
-                             && (transitionPair.key & edgeDoesntConsumeInputFlag) != 0
-                             ? "&epsilon; "
-                             : "")
-                          + escapeString(edgeLabel) + "\"];\n";
+                std::string nextStateName = transitionPair.key < 0 ? "terminal" + std::to_string(-(transitionPair.key &
+                                                                                                   ~edgeDoesntConsumeInputFlag)) :
+                                            "state" + std::to_string(transitionPair.key);
+                result += "start" + std::to_string(startIndex) + " -> " + nextStateName + "[label=\"" +
+                          (transitionPair.key < 0 &&
+                           (transitionPair.key & edgeDoesntConsumeInputFlag) != 0 ? "&epsilon; " : "") +
+                          escapeString(edgeLabel) + "\"];\n";
 
                 if (transitionPair.key < 0) {
-                    terminalStates.add(
-                            StateIndex(transitionPair.key & ~edgeDoesntConsumeInputFlag));
+                    terminalStates.add(StateIndex(transitionPair.key & ~edgeDoesntConsumeInputFlag));
                 }
 
                 ++startIndex;
@@ -511,13 +514,12 @@ std::string NFA::Machine::dumpDFAGraphViz() const {
     }
 
     for (Uptr stateIndex = 1; stateIndex < numStates; ++stateIndex) {
-        result += "state" + std::to_string(stateIndex) + "[shape=square label=\""
-                  + std::to_string(stateIndex) + "\"];\n";
+        result +=
+                "state" + std::to_string(stateIndex) + "[shape=square label=\"" + std::to_string(stateIndex) + "\"];\n";
 
         HashMap<StateIndex, CharSet> transitions;
         for (Uptr classIndex = 0; classIndex < numClasses; ++classIndex) {
-            const InternalStateIndex nextState
-                    = stateAndOffsetToNextStateMap[stateIndex + classIndex * numStates];
+            const InternalStateIndex nextState = stateAndOffsetToNextStateMap[stateIndex + classIndex * numStates];
             CharSet &transitionPredicate = transitions.getOrAdd(nextState, CharSet{});
             transitionPredicate = classCharSets[classIndex] | transitionPredicate;
         }
@@ -525,30 +527,24 @@ std::string NFA::Machine::dumpDFAGraphViz() const {
         for (auto transitionPair : transitions) {
             if ((transitionPair.key & ~edgeDoesntConsumeInputFlag) != unmatchedCharacterTerminal) {
                 std::string edgeLabel = getGraphEdgeLabel(transitionPair.value);
-                std::string nextStateName
-                        = transitionPair.key < 0
-                          ? "terminal"
-                            + std::to_string(
-                                        -(transitionPair.key & ~edgeDoesntConsumeInputFlag))
-                          : "state" + std::to_string(transitionPair.key);
-                result += "state" + std::to_string(stateIndex) + " -> " + nextStateName
-                          + "[label=\""
-                          + (transitionPair.key < 0
-                             && (transitionPair.key & edgeDoesntConsumeInputFlag) != 0
-                             ? "&epsilon; "
-                             : "")
-                          + escapeString(edgeLabel) + "\"];\n";
+                std::string nextStateName = transitionPair.key < 0 ? "terminal" + std::to_string(-(transitionPair.key &
+                                                                                                   ~edgeDoesntConsumeInputFlag)) :
+                                            "state" + std::to_string(transitionPair.key);
+                result += "state" + std::to_string(stateIndex) + " -> " + nextStateName + "[label=\"" +
+                          (transitionPair.key < 0 &&
+                           (transitionPair.key & edgeDoesntConsumeInputFlag) != 0 ? "&epsilon; " : "") +
+                          escapeString(edgeLabel) + "\"];\n";
 
-                if (transitionPair.key < 0) { terminalStates.add(transitionPair.key); }
+                if (transitionPair.key < 0) {
+                    terminalStates.add(transitionPair.key);
+                }
             }
         }
     }
     for (auto terminalState : terminalStates) {
-        result += "terminal" + std::to_string(-(terminalState & ~edgeDoesntConsumeInputFlag))
-                  + "[shape=octagon label=\""
-                  + std::to_string(maximumTerminalStateIndex
-                                   - (terminalState & ~edgeDoesntConsumeInputFlag))
-                  + "\"];\n";
+        result += "terminal" + std::to_string(-(terminalState & ~edgeDoesntConsumeInputFlag)) +
+                  "[shape=octagon label=\"" +
+                  std::to_string(maximumTerminalStateIndex - (terminalState & ~edgeDoesntConsumeInputFlag)) + "\"];\n";
     }
     result += "}\n";
     return result;

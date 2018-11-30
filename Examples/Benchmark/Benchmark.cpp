@@ -27,7 +27,9 @@ int main() {
     int numerator = 0;
     int denominator = 0;
     for (auto pointIt = points.begin(); pointIt != points.end(); ++pointIt) {
-        if (pointIt->x * pointIt->x + pointIt->y * pointIt->y < 1.0) { ++numerator; }
+        if (pointIt->x * pointIt->x + pointIt->y * pointIt->y < 1.0) {
+            ++numerator;
+        }
         ++denominator;
     }
 

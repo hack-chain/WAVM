@@ -2,11 +2,14 @@
 
 namespace WAVM {
     // RAII-style lock.
-    template<typename Mutex>
-    struct Lock {
-        Lock(Mutex &inMutex) : mutex(&inMutex) { mutex->lock(); }
+    template<typename Mutex> struct Lock {
+        Lock(Mutex &inMutex) : mutex(&inMutex) {
+            mutex->lock();
+        }
 
-        ~Lock() { unlock(); }
+        ~Lock() {
+            unlock();
+        }
 
         void unlock() {
             if (mutex) {

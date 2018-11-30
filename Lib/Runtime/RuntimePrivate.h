@@ -33,7 +33,9 @@ namespace WAVM {
 
             GCObject(ObjectKind inKind, Compartment *inCompartment);
 
-            virtual ~GCObject() { wavmAssert(numRootReferences.load(std::memory_order_acquire) == 0); }
+            virtual ~GCObject() {
+                wavmAssert(numRootReferences.load(std::memory_order_acquire) == 0);
+            }
         };
 
         // An instance of a WebAssembly Table.
@@ -92,10 +94,7 @@ namespace WAVM {
             const U32 mutableGlobalIndex;
             const IR::UntaggedValue initialValue;
 
-            Global(Compartment *inCompartment,
-                   IR::GlobalType inType,
-                   U32 inMutableGlobalId,
-                   IR::UntaggedValue inInitialValue)
+            Global(Compartment *inCompartment, IR::GlobalType inType, U32 inMutableGlobalId, IR::UntaggedValue inInitialValue)
                     : GCObject(ObjectKind::global, inCompartment), type(inType), mutableGlobalIndex(inMutableGlobalId),
                       initialValue(inInitialValue) {
             }
@@ -110,9 +109,7 @@ namespace WAVM {
             IR::ExceptionType sig;
             std::string debugName;
 
-            ExceptionType(Compartment *inCompartment,
-                          IR::ExceptionType inSig,
-                          std::string &&inDebugName)
+            ExceptionType(Compartment *inCompartment, IR::ExceptionType inSig, std::string &&inDebugName)
                     : GCObject(ObjectKind::exceptionType, inCompartment), sig(inSig),
                       debugName(std::move(inDebugName)) {
             }
@@ -125,8 +122,7 @@ namespace WAVM {
             IR::Module ir;
             std::vector<U8> objectCode;
 
-            Module(IR::Module &&inIR, std::vector<U8> &&inObjectCode)
-                    : ir(inIR), objectCode(std::move(inObjectCode)) {
+            Module(IR::Module &&inIR, std::vector<U8> &&inObjectCode) : ir(inIR), objectCode(std::move(inObjectCode)) {
             }
         };
 
@@ -156,19 +152,7 @@ namespace WAVM {
 
             const std::shared_ptr<LLVMJIT::Module> jitModule;
 
-            ModuleInstance(Compartment *inCompartment,
-                           Uptr inID,
-                           HashMap<std::string, Object *> &&inExportMap,
-                           std::vector<Function *> &&inFunctions,
-                           std::vector<Table *> &&inTables,
-                           std::vector<Memory *> &&inMemories,
-                           std::vector<Global *> &&inGlobals,
-                           std::vector<ExceptionType *> &&inExceptionTypes,
-                           Function *inStartFunction,
-                           PassiveDataSegmentMap &&inPassiveDataSegments,
-                           PassiveElemSegmentMap &&inPassiveElemSegments,
-                           std::shared_ptr<LLVMJIT::Module> &&inJITModule,
-                           std::string &&inDebugName)
+            ModuleInstance(Compartment *inCompartment, Uptr inID, HashMap<std::string, Object *> &&inExportMap, std::vector<Function *> &&inFunctions, std::vector<Table *> &&inTables, std::vector<Memory *> &&inMemories, std::vector<Global *> &&inGlobals, std::vector<ExceptionType *> &&inExceptionTypes, Function *inStartFunction, PassiveDataSegmentMap &&inPassiveDataSegments, PassiveElemSegmentMap &&inPassiveElemSegments, std::shared_ptr<LLVMJIT::Module> &&inJITModule, std::string &&inDebugName)
                     : GCObject(ObjectKind::moduleInstance, inCompartment), id(inID), debugName(std::move(inDebugName)),
                       exportMap(std::move(inExportMap)), functions(std::move(inFunctions)), tables(std::move(inTables)),
                       memories(std::move(inMemories)), globals(std::move(inGlobals)),
@@ -184,7 +168,8 @@ namespace WAVM {
             Uptr id = UINTPTR_MAX;
             struct ContextRuntimeData *runtimeData = nullptr;
 
-            Context(Compartment *inCompartment) : GCObject(ObjectKind::context, inCompartment) {}
+            Context(Compartment *inCompartment) : GCObject(ObjectKind::context, inCompartment) {
+            }
 
             ~Context();
         };
@@ -231,14 +216,12 @@ namespace WAVM {
 
         ExceptionType *cloneExceptionType(ExceptionType *exceptionType, Compartment *newCompartment);
 
-        ModuleInstance *cloneModuleInstance(ModuleInstance *moduleInstance,
-                                            Compartment *newCompartment);
+        ModuleInstance *cloneModuleInstance(ModuleInstance *moduleInstance, Compartment *newCompartment);
 
         // Clone a global with same ID and mutable data offset (if mutable) in a new compartment.
         Global *cloneGlobal(Global *global, Compartment *newCompartment);
 
-        ModuleInstance *getModuleInstanceFromRuntimeData(ContextRuntimeData *contextRuntimeData,
-                                                         Uptr moduleInstanceId);
+        ModuleInstance *getModuleInstanceFromRuntimeData(ContextRuntimeData *contextRuntimeData, Uptr moduleInstanceId);
 
         Table *getTableFromRuntimeData(ContextRuntimeData *contextRuntimeData, Uptr tableId);
 

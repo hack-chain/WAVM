@@ -22,58 +22,32 @@ void EmitFunctionContext::ref_isnull(NoImm) {
 void EmitFunctionContext::ref_func(FunctionImm imm) {
     llvm::Value *referencedFunction = moduleContext.functions[imm.functionIndex];
     llvm::Value *codeAddress = irBuilder.CreatePtrToInt(referencedFunction, llvmContext.iptrType);
-    llvm::Value *functionAddress = irBuilder.CreateSub(
-            codeAddress, emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))));
+    llvm::Value *functionAddress = irBuilder.CreateSub(codeAddress, emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))));
     llvm::Value *anyref = irBuilder.CreateIntToPtr(functionAddress, llvmContext.anyrefType);
     push(anyref);
 }
 
 void EmitFunctionContext::table_get(TableImm imm) {
     llvm::Value *index = pop();
-    llvm::Value *result = emitRuntimeIntrinsic(
-            "table.get",
-            FunctionType({ValueType::anyref}, TypeTuple({ValueType::i32, inferValueType<Uptr>()})),
-            {index, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])})[0];
+    llvm::Value *result = emitRuntimeIntrinsic("table.get", FunctionType({ValueType::anyref}, TypeTuple({ValueType::i32, inferValueType<Uptr>()})), {index, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])})[0];
     push(result);
 }
 
 void EmitFunctionContext::table_set(TableImm imm) {
     llvm::Value *value = pop();
     llvm::Value *index = pop();
-    emitRuntimeIntrinsic(
-            "table.set",
-            FunctionType({}, TypeTuple({ValueType::i32, ValueType::anyref, inferValueType<Uptr>()})),
-            {index,
-             value,
-             getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])});
+    emitRuntimeIntrinsic("table.set", FunctionType({}, TypeTuple({ValueType::i32, ValueType::anyref, inferValueType<Uptr>()})), {index, value, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])});
 }
 
 void EmitFunctionContext::table_init(ElemSegmentAndTableImm imm) {
     auto numElements = pop();
     auto sourceOffset = pop();
     auto destOffset = pop();
-    emitRuntimeIntrinsic(
-            "table.init",
-            FunctionType({},
-                         TypeTuple({ValueType::i32,
-                                    ValueType::i32,
-                                    ValueType::i32,
-                                    inferValueType<Uptr>(),
-                                    inferValueType<Uptr>(),
-                                    inferValueType<Uptr>()})),
-            {destOffset,
-             sourceOffset,
-             numElements,
-             moduleContext.moduleInstanceId,
-             getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex]),
-             emitLiteral(llvmContext, imm.elemSegmentIndex)});
+    emitRuntimeIntrinsic("table.init", FunctionType({}, TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>(), inferValueType<Uptr>(), inferValueType<Uptr>()})), {destOffset, sourceOffset, numElements, moduleContext.moduleInstanceId, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex]), emitLiteral(llvmContext, imm.elemSegmentIndex)});
 }
 
 void EmitFunctionContext::table_drop(ElemSegmentImm imm) {
-    emitRuntimeIntrinsic(
-            "table.drop",
-            FunctionType({}, TypeTuple({inferValueType<Uptr>(), inferValueType<Uptr>()})),
-            {moduleContext.moduleInstanceId, emitLiteral(llvmContext, imm.elemSegmentIndex)});
+    emitRuntimeIntrinsic("table.drop", FunctionType({}, TypeTuple({inferValueType<Uptr>(), inferValueType<Uptr>()})), {moduleContext.moduleInstanceId, emitLiteral(llvmContext, imm.elemSegmentIndex)});
 }
 
 void EmitFunctionContext::table_copy(TableImm imm) {
@@ -81,13 +55,5 @@ void EmitFunctionContext::table_copy(TableImm imm) {
     auto sourceOffset = pop();
     auto destOffset = pop();
 
-    emitRuntimeIntrinsic(
-            "table.copy",
-            FunctionType(
-                    {},
-                    TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})),
-            {destOffset,
-             sourceOffset,
-             numElements,
-             getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])});
+    emitRuntimeIntrinsic("table.copy", FunctionType({}, TypeTuple({ValueType::i32, ValueType::i32, ValueType::i32, inferValueType<Uptr>()})), {destOffset, sourceOffset, numElements, getTableIdFromOffset(llvmContext, moduleContext.tableOffsets[imm.tableIndex])});
 }

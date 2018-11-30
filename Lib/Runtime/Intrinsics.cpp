@@ -26,14 +26,12 @@ Intrinsics::Module::~Module() {
 }
 
 static void initializeModule(Intrinsics::Module &moduleRef) {
-    if (!moduleRef.impl) { moduleRef.impl = new Intrinsics::ModuleImpl; }
+    if (!moduleRef.impl) {
+        moduleRef.impl = new Intrinsics::ModuleImpl;
+    }
 }
 
-Intrinsics::Function::Function(Intrinsics::Module &moduleRef,
-                               const char *inName,
-                               void *inNativeFunction,
-                               IR::FunctionType inType,
-                               IR::CallingConvention inCallingConvention)
+Intrinsics::Function::Function(Intrinsics::Module &moduleRef, const char *inName, void *inNativeFunction, IR::FunctionType inType, IR::CallingConvention inCallingConvention)
         : name(inName), type(inType), nativeFunction(inNativeFunction), callingConvention(inCallingConvention) {
     initializeModule(moduleRef);
 
@@ -47,14 +45,13 @@ Function *Intrinsics::Function::instantiate(Compartment *compartment) {
     return LLVMJIT::getIntrinsicThunk(nativeFunction, type, callingConvention, name);
 }
 
-Intrinsics::Global::Global(Intrinsics::Module &moduleRef,
-                           const char *inName,
-                           IR::ValueType inType,
-                           IR::Value inValue)
+Intrinsics::Global::Global(Intrinsics::Module &moduleRef, const char *inName, IR::ValueType inType, IR::Value inValue)
         : name(inName), type(inType), value(inValue) {
     initializeModule(moduleRef);
 
-    if (moduleRef.impl->globalMap.contains(name)) { Errors::fatalf("Intrinsic global already registered: %s", name); }
+    if (moduleRef.impl->globalMap.contains(name)) {
+        Errors::fatalf("Intrinsic global already registered: %s", name);
+    }
     moduleRef.impl->globalMap.set(name, this);
 }
 
@@ -62,13 +59,13 @@ Global *Intrinsics::Global::instantiate(Compartment *compartment) {
     return createGlobal(compartment, IR::GlobalType(type, false), value);
 }
 
-Intrinsics::Table::Table(Intrinsics::Module &moduleRef,
-                         const char *inName,
-                         const IR::TableType &inType)
+Intrinsics::Table::Table(Intrinsics::Module &moduleRef, const char *inName, const IR::TableType &inType)
         : name(inName), type(inType) {
     initializeModule(moduleRef);
 
-    if (moduleRef.impl->tableMap.contains(name)) { Errors::fatalf("Intrinsic table already registered: %s", name); }
+    if (moduleRef.impl->tableMap.contains(name)) {
+        Errors::fatalf("Intrinsic table already registered: %s", name);
+    }
     moduleRef.impl->tableMap.set(name, this);
 }
 
@@ -76,13 +73,13 @@ Table *Intrinsics::Table::instantiate(Compartment *compartment) {
     return createTable(compartment, type, name);
 }
 
-Intrinsics::Memory::Memory(Intrinsics::Module &moduleRef,
-                           const char *inName,
-                           const IR::MemoryType &inType)
+Intrinsics::Memory::Memory(Intrinsics::Module &moduleRef, const char *inName, const IR::MemoryType &inType)
         : name(inName), type(inType) {
     initializeModule(moduleRef);
 
-    if (moduleRef.impl->memoryMap.contains(name)) { Errors::fatalf("Intrinsic memory already registered: %s", name); }
+    if (moduleRef.impl->memoryMap.contains(name)) {
+        Errors::fatalf("Intrinsic memory already registered: %s", name);
+    }
     moduleRef.impl->memoryMap.set(name, this);
 }
 
@@ -90,10 +87,7 @@ Memory *Intrinsics::Memory::instantiate(Compartment *compartment) {
     return createMemory(compartment, type, name);
 }
 
-ModuleInstance *Intrinsics::instantiateModule(Compartment *compartment,
-                                              const Intrinsics::Module &moduleRef,
-                                              std::string &&debugName,
-                                              const HashMap<std::string, Object *> &extraExports) {
+ModuleInstance *Intrinsics::instantiateModule(Compartment *compartment, const Intrinsics::Module &moduleRef, std::string &&debugName, const HashMap<std::string, Object *> &extraExports) {
     HashMap<std::string, Object *> exportMap = extraExports;
     std::vector<Runtime::Function *> functions;
     std::vector<Runtime::Table *> tables;
@@ -151,27 +145,15 @@ ModuleInstance *Intrinsics::instantiateModule(Compartment *compartment,
 
     Lock<Platform::Mutex> compartmentLock(compartment->mutex);
     const Uptr id = compartment->moduleInstances.add(UINTPTR_MAX, nullptr);
-    auto moduleInstance = new ModuleInstance(compartment,
-                                             id,
-                                             std::move(exportMap),
-                                             std::move(functions),
-                                             std::move(tables),
-                                             std::move(memories),
-                                             std::move(globals),
-                                             std::move(exceptionTypes),
-                                             nullptr,
-                                             {},
-                                             {},
-                                             nullptr,
-                                             std::move(debugName));
+    auto moduleInstance = new ModuleInstance(compartment, id, std::move(exportMap), std::move(functions), std::move(tables), std::move(memories), std::move(globals), std::move(exceptionTypes), nullptr, {}, {}, nullptr, std::move(debugName));
     compartment->moduleInstances[id] = moduleInstance;
     return moduleInstance;
 }
 
-HashMap<std::string, Intrinsics::Function *> Intrinsics::getUninstantiatedFunctions(
-        const Intrinsics::Module &moduleRef) {
-    if (moduleRef.impl) { return moduleRef.impl->functionMap; }
-    else {
+HashMap<std::string, Intrinsics::Function *> Intrinsics::getUninstantiatedFunctions(const Intrinsics::Module &moduleRef) {
+    if (moduleRef.impl) {
+        return moduleRef.impl->functionMap;
+    } else {
         return {};
     }
 }

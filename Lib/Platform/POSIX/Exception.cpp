@@ -19,8 +19,7 @@ static std::atomic<SignalHandler> portableSignalHandler;
 
 static void deliverSignal(Signal signal, const CallStack &callStack) {
     // Call the signal handlers, from innermost to outermost, until one returns true.
-    for (SignalContext *signalContext = innermostSignalContext; signalContext;
-         signalContext = signalContext->outerContext) {
+    for (SignalContext *signalContext = innermostSignalContext; signalContext; signalContext = signalContext->outerContext) {
         if (signalContext->filter(signal, callStack)) {
             // Jump back to the execution context that was saved in catchSignals.
             siglongjmp(signalContext->catchJump, 1);
@@ -29,7 +28,9 @@ static void deliverSignal(Signal signal, const CallStack &callStack) {
 
     // If the signal wasn't handled by a catchSignals call, call the portable signal handler.
     SignalHandler portableSignalHandlerSnapshot = portableSignalHandler.load();
-    if (portableSignalHandlerSnapshot) { portableSignalHandlerSnapshot(signal, callStack); }
+    if (portableSignalHandlerSnapshot) {
+        portableSignalHandlerSnapshot(signal, callStack);
+    }
 }
 
 [[noreturn]] static void signalHandler(int signalNumber, siginfo_t *signalInfo, void *) {
@@ -50,9 +51,8 @@ static void deliverSignal(Signal signal, const CallStack &callStack) {
             U8 *stackMaxAddr;
             getCurrentThreadStack(stackMinAddr, stackMaxAddr);
             stackMinAddr -= sysconf(_SC_PAGESIZE);
-            signal.type = signalInfo->si_addr >= stackMinAddr && signalInfo->si_addr < stackMaxAddr
-                          ? Signal::Type::stackOverflow
-                          : Signal::Type::accessViolation;
+            signal.type = signalInfo->si_addr >= stackMinAddr && signalInfo->si_addr <
+                                                                 stackMaxAddr ? Signal::Type::stackOverflow : Signal::Type::accessViolation;
             signal.accessViolation.address = reinterpret_cast<Uptr>(signalInfo->si_addr);
             break;
         }
@@ -100,8 +100,7 @@ static void initSignals() {
     }
 }
 
-bool Platform::catchSignals(const std::function<void()> &thunk,
-                            const std::function<bool(Signal, const CallStack &)> &filter) {
+bool Platform::catchSignals(const std::function<void()> &thunk, const std::function<bool(Signal, const CallStack &)> &filter) {
     initSignals();
     sigAltStack.init();
 
@@ -130,15 +129,13 @@ bool Platform::catchSignals(const std::function<void()> &thunk,
 static void terminateHandler() {
     try {
         std::rethrow_exception(std::current_exception());
-    }
-    catch (PlatformException exception) {
+    } catch (PlatformException exception) {
         Signal signal;
         signal.type = Signal::Type::unhandledException;
         signal.unhandledException.data = exception.data;
         deliverSignal(signal, exception.callStack);
         Errors::fatal("Unhandled runtime exception");
-    }
-    catch (...) {
+    } catch (...) {
         Errors::fatal("Unhandled C++ exception");
     }
 }
@@ -168,7 +165,9 @@ static void visitFDEs(const U8 *ehFrames, Uptr numBytes, void (*visitFDE)(const 
             next += 8;
         }
         const U32 cieOffset = *((const U32 *) next);
-        if (cieOffset != 0) { visitFDE(cfi); }
+        if (cieOffset != 0) {
+            visitFDE(cfi);
+        }
 
         next += numCFIBytes;
     } while (next < end);
@@ -182,15 +181,15 @@ void Platform::deregisterEHFrames(const U8 *imageBase, const U8 *ehFrames, Uptr 
     visitFDEs(ehFrames, numBytes, __deregister_frame);
 }
 
-bool Platform::catchPlatformExceptions(const std::function<void()> &thunk,
-                                       const std::function<void(void *, const CallStack &)> &handler) {
+bool Platform::catchPlatformExceptions(const std::function<void()> &thunk, const std::function<void(void *, const CallStack &)> &handler) {
     try {
         thunk();
         return false;
-    }
-    catch (PlatformException exception) {
+    } catch (PlatformException exception) {
         handler(exception.data, exception.callStack);
-        if (exception.data) { free(exception.data); }
+        if (exception.data) {
+            free(exception.data);
+        }
         return true;
     }
 }
@@ -200,8 +199,7 @@ std::type_info *Platform::getUserExceptionTypeInfo() {
     if (!typeInfo) {
         try {
             throw PlatformException{nullptr};
-        }
-        catch (PlatformException) {
+        } catch (PlatformException) {
             typeInfo = __cxxabiv1::__cxa_current_exception_type();
         }
     }

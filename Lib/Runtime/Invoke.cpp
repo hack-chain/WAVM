@@ -8,17 +8,14 @@ using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
 
-UntaggedValue *Runtime::invokeFunctionUnchecked(Context *context,
-                                                Function *function,
-                                                const UntaggedValue *arguments) {
+UntaggedValue *Runtime::invokeFunctionUnchecked(Context *context, Function *function, const UntaggedValue *arguments) {
     FunctionType functionType = function->encodedType;
 
     // Get the invoke thunk for this function type.
     auto invokeFunctionPointer = LLVMJIT::getInvokeThunk(functionType);
 
     // Copy the arguments into the thunk arguments buffer in ContextRuntimeData.
-    ContextRuntimeData *contextRuntimeData
-            = &context->compartment->runtimeData->contexts[context->id];
+    ContextRuntimeData *contextRuntimeData = &context->compartment->runtimeData->contexts[context->id];
     U8 *argData = contextRuntimeData->thunkArgAndReturnData;
     Uptr argDataOffset = 0;
     for (Uptr argumentIndex = 0; argumentIndex < functionType.params().size(); ++argumentIndex) {
@@ -40,9 +37,7 @@ UntaggedValue *Runtime::invokeFunctionUnchecked(Context *context,
     return (UntaggedValue *) contextRuntimeData->thunkArgAndReturnData;
 }
 
-ValueTuple Runtime::invokeFunctionChecked(Context *context,
-                                          Function *function,
-                                          const std::vector<Value> &arguments) {
+ValueTuple Runtime::invokeFunctionChecked(Context *context, Function *function, const std::vector<Value> &arguments) {
     errorUnless(isInCompartment(asObject(function), context->compartment));
 
     FunctionType functionType{function->encodedType};
@@ -52,13 +47,12 @@ ValueTuple Runtime::invokeFunctionChecked(Context *context,
 
     // Convert the arguments from a vector of Values to a stack-allocated block of
     // UntaggedValues.
-    UntaggedValue *untaggedArguments
-            = (UntaggedValue *) alloca(arguments.size() * sizeof(UntaggedValue));
+    UntaggedValue *untaggedArguments = (UntaggedValue *) alloca(arguments.size() * sizeof(UntaggedValue));
     for (Uptr argumentIndex = 0; argumentIndex < arguments.size(); ++argumentIndex) {
         const Value &argument = arguments[argumentIndex];
 
-        errorUnless(!isReferenceType(argument.type) || !argument.object
-                    || isInCompartment(argument.object, context->compartment));
+        errorUnless(!isReferenceType(argument.type) || !argument.object ||
+                    isInCompartment(argument.object, context->compartment));
 
         untaggedArguments[argumentIndex] = argument;
     }

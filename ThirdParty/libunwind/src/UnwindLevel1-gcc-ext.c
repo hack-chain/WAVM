@@ -22,16 +22,13 @@
 #if defined(_LIBUNWIND_BUILD_ZERO_COST_APIS)
 
 ///  Called by __cxa_rethrow().
-_LIBUNWIND_EXPORT _Unwind_Reason_Code
-_Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object) {
+_LIBUNWIND_EXPORT _Unwind_Reason_Code _Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object) {
 #if defined(_LIBUNWIND_ARM_EHABI)
     _LIBUNWIND_TRACE_API("_Unwind_Resume_or_Rethrow(ex_obj=%p), private_1=%ld",
                          (void *)exception_object,
                          (long)exception_object->unwinder_cache.reserved1);
 #else
-    _LIBUNWIND_TRACE_API("_Unwind_Resume_or_Rethrow(ex_obj=%p), private_1=%ld",
-                         (void *) exception_object,
-                         (long) exception_object->private_1);
+    _LIBUNWIND_TRACE_API("_Unwind_Resume_or_Rethrow(ex_obj=%p), private_1=%ld", (void *) exception_object, (long) exception_object->private_1);
 #endif
 
 #if defined(_LIBUNWIND_ARM_EHABI)
@@ -59,8 +56,7 @@ _Unwind_Resume_or_Rethrow(_Unwind_Exception *exception_object) {
 
 /// Called by personality handler during phase 2 to get base address for data
 /// relative encodings.
-_LIBUNWIND_EXPORT uintptr_t
-_Unwind_GetDataRelBase(struct _Unwind_Context *context) {
+_LIBUNWIND_EXPORT uintptr_t _Unwind_GetDataRelBase(struct _Unwind_Context *context) {
     (void) context;
     _LIBUNWIND_TRACE_API("_Unwind_GetDataRelBase(context=%p)", (void *) context);
     _LIBUNWIND_ABORT("_Unwind_GetDataRelBase() not implemented");
@@ -69,8 +65,7 @@ _Unwind_GetDataRelBase(struct _Unwind_Context *context) {
 
 /// Called by personality handler during phase 2 to get base address for text
 /// relative encodings.
-_LIBUNWIND_EXPORT uintptr_t
-_Unwind_GetTextRelBase(struct _Unwind_Context *context) {
+_LIBUNWIND_EXPORT uintptr_t _Unwind_GetTextRelBase(struct _Unwind_Context *context) {
     (void) context;
     _LIBUNWIND_TRACE_API("_Unwind_GetTextRelBase(context=%p)", (void *) context);
     _LIBUNWIND_ABORT("_Unwind_GetTextRelBase() not implemented");
@@ -97,15 +92,13 @@ _LIBUNWIND_EXPORT void *_Unwind_FindEnclosingFunction(void *pc) {
 
 /// Walk every frame and call trace function at each one.  If trace function
 /// returns anything other than _URC_NO_REASON, then walk is terminated.
-_LIBUNWIND_EXPORT _Unwind_Reason_Code
-_Unwind_Backtrace(_Unwind_Trace_Fn callback, void *ref) {
+_LIBUNWIND_EXPORT _Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn callback, void *ref) {
     unw_cursor_t cursor;
     unw_context_t uc;
     unw_getcontext(&uc);
     unw_init_local(&cursor, &uc);
 
-    _LIBUNWIND_TRACE_API("_Unwind_Backtrace(callback=%p)",
-                         (void *) (uintptr_t) callback);
+    _LIBUNWIND_TRACE_API("_Unwind_Backtrace(callback=%p)", (void *) (uintptr_t) callback);
 
 #if defined(_LIBUNWIND_ARM_EHABI)
     // Create a mock exception object for force unwinding.
@@ -123,8 +116,7 @@ _Unwind_Backtrace(_Unwind_Trace_Fn callback, void *ref) {
         // _Unwind_Backtrace())
         if (unw_step(&cursor) <= 0) {
             _LIBUNWIND_TRACE_UNWINDING(" _backtrace: ended because cursor reached "
-                                       "bottom of stack, returning %d",
-                                       _URC_END_OF_STACK);
+                                       "bottom of stack, returning %d", _URC_END_OF_STACK);
             return _URC_END_OF_STACK;
         }
 #else
@@ -159,21 +151,17 @@ _Unwind_Backtrace(_Unwind_Trace_Fn callback, void *ref) {
             unw_word_t offset;
             unw_get_proc_name(&cursor, functionName, 512, &offset);
             unw_get_proc_info(&cursor, &frame);
-            _LIBUNWIND_TRACE_UNWINDING(
-                    " _backtrace: start_ip=0x%"
-                    PRIxPTR
-                    ", func=%s, lsda=0x%"
-                    PRIxPTR
-                    ", context=%p",
-                    frame.start_ip, functionName, frame.lsda,
-                    (void *) &cursor);
+            _LIBUNWIND_TRACE_UNWINDING(" _backtrace: start_ip=0x%"
+                                               PRIxPTR
+                                               ", func=%s, lsda=0x%"
+                                               PRIxPTR
+                                               ", context=%p", frame.start_ip, functionName, frame.lsda, (void *) &cursor);
         }
 
         // call trace function with this frame
         result = (*callback)((struct _Unwind_Context *) (&cursor), ref);
         if (result != _URC_NO_REASON) {
-            _LIBUNWIND_TRACE_UNWINDING(
-                    " _backtrace: ended because callback returned %d", result);
+            _LIBUNWIND_TRACE_UNWINDING(" _backtrace: ended because callback returned %d", result);
             return result;
         }
     }
@@ -181,8 +169,7 @@ _Unwind_Backtrace(_Unwind_Trace_Fn callback, void *ref) {
 
 
 /// Find DWARF unwind info for an address 'pc' in some function.
-_LIBUNWIND_EXPORT const void *_Unwind_Find_FDE(const void *pc,
-                                               struct dwarf_eh_bases *bases) {
+_LIBUNWIND_EXPORT const void *_Unwind_Find_FDE(const void *pc, struct dwarf_eh_bases *bases) {
     // This is slow, but works.
     // We create an unwind cursor then alter the IP to be pc
     unw_cursor_t cursor;
@@ -195,8 +182,7 @@ _LIBUNWIND_EXPORT const void *_Unwind_Find_FDE(const void *pc,
     bases->tbase = (uintptr_t) info.extra;
     bases->dbase = 0; // dbase not used on Mac OS X
     bases->func = (uintptr_t) info.start_ip;
-    _LIBUNWIND_TRACE_API("_Unwind_Find_FDE(pc=%p) => %p", pc,
-                         (void *) (long) info.unwind_info);
+    _LIBUNWIND_TRACE_API("_Unwind_Find_FDE(pc=%p) => %p", pc, (void *) (long) info.unwind_info);
     return (void *) (long) info.unwind_info;
 }
 
@@ -207,8 +193,7 @@ _LIBUNWIND_EXPORT uintptr_t _Unwind_GetCFA(struct _Unwind_Context *context) {
     unw_word_t result;
     unw_get_reg(cursor, UNW_REG_SP, &result);
     _LIBUNWIND_TRACE_API("_Unwind_GetCFA(context=%p) => 0x%"
-                                 PRIxPTR,
-                         (void *) context, result);
+                                 PRIxPTR, (void *) context, result);
     return (uintptr_t) result;
 }
 
@@ -216,8 +201,7 @@ _LIBUNWIND_EXPORT uintptr_t _Unwind_GetCFA(struct _Unwind_Context *context) {
 /// Called by personality handler during phase 2 to get instruction pointer.
 /// ipBefore is a boolean that says if IP is already adjusted to be the call
 /// site address.  Normally IP is the return address.
-_LIBUNWIND_EXPORT uintptr_t _Unwind_GetIPInfo(struct _Unwind_Context *context,
-                                              int *ipBefore) {
+_LIBUNWIND_EXPORT uintptr_t _Unwind_GetIPInfo(struct _Unwind_Context *context, int *ipBefore) {
     _LIBUNWIND_TRACE_API("_Unwind_GetIPInfo(context=%p)", (void *) context);
     *ipBefore = 0;
     return _Unwind_GetIP(context);
@@ -255,14 +239,12 @@ _LIBUNWIND_EXPORT void __deregister_frame(const void *fde) {
 
 #if defined(_LIBUNWIND_SUPPORT_FRAME_APIS)
 
-_LIBUNWIND_EXPORT void __register_frame_info_bases(const void *fde, void *ob,
-                                                   void *tb, void *db) {
+_LIBUNWIND_EXPORT void __register_frame_info_bases(const void *fde, void *ob, void *tb, void *db) {
     (void) fde;
     (void) ob;
     (void) tb;
     (void) db;
-    _LIBUNWIND_TRACE_API("__register_frame_info_bases(%p,%p, %p, %p)",
-                         fde, ob, tb, db);
+    _LIBUNWIND_TRACE_API("__register_frame_info_bases(%p,%p, %p, %p)", fde, ob, tb, db);
     // do nothing, this function never worked in Mac OS X
 }
 
@@ -273,9 +255,7 @@ _LIBUNWIND_EXPORT void __register_frame_info(const void *fde, void *ob) {
     // do nothing, this function never worked in Mac OS X
 }
 
-_LIBUNWIND_EXPORT void __register_frame_info_table_bases(const void *fde,
-                                                         void *ob, void *tb,
-                                                         void *db) {
+_LIBUNWIND_EXPORT void __register_frame_info_table_bases(const void *fde, void *ob, void *tb, void *db) {
     (void) fde;
     (void) ob;
     (void) tb;

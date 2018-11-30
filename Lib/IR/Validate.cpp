@@ -47,7 +47,9 @@ static void validate(const IR::FeatureSpec &featureSpec, IR::ValueType valueType
             isValid = false;
     };
 
-    if (!isValid) { throw ValidationException("invalid value type (" + std::to_string((Uptr) valueType) + ")"); }
+    if (!isValid) {
+        throw ValidationException("invalid value type (" + std::to_string((Uptr) valueType) + ")");
+    }
 }
 
 static void validate(SizeConstraints size, U64 maxMax) {
@@ -69,7 +71,9 @@ static void validate(const IR::FeatureSpec &featureSpec, ReferenceType type) {
             isValid = false;
     }
 
-    if (!isValid) { throw ValidationException("invalid reference type (" + std::to_string((Uptr) type) + ")"); }
+    if (!isValid) {
+        throw ValidationException("invalid reference type (" + std::to_string((Uptr) type) + ")");
+    }
 }
 
 static void validate(const Module &module, TableType type) {
@@ -94,32 +98,28 @@ static void validate(const IR::FeatureSpec &featureSpec, GlobalType type) {
 }
 
 static void validate(const IR::FeatureSpec &featureSpec, TypeTuple typeTuple) {
-    for (ValueType valueType : typeTuple) { validate(featureSpec, valueType); }
-}
-
-template<typename Type>
-void validateType(Type expectedType, Type actualType, const char *context) {
-    if (!isSubtype(actualType, expectedType)) {
-        throw ValidationException(std::string("type mismatch: expected ") + asString(expectedType)
-                                  + " but got " + asString(actualType) + " in " + context);
+    for (ValueType valueType : typeTuple) {
+        validate(featureSpec, valueType);
     }
 }
 
-static ValueType validateGlobalIndex(const Module &module,
-                                     Uptr globalIndex,
-                                     bool mustBeMutable,
-                                     bool mustBeImmutable,
-                                     bool mustBeImport,
-                                     const char *context) {
+template<typename Type> void validateType(Type expectedType, Type actualType, const char *context) {
+    if (!isSubtype(actualType, expectedType)) {
+        throw ValidationException(
+                std::string("type mismatch: expected ") + asString(expectedType) + " but got " + asString(actualType) +
+                " in " + context);
+    }
+}
+
+static ValueType validateGlobalIndex(const Module &module, Uptr globalIndex, bool mustBeMutable, bool mustBeImmutable, bool mustBeImport, const char *context) {
     VALIDATE_INDEX(globalIndex, module.globals.size());
     const GlobalType &globalType = module.globals.getType(globalIndex);
-    if (mustBeMutable && !globalType.isMutable) { throw ValidationException("attempting to mutate immutable global"); }
-    else if (mustBeImport && globalIndex >= module.globals.imports.size()) {
-        throw ValidationException(
-                "global variable initializer expression may only access imported globals");
+    if (mustBeMutable && !globalType.isMutable) {
+        throw ValidationException("attempting to mutate immutable global");
+    } else if (mustBeImport && globalIndex >= module.globals.imports.size()) {
+        throw ValidationException("global variable initializer expression may only access imported globals");
     } else if (mustBeImmutable && globalType.isMutable) {
-        throw ValidationException(
-                "global variable initializer expression may only access immutable globals");
+        throw ValidationException("global variable initializer expression may only access immutable globals");
     }
     return globalType.valueType;
 }
@@ -141,10 +141,8 @@ static FunctionType validateBlockType(const Module &module, const IndexedBlockTy
             FunctionType functionType = module.types[type.index];
             if (functionType.params().size() > 0 && !module.featureSpec.multipleResultsAndBlockParams) {
                 throw ValidationException("block has params, but \"multivalue\" extension is disabled");
-            } else if (functionType.results().size() > 1
-                       && !module.featureSpec.multipleResultsAndBlockParams) {
-                throw ValidationException(
-                        "block has multiple results, but \"multivalue\" extension is disabled");
+            } else if (functionType.results().size() > 1 && !module.featureSpec.multipleResultsAndBlockParams) {
+                throw ValidationException("block has multiple results, but \"multivalue\" extension is disabled");
             }
             return functionType;
         }
@@ -162,10 +160,7 @@ static FunctionType validateFunctionType(const Module &module, const IndexedFunc
     return functionType;
 }
 
-static void validateInitializer(const Module &module,
-                                const InitializerExpression &expression,
-                                ValueType expectedType,
-                                const char *context) {
+static void validateInitializer(const Module &module, const InitializerExpression &expression, ValueType expectedType, const char *context) {
     switch (expression.type) {
         case InitializerExpression::Type::i32_const:
             validateType(expectedType, ValueType::i32, context);
@@ -183,8 +178,7 @@ static void validateInitializer(const Module &module,
             validateType(expectedType, ValueType::v128, context);
             break;
         case InitializerExpression::Type::get_global: {
-            const ValueType globalValueType = validateGlobalIndex(
-                    module, expression.globalRef, false, true, true, "initializer expression global index");
+            const ValueType globalValueType = validateGlobalIndex(module, expression.globalRef, false, true, true, "initializer expression global index");
             validateType(expectedType, globalValueType, context);
             break;
         }
@@ -197,42 +191,44 @@ static void validateInitializer(const Module &module,
 }
 
 struct FunctionValidationContext {
-    FunctionValidationContext(const Module &inModule,
-                              const FunctionDef &inFunctionDef,
-                              DeferredCodeValidationState &inDeferredCodeValidationState)
+    FunctionValidationContext(const Module &inModule, const FunctionDef &inFunctionDef, DeferredCodeValidationState &inDeferredCodeValidationState)
             : module(inModule), functionDef(inFunctionDef), deferredCodeValidationState(inDeferredCodeValidationState),
               functionType(inModule.types[inFunctionDef.type.index]) {
         // Validate the function's local types.
-        for (auto localType : functionDef.nonParameterLocalTypes) { validate(module.featureSpec, localType); }
+        for (auto localType : functionDef.nonParameterLocalTypes) {
+            validate(module.featureSpec, localType);
+        }
 
         // Initialize the local types.
         locals.reserve(functionType.params().size() + functionDef.nonParameterLocalTypes.size());
         locals.insert(locals.end(), functionType.params().begin(), functionType.params().end());
-        locals.insert(locals.end(),
-                      functionDef.nonParameterLocalTypes.begin(),
-                      functionDef.nonParameterLocalTypes.end());
+        locals.insert(locals.end(), functionDef.nonParameterLocalTypes.begin(), functionDef.nonParameterLocalTypes.end());
 
         // Log the start of the function and its signature+locals.
         if (ENABLE_LOGGING) {
             logOperator("func");
-            for (auto param : functionType.params()) { logOperator(std::string("param ") + asString(param)); }
-            for (auto result : functionType.results()) { logOperator(std::string("result ") + asString(result)); }
+            for (auto param : functionType.params()) {
+                logOperator(std::string("param ") + asString(param));
+            }
+            for (auto result : functionType.results()) {
+                logOperator(std::string("result ") + asString(result));
+            }
             for (auto local : functionDef.nonParameterLocalTypes) {
                 logOperator(std::string("local ") + asString(local));
             }
         }
 
         // Push the function context onto the control stack.
-        pushControlStack(
-                ControlContext::Type::function, functionType.results(), functionType.results());
+        pushControlStack(ControlContext::Type::function, functionType.results(), functionType.results());
     }
 
-    Uptr getControlStackSize() { return controlStack.size(); }
+    Uptr getControlStackSize() {
+        return controlStack.size();
+    }
 
     void validateNonEmptyControlStack(const char *context) {
         if (controlStack.size() == 0) {
-            throw ValidationException(std::string("Expected non-empty control stack in ")
-                                      + context);
+            throw ValidationException(std::string("Expected non-empty control stack in ") + context);
         }
     }
 
@@ -240,7 +236,9 @@ struct FunctionValidationContext {
         if (ENABLE_LOGGING) {
             std::string controlStackString;
             for (Uptr stackIndex = 0; stackIndex < controlStack.size(); ++stackIndex) {
-                if (!controlStack[stackIndex].isReachable) { controlStackString += "("; }
+                if (!controlStack[stackIndex].isReachable) {
+                    controlStackString += "(";
+                }
                 switch (controlStack[stackIndex].type) {
                     case ControlContext::Type::function:
                         controlStackString += "F";
@@ -266,18 +264,23 @@ struct FunctionValidationContext {
                     default:
                         Errors::unreachable();
                 };
-                if (!controlStack[stackIndex].isReachable) { controlStackString += ")"; }
+                if (!controlStack[stackIndex].isReachable) {
+                    controlStackString += ")";
+                }
             }
 
             std::string stackString;
-            const Uptr stackBase
-                    = controlStack.size() == 0 ? 0 : controlStack.back().outerStackSize;
+            const Uptr stackBase = controlStack.size() == 0 ? 0 : controlStack.back().outerStackSize;
             for (Uptr stackIndex = 0; stackIndex < stack.size(); ++stackIndex) {
-                if (stackIndex == stackBase) { stackString += "| "; }
+                if (stackIndex == stackBase) {
+                    stackString += "| ";
+                }
                 stackString += asString(stack[stackIndex]);
                 stackString += " ";
             }
-            if (stack.size() == stackBase) { stackString += "|"; }
+            if (stack.size() == stackBase) {
+                stackString += "|";
+            }
 
             std::cout << "%-50s %-50s %-50s\n" << controlStackString.c_str() << operatorDescription.c_str()
                       << stackString.c_str();
@@ -308,8 +311,7 @@ struct FunctionValidationContext {
         const FunctionType type = validateBlockType(module, imm.type);
         popAndValidateOperand("if condition", ValueType::i32);
         popAndValidateTypeTuple("if arguments", type.params());
-        pushControlStack(
-                ControlContext::Type::ifThen, type.results(), type.results(), type.params());
+        pushControlStack(ControlContext::Type::ifThen, type.results(), type.results(), type.params());
         pushOperandTuple(type.params());
     }
 
@@ -337,8 +339,7 @@ struct FunctionValidationContext {
         }
 
         TypeTuple results = controlStack.back().results;
-        if (controlStack.back().type == ControlContext::Type::ifThen
-            && results != controlStack.back().elseParams) {
+        if (controlStack.back().type == ControlContext::Type::ifThen && results != controlStack.back().elseParams) {
             throw ValidationException("else-less if must have identity signature");
         }
 
@@ -346,7 +347,9 @@ struct FunctionValidationContext {
         validateStackEmptyAtEndOfControlStructure();
 
         controlStack.pop_back();
-        if (controlStack.size()) { pushOperandTuple(results); }
+        if (controlStack.size()) {
+            pushOperandTuple(results);
+        }
     }
 
     void try_(ControlStructureImm imm) {
@@ -363,8 +366,8 @@ struct FunctionValidationContext {
         popAndValidateTypeTuple("try result", controlStack.back().results);
         validateStackEmptyAtEndOfControlStructure();
 
-        if (controlStack.back().type == ControlContext::Type::try_
-            || controlStack.back().type == ControlContext::Type::catch_) {
+        if (controlStack.back().type == ControlContext::Type::try_ ||
+            controlStack.back().type == ControlContext::Type::catch_) {
             controlStack.back().type = ControlContext::Type::catch_;
             controlStack.back().isReachable = true;
         } else {
@@ -377,7 +380,9 @@ struct FunctionValidationContext {
         VALIDATE_INDEX(imm.exceptionTypeIndex, module.exceptionTypes.size());
         ExceptionType type = module.exceptionTypes.getType(imm.exceptionTypeIndex);
         validateCatch();
-        for (auto param : type.params) { pushOperand(param); }
+        for (auto param : type.params) {
+            pushOperand(param);
+        }
     }
 
     void catch_all(NoImm) {
@@ -405,20 +410,19 @@ struct FunctionValidationContext {
         const Uptr numTargetParams = defaultTargetParams.size();
         ValueType *targetParamMeets = new(alloca(sizeof(ValueType) * defaultTargetParams.size()))
                 ValueType[numTargetParams];
-        for (Uptr elementIndex = 0; elementIndex <
-                                    numTargetParams; ++elementIndex) { targetParamMeets[elementIndex] = defaultTargetParams[elementIndex]; }
+        for (Uptr elementIndex = 0; elementIndex < numTargetParams; ++elementIndex) {
+            targetParamMeets[elementIndex] = defaultTargetParams[elementIndex];
+        }
 
         wavmAssert(imm.branchTableIndex < functionDef.branchTables.size());
         const std::vector<Uptr> &targetDepths = functionDef.branchTables[imm.branchTableIndex];
         for (Uptr targetIndex = 0; targetIndex < targetDepths.size(); ++targetIndex) {
             const TypeTuple targetParams = getBranchTargetByDepth(targetDepths[targetIndex]).params;
             if (targetParams.size() != numTargetParams) {
-                throw ValidationException(
-                        "br_table targets must all take the same number of parameters");
+                throw ValidationException("br_table targets must all take the same number of parameters");
             } else {
                 for (Uptr elementIndex = 0; elementIndex < numTargetParams; ++elementIndex) {
-                    targetParamMeets[elementIndex]
-                            = meet(targetParamMeets[elementIndex], targetParams[elementIndex]);
+                    targetParamMeets[elementIndex] = meet(targetParamMeets[elementIndex], targetParams[elementIndex]);
                 }
             }
         }
@@ -433,8 +437,7 @@ struct FunctionValidationContext {
         }
 
         // Validate that the br_table's arguments match the meet of the target's parameters.
-        popAndValidateOperands(
-                "br_table argument", (const ValueType *) targetParamMeets, numTargetParams);
+        popAndValidateOperands("br_table argument", (const ValueType *) targetParamMeets, numTargetParams);
 
         enterUnreachable();
     }
@@ -446,16 +449,21 @@ struct FunctionValidationContext {
         pushOperandTuple(targetParams);
     }
 
-    void unreachable(NoImm) { enterUnreachable(); }
+    void unreachable(NoImm) {
+        enterUnreachable();
+    }
 
-    void drop(NoImm) { popAndValidateOperand("drop", ValueType::any); }
+    void drop(NoImm) {
+        popAndValidateOperand("drop", ValueType::any);
+    }
 
     void select(NoImm) {
         popAndValidateOperand("select condition", ValueType::i32);
         const ValueType falseType = popAndValidateOperand("select false value", ValueType::any);
         const ValueType trueType = popAndValidateOperand("select true value", ValueType::any);
-        if (falseType == ValueType::any) { pushOperand(trueType); }
-        else if (trueType == ValueType::any) {
+        if (falseType == ValueType::any) {
+            pushOperand(trueType);
+        } else if (trueType == ValueType::any) {
             pushOperand(falseType);
         } else {
             const ValueType resultType = join(falseType, trueType);
@@ -481,14 +489,11 @@ struct FunctionValidationContext {
     }
 
     void get_global(GetOrSetVariableImm<true> imm) {
-        pushOperand(
-                validateGlobalIndex(module, imm.variableIndex, false, false, false, "get_global"));
+        pushOperand(validateGlobalIndex(module, imm.variableIndex, false, false, false, "get_global"));
     }
 
     void set_global(GetOrSetVariableImm<true> imm) {
-        popAndValidateOperand(
-                "set_global",
-                validateGlobalIndex(module, imm.variableIndex, true, false, false, "set_global"));
+        popAndValidateOperand("set_global", validateGlobalIndex(module, imm.variableIndex, true, false, false, "set_global"));
     }
 
     void table_get(TableImm imm) {
@@ -514,9 +519,8 @@ struct FunctionValidationContext {
 
     void rethrow(RethrowImm imm) {
         VALIDATE_FEATURE("rethrow", exceptionHandling);
-        VALIDATE_UNLESS(
-                "rethrow must target a catch: ",
-                getBranchTargetByDepth(imm.catchDepth).type != ControlContext::Type::catch_);
+        VALIDATE_UNLESS("rethrow must target a catch: ",
+                        getBranchTargetByDepth(imm.catchDepth).type != ControlContext::Type::catch_);
         enterUnreachable();
     }
 
@@ -528,54 +532,52 @@ struct FunctionValidationContext {
 
     void call_indirect(CallIndirectImm imm) {
         VALIDATE_INDEX(imm.tableIndex, module.tables.size());
-        VALIDATE_UNLESS(
-                "call_indirect requires a table element type of anyfunc: ",
-                module.tables.getType(imm.tableIndex).elementType != ReferenceType::anyfunc);
+        VALIDATE_UNLESS("call_indirect requires a table element type of anyfunc: ",
+                        module.tables.getType(imm.tableIndex).elementType != ReferenceType::anyfunc);
         FunctionType calleeType = validateFunctionType(module, imm.type);
         popAndValidateOperand("call_indirect function index", ValueType::i32);
         popAndValidateTypeTuple("call_indirect arguments", calleeType.params());
         pushOperandTuple(calleeType.results());
     }
 
-    void validateImm(NoImm) {}
-
-    template<typename nativeType>
-    void validateImm(LiteralImm<nativeType> imm) {}
-
-    template<Uptr naturalAlignmentLog2>
-    void validateImm(LoadOrStoreImm<naturalAlignmentLog2> imm) {
-        VALIDATE_UNLESS("load or store alignment greater than natural alignment: ",
-                        imm.alignmentLog2 > naturalAlignmentLog2);
-        VALIDATE_UNLESS("load or store in module without default memory: ",
-                        module.memories.size() == 0);
+    void validateImm(NoImm) {
     }
 
-    void validateImm(MemoryImm imm) { VALIDATE_INDEX(imm.memoryIndex, module.memories.size()); }
+    template<typename nativeType> void validateImm(LiteralImm<nativeType> imm) {
+    }
 
-    void validateImm(TableImm imm) { VALIDATE_INDEX(imm.tableIndex, module.tables.size()); }
+    template<Uptr naturalAlignmentLog2> void validateImm(LoadOrStoreImm<naturalAlignmentLog2> imm) {
+        VALIDATE_UNLESS("load or store alignment greater than natural alignment: ",
+                        imm.alignmentLog2 > naturalAlignmentLog2);
+        VALIDATE_UNLESS("load or store in module without default memory: ", module.memories.size() == 0);
+    }
 
-    void validateImm(FunctionImm imm) { validateFunctionIndex(module, imm.functionIndex); }
+    void validateImm(MemoryImm imm) {
+        VALIDATE_INDEX(imm.memoryIndex, module.memories.size());
+    }
 
-    template<Uptr numLanes>
-    void validateImm(LaneIndexImm<numLanes> imm) {
+    void validateImm(TableImm imm) {
+        VALIDATE_INDEX(imm.tableIndex, module.tables.size());
+    }
+
+    void validateImm(FunctionImm imm) {
+        validateFunctionIndex(module, imm.functionIndex);
+    }
+
+    template<Uptr numLanes> void validateImm(LaneIndexImm<numLanes> imm) {
         VALIDATE_UNLESS("swizzle invalid lane index: ", imm.laneIndex >= numLanes);
     }
 
-    template<Uptr numLanes>
-    void validateImm(ShuffleImm<numLanes> imm) {
+    template<Uptr numLanes> void validateImm(ShuffleImm<numLanes> imm) {
         for (Uptr laneIndex = 0; laneIndex < numLanes; ++laneIndex) {
-            VALIDATE_UNLESS("shuffle invalid lane index: ",
-                            imm.laneIndices[laneIndex] >= numLanes * 2);
+            VALIDATE_UNLESS("shuffle invalid lane index: ", imm.laneIndices[laneIndex] >= numLanes * 2);
         }
     }
 
-    template<Uptr naturalAlignmentLog2>
-    void validateImm(AtomicLoadOrStoreImm<naturalAlignmentLog2> imm) {
-        VALIDATE_UNLESS("atomic memory operator in module without default memory: ",
-                        module.memories.size() == 0);
+    template<Uptr naturalAlignmentLog2> void validateImm(AtomicLoadOrStoreImm<naturalAlignmentLog2> imm) {
+        VALIDATE_UNLESS("atomic memory operator in module without default memory: ", module.memories.size() == 0);
         if (module.featureSpec.requireSharedFlagForAtomicOperators) {
-            VALIDATE_UNLESS("atomic memory operators require a memory with the shared flag: ",
-                            !module.memories.getType(0).isShared);
+            VALIDATE_UNLESS("atomic memory operators require a memory with the shared flag: ", !module.memories.getType(0).isShared);
         }
         VALIDATE_UNLESS("atomic memory operators must have natural alignment: ",
                         imm.alignmentLog2 != naturalAlignmentLog2);
@@ -585,14 +587,14 @@ struct FunctionValidationContext {
         VALIDATE_INDEX(imm.memoryIndex, module.memories.size());
 
         // Defer the validation of the data segment index until the data section is deserialized.
-        deferredCodeValidationState.requiredNumDataSegments = std::max(
-                deferredCodeValidationState.requiredNumDataSegments, imm.dataSegmentIndex + 1);
+        deferredCodeValidationState.requiredNumDataSegments = std::max(deferredCodeValidationState.requiredNumDataSegments,
+                                                                       imm.dataSegmentIndex + 1);
     }
 
     void validateImm(DataSegmentImm imm) {
         // Defer the validation of the data segment index until the data section is deserialized.
-        deferredCodeValidationState.requiredNumDataSegments = std::max(
-                deferredCodeValidationState.requiredNumDataSegments, imm.dataSegmentIndex + 1);
+        deferredCodeValidationState.requiredNumDataSegments = std::max(deferredCodeValidationState.requiredNumDataSegments,
+                                                                       imm.dataSegmentIndex + 1);
     }
 
     void validateImm(ElemSegmentAndTableImm imm) {
@@ -622,13 +624,7 @@ struct FunctionValidationContext {
 private:
     struct ControlContext {
         enum class Type : U8 {
-            function,
-            block,
-            ifThen,
-            ifElse,
-            loop,
-            try_,
-            catch_
+            function, block, ifThen, ifElse, loop, try_, catch_
         };
 
         Type type;
@@ -650,10 +646,7 @@ private:
     std::vector<ControlContext> controlStack;
     std::vector<ValueType> stack;
 
-    void pushControlStack(ControlContext::Type type,
-                          TypeTuple params,
-                          TypeTuple results,
-                          TypeTuple elseParams = TypeTuple()) {
+    void pushControlStack(ControlContext::Type type, TypeTuple params, TypeTuple results, TypeTuple elseParams = TypeTuple()) {
         controlStack.push_back({type, stack.size(), params, results, true, elseParams});
     }
 
@@ -662,9 +655,10 @@ private:
 
         if (stack.size() != controlStack.back().outerStackSize) {
             std::string message = "stack was not empty at end of control structure: ";
-            for (Uptr stackIndex = controlStack.back().outerStackSize; stackIndex < stack.size();
-                 ++stackIndex) {
-                if (stackIndex != controlStack.back().outerStackSize) { message += ", "; }
+            for (Uptr stackIndex = controlStack.back().outerStackSize; stackIndex < stack.size(); ++stackIndex) {
+                if (stackIndex != controlStack.back().outerStackSize) {
+                    message += ", ";
+                }
                 message += asString(stack[stackIndex]);
             }
             throw ValidationException(std::move(message));
@@ -680,7 +674,9 @@ private:
 
     void validateBranchDepth(Uptr depth) const {
         VALIDATE_INDEX(depth, controlStack.size());
-        if (depth >= controlStack.size()) { throw ValidationException("invalid branch depth"); }
+        if (depth >= controlStack.size()) {
+            throw ValidationException("invalid branch depth");
+        }
     }
 
     const ControlContext &getBranchTargetByDepth(Uptr depth) const {
@@ -700,13 +696,11 @@ private:
         }
     }
 
-    template<Uptr num>
-    void popAndValidateOperands(const char *context, const ValueType (&expectedTypes)[num]) {
+    template<Uptr num> void popAndValidateOperands(const char *context, const ValueType (&expectedTypes)[num]) {
         popAndValidateOperands(context, expectedTypes, num);
     }
 
-    template<typename... OperandTypes>
-    void popAndValidateOperands(const char *context, OperandTypes... operands) {
+    template<typename... OperandTypes> void popAndValidateOperands(const char *context, OperandTypes... operands) {
         ValueType operandTypes[] = {operands...};
         popAndValidateOperands(context, operandTypes);
     }
@@ -725,15 +719,14 @@ private:
         } else {
             // If the current instruction is reachable, but the operand stack is empty, then throw a
             // validation exception.
-            throw ValidationException(std::string("type mismatch: expected ")
-                                      + asString(expectedType) + " but stack was empty" + " in "
-                                      + context + " operand");
+            throw ValidationException(
+                    std::string("type mismatch: expected ") + asString(expectedType) + " but stack was empty" + " in " +
+                    context + " operand");
         }
 
         if (actualType != ValueType::any && !isSubtype(actualType, expectedType)) {
-            throw ValidationException(std::string("type mismatch: expected ")
-                                      + asString(expectedType) + " but got " + asString(actualType)
-                                      + " in " + context + " operand");
+            throw ValidationException(std::string("type mismatch: expected ") + asString(expectedType) + " but got " +
+                                      asString(actualType) + " in " + context + " operand");
         }
 
         return actualType;
@@ -743,10 +736,14 @@ private:
         popAndValidateOperands(context, expectedType.data(), expectedType.size());
     }
 
-    void pushOperand(ValueType type) { stack.push_back(type); }
+    void pushOperand(ValueType type) {
+        stack.push_back(type);
+    }
 
     void pushOperandTuple(TypeTuple typeTuple) {
-        for (ValueType type : typeTuple) { pushOperand(type); }
+        for (ValueType type : typeTuple) {
+            pushOperand(type);
+        }
     }
 };
 
@@ -762,17 +759,22 @@ void IR::validateTypes(const Module &module) {
         validate(module.featureSpec, functionType.results());
 
         if (functionType.results().size() > 1 && !module.featureSpec.multipleResultsAndBlockParams) {
-            throw ValidationException(
-                    "function/block has multiple return values, but \"multivalue\" extension is "
-                    "disabled");
+            throw ValidationException("function/block has multiple return values, but \"multivalue\" extension is "
+                                      "disabled");
         }
     }
 }
 
 void IR::validateImports(const Module &module) {
-    for (auto &functionImport : module.functions.imports) { validateFunctionType(module, functionImport.type); }
-    for (auto &tableImport : module.tables.imports) { validate(module, tableImport.type); }
-    for (auto &memoryImport : module.memories.imports) { validate(module, memoryImport.type); }
+    for (auto &functionImport : module.functions.imports) {
+        validateFunctionType(module, functionImport.type);
+    }
+    for (auto &tableImport : module.tables.imports) {
+        validate(module, tableImport.type);
+    }
+    for (auto &memoryImport : module.memories.imports) {
+        validate(module, memoryImport.type);
+    }
     for (auto &globalImport : module.globals.imports) {
         validate(module.featureSpec, globalImport.type);
         if (!module.featureSpec.importExportMutableGlobals) {
@@ -783,14 +785,12 @@ void IR::validateImports(const Module &module) {
         validate(module.featureSpec, exceptionTypeImport.type.params);
     }
 
-    VALIDATE_UNLESS("too many tables: ",
-                    !module.featureSpec.referenceTypes && module.tables.size() > 1);
+    VALIDATE_UNLESS("too many tables: ", !module.featureSpec.referenceTypes && module.tables.size() > 1);
     VALIDATE_UNLESS("too many memories: ", module.memories.size() > 1);
 }
 
 void IR::validateFunctionDeclarations(const Module &module) {
-    for (Uptr functionDefIndex = 0; functionDefIndex < module.functions.defs.size();
-         ++functionDefIndex) {
+    for (Uptr functionDefIndex = 0; functionDefIndex < module.functions.defs.size(); ++functionDefIndex) {
         const FunctionDef &functionDef = module.functions.defs[functionDefIndex];
         validateFunctionType(module, functionDef.type);
     }
@@ -799,10 +799,7 @@ void IR::validateFunctionDeclarations(const Module &module) {
 void IR::validateGlobalDefs(const Module &module) {
     for (auto &globalDef : module.globals.defs) {
         validate(module.featureSpec, globalDef.type);
-        validateInitializer(module,
-                            globalDef.initializer,
-                            globalDef.type.valueType,
-                            "global initializer expression");
+        validateInitializer(module, globalDef.initializer, globalDef.type.valueType, "global initializer expression");
     }
 }
 
@@ -813,13 +810,16 @@ void IR::validateExceptionTypeDefs(const Module &module) {
 }
 
 void IR::validateTableDefs(const Module &module) {
-    for (auto &tableDef : module.tables.defs) { validate(module, tableDef.type); }
-    VALIDATE_UNLESS("too many tables: ",
-                    !module.featureSpec.referenceTypes && module.tables.size() > 1);
+    for (auto &tableDef : module.tables.defs) {
+        validate(module, tableDef.type);
+    }
+    VALIDATE_UNLESS("too many tables: ", !module.featureSpec.referenceTypes && module.tables.size() > 1);
 }
 
 void IR::validateMemoryDefs(const Module &module) {
-    for (auto &memoryDef : module.memories.defs) { validate(module, memoryDef.type); }
+    for (auto &memoryDef : module.memories.defs) {
+        validate(module, memoryDef.type);
+    }
     VALIDATE_UNLESS("too many memories: ", module.memories.size() > 1);
 }
 
@@ -837,12 +837,7 @@ void IR::validateExports(const Module &module) {
                 VALIDATE_INDEX(exportIt.index, module.memories.size());
                 break;
             case ExternKind::global:
-                validateGlobalIndex(module,
-                                    exportIt.index,
-                                    false,
-                                    !module.featureSpec.importExportMutableGlobals,
-                                    false,
-                                    "exported global index");
+                validateGlobalIndex(module, exportIt.index, false, !module.featureSpec.importExportMutableGlobals, false, "exported global index");
                 break;
             case ExternKind::exceptionType:
                 VALIDATE_INDEX(exportIt.index, module.exceptionTypes.size());
@@ -859,8 +854,7 @@ void IR::validateExports(const Module &module) {
 void IR::validateStartFunction(const Module &module) {
     if (module.startFunctionIndex != UINTPTR_MAX) {
         VALIDATE_INDEX(module.startFunctionIndex, module.functions.size());
-        FunctionType startFunctionType
-                = module.types[module.functions.getType(module.startFunctionIndex).index];
+        FunctionType startFunctionType = module.types[module.functions.getType(module.startFunctionIndex).index];
         VALIDATE_UNLESS("start function must not have any parameters or results: ",
                         startFunctionType != FunctionType());
     }
@@ -873,15 +867,15 @@ void IR::validateElemSegments(const Module &module) {
             const TableType &tableType = module.tables.getType(elemSegment.tableIndex);
             VALIDATE_UNLESS("active elem segments must be in anyfunc tables: ",
                             tableType.elementType != ReferenceType::anyfunc);
-            validateInitializer(
-                    module, elemSegment.baseOffset, ValueType::i32, "elem segment base initializer");
+            validateInitializer(module, elemSegment.baseOffset, ValueType::i32, "elem segment base initializer");
         }
-        for (auto functionIndex : elemSegment.indices) { VALIDATE_INDEX(functionIndex, module.functions.size()); }
+        for (auto functionIndex : elemSegment.indices) {
+            VALIDATE_INDEX(functionIndex, module.functions.size());
+        }
     }
 }
 
-void IR::validateDataSegments(const Module &module,
-                              const DeferredCodeValidationState &deferredCodeValidationState) {
+void IR::validateDataSegments(const Module &module, const DeferredCodeValidationState &deferredCodeValidationState) {
     if (deferredCodeValidationState.requiredNumDataSegments > module.dataSegments.size()) {
         throw ValidationException("invalid data segment index in operator immediate");
     }
@@ -889,8 +883,7 @@ void IR::validateDataSegments(const Module &module,
     for (auto &dataSegment : module.dataSegments) {
         if (dataSegment.isActive) {
             VALIDATE_INDEX(dataSegment.memoryIndex, module.memories.size());
-            validateInitializer(
-                    module, dataSegment.baseOffset, ValueType::i32, "data segment base initializer");
+            validateInitializer(module, dataSegment.baseOffset, ValueType::i32, "data segment base initializer");
         }
     }
 }
@@ -901,9 +894,7 @@ namespace WAVM {
             FunctionValidationContext functionContext;
             OperatorPrinter operatorPrinter;
 
-            CodeValidationStreamImpl(const Module &module,
-                                     const FunctionDef &functionDef,
-                                     DeferredCodeValidationState &deferredCodeValidationState)
+            CodeValidationStreamImpl(const Module &module, const FunctionDef &functionDef, DeferredCodeValidationState &deferredCodeValidationState)
                     : functionContext(module, functionDef, deferredCodeValidationState),
                       operatorPrinter(module, functionDef) {
             }
@@ -911,10 +902,7 @@ namespace WAVM {
     }
 }
 
-IR::CodeValidationStream::CodeValidationStream(
-        const Module &module,
-        const FunctionDef &functionDef,
-        DeferredCodeValidationState &deferredCodeValidationState) {
+IR::CodeValidationStream::CodeValidationStream(const Module &module, const FunctionDef &functionDef, DeferredCodeValidationState &deferredCodeValidationState) {
     impl = new CodeValidationStreamImpl(module, functionDef, deferredCodeValidationState);
 }
 

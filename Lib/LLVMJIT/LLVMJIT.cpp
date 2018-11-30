@@ -28,9 +28,7 @@ static HashMap<std::string, const char *> runtimeSymbolMap = {
 {"__alldiv", "_alldiv"},
 #endif
 #else
-        {"__CxxFrameHandler3", "__CxxFrameHandler3"},
-        {"__cxa_begin_catch", "__cxa_begin_catch"},
-        {"__gxx_personality_v0", "__gxx_personality_v0"},
+        {"__CxxFrameHandler3", "__CxxFrameHandler3"}, {"__cxa_begin_catch", "__cxa_begin_catch"}, {"__gxx_personality_v0", "__gxx_personality_v0"},
 #endif
 #ifdef __arm__
 {"__aeabi_uidiv", "__aeabi_uidiv"},
@@ -46,12 +44,13 @@ static HashMap<std::string, const char *> runtimeSymbolMap = {
 llvm::JITEvaluatedSymbol LLVMJIT::resolveJITImport(llvm::StringRef name) {
     // Allow some intrinsics used by LLVM
     const char *const *runtimeSymbolName = runtimeSymbolMap.get(name.str());
-    if (!runtimeSymbolName) { return llvm::JITEvaluatedSymbol(nullptr); }
+    if (!runtimeSymbolName) {
+        return llvm::JITEvaluatedSymbol(nullptr);
+    }
 
     void *addr = llvm::sys::DynamicLibrary::SearchForAddressOfSymbol(*runtimeSymbolName);
     if (!addr) {
-        Errors::fatalf("LLVM generated code references undefined external symbol: %s",
-                       *runtimeSymbolName);
+        Errors::fatalf("LLVM generated code references undefined external symbol: %s", *runtimeSymbolName);
     }
     return llvm::JITEvaluatedSymbol(reinterpret_cast<Uptr>(addr), llvm::JITSymbolFlags::None);
 }
@@ -87,17 +86,14 @@ LLVMContext::LLVMContext() {
             Errors::unreachable();
     }
 
-    auto llvmExceptionRecordStructType = llvm::StructType::create({
-                                                                          i32Type,   // DWORD ExceptionCode
-                                                                          i32Type,   // DWORD ExceptionFlags
-                                                                          i8PtrType, // _EXCEPTION_RECORD* ExceptionRecord
-                                                                          i8PtrType, // PVOID ExceptionAddress
-                                                                          i32Type,   // DWORD NumParameters
-                                                                          llvm::ArrayType::get(i64Type,
-                                                                                               15) // ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS]
+    auto llvmExceptionRecordStructType = llvm::StructType::create({i32Type,   // DWORD ExceptionCode
+                                                                   i32Type,   // DWORD ExceptionFlags
+                                                                   i8PtrType, // _EXCEPTION_RECORD* ExceptionRecord
+                                                                   i8PtrType, // PVOID ExceptionAddress
+                                                                   i32Type,   // DWORD NumParameters
+                                                                   llvm::ArrayType::get(i64Type, 15) // ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS]
                                                                   });
-    exceptionPointersStructType
-            = llvm::StructType::create({llvmExceptionRecordStructType->getPointerTo(), i8PtrType});
+    exceptionPointersStructType = llvm::StructType::create({llvmExceptionRecordStructType->getPointerTo(), i8PtrType});
 
     anyrefType = llvm::StructType::create("Object", i8Type)->getPointerTo();
 
@@ -108,8 +104,7 @@ LLVMContext::LLVMContext() {
     f32x4Type = llvm::VectorType::get(f32Type, 4);
     f64x2Type = llvm::VectorType::get(f64Type, 2);
 
-    valueTypes[(Uptr) ValueType::none] = valueTypes[(Uptr) ValueType::any]
-            = valueTypes[(Uptr) ValueType::nullref] = nullptr;
+    valueTypes[(Uptr) ValueType::none] = valueTypes[(Uptr) ValueType::any] = valueTypes[(Uptr) ValueType::nullref] = nullptr;
     valueTypes[(Uptr) ValueType::i32] = i32Type;
     valueTypes[(Uptr) ValueType::i64] = i64Type;
     valueTypes[(Uptr) ValueType::f32] = f32Type;
@@ -126,6 +121,5 @@ LLVMContext::LLVMContext() {
     typedZeroConstants[(Uptr) ValueType::f32] = emitLiteral(*this, (F32) 0.0f);
     typedZeroConstants[(Uptr) ValueType::f64] = emitLiteral(*this, (F64) 0.0);
     typedZeroConstants[(Uptr) ValueType::v128] = emitLiteral(*this, V128());
-    typedZeroConstants[(Uptr) ValueType::anyref] = typedZeroConstants[(Uptr) ValueType::anyfunc]
-            = typedZeroConstants[(Uptr) ValueType::nullref] = llvm::Constant::getNullValue(anyrefType);
+    typedZeroConstants[(Uptr) ValueType::anyref] = typedZeroConstants[(Uptr) ValueType::anyfunc] = typedZeroConstants[(Uptr) ValueType::nullref] = llvm::Constant::getNullValue(anyrefType);
 }

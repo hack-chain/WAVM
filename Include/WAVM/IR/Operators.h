@@ -41,13 +41,11 @@ namespace WAVM {
             Uptr branchTableIndex;
         };
 
-        template<typename Value>
-        struct LiteralImm {
+        template<typename Value> struct LiteralImm {
             Value value;
         };
 
-        template<bool isGlobal>
-        struct GetOrSetVariableImm {
+        template<bool isGlobal> struct GetOrSetVariableImm {
             Uptr variableIndex;
         };
 
@@ -60,24 +58,20 @@ namespace WAVM {
             Uptr tableIndex;
         };
 
-        template<Uptr naturalAlignmentLog2>
-        struct LoadOrStoreImm {
+        template<Uptr naturalAlignmentLog2> struct LoadOrStoreImm {
             U8 alignmentLog2;
             U32 offset;
         };
 
-        template<Uptr numLanes>
-        struct LaneIndexImm {
+        template<Uptr numLanes> struct LaneIndexImm {
             U8 laneIndex;
         };
 
-        template<Uptr numLanes>
-        struct ShuffleImm {
+        template<Uptr numLanes> struct ShuffleImm {
             U8 laneIndices[numLanes];
         };
 
-        template<Uptr naturalAlignmentLog2>
-        struct AtomicLoadOrStoreImm {
+        template<Uptr naturalAlignmentLog2> struct AtomicLoadOrStoreImm {
             U8 alignmentLog2;
             U32 offset;
         };
@@ -112,19 +106,16 @@ namespace WAVM {
             ENUM_OPERATORS(VISIT_OPCODE)
 #undef VISIT_OPCODE
 
-            maxSingleByteOpcode
-            = 0xdf,
+            maxSingleByteOpcode = 0xdf,
         };
 
-        PACKED_STRUCT(template<typename Imm>
-                      struct OpcodeAndImm {
-                          Opcode opcode;
-                          Imm imm;
-                      });
+        PACKED_STRUCT(template<typename Imm> struct OpcodeAndImm {
+            Opcode opcode;
+            Imm imm;
+        });
 
         // Specialize for the empty immediate struct so they don't take an extra byte of space.
-        template<>
-        struct OpcodeAndImm<NoImm> {
+        template<> struct OpcodeAndImm<NoImm> {
             union {
                 Opcode opcode;
                 NoImm imm;
@@ -137,10 +128,11 @@ namespace WAVM {
                     : nextByte(codeBytes.data()), end(codeBytes.data() + codeBytes.size()) {
             }
 
-            operator bool() const { return nextByte < end; }
+            operator bool() const {
+                return nextByte < end;
+            }
 
-            template<typename Visitor>
-            typename Visitor::Result decodeOp(Visitor &visitor) {
+            template<typename Visitor> typename Visitor::Result decodeOp(Visitor &visitor) {
                 wavmAssert(nextByte + sizeof(Opcode) <= end);
                 Opcode opcode;
                 memcpy(&opcode, nextByte, sizeof(Opcode));
@@ -162,8 +154,7 @@ namespace WAVM {
                 }
             }
 
-            template<typename Visitor>
-            typename Visitor::Result decodeOpWithoutConsume(Visitor &visitor) {
+            template<typename Visitor> typename Visitor::Result decodeOpWithoutConsume(Visitor &visitor) {
                 const U8 *savedNextByte = nextByte;
                 typename Visitor::Result result = decodeOp(visitor);
                 nextByte = savedNextByte;

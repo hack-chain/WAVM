@@ -42,23 +42,25 @@ static Uptr printedModuleId = 0;
 
 static void printModule(const llvm::Module &llvmModule, const char *filename) {
     std::error_code errorCode;
-    std::string augmentedFilename
-            = std::string(filename) + std::to_string(printedModuleId++) + ".ll";
-    llvm::raw_fd_ostream dumpFileStream(
-            augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_Text);
+    std::string augmentedFilename = std::string(filename) + std::to_string(printedModuleId++) + ".ll";
+    llvm::raw_fd_ostream dumpFileStream(augmentedFilename, errorCode, llvm::sys::fs::OpenFlags::F_Text);
     llvmModule.print(dumpFileStream, nullptr);
     std::cout << "Dumped LLVM module to: %s\n", augmentedFilename.c_str();
 }
 
 // Define a LLVM raw output stream that can write directly to a std::vector.
 struct LLVMArrayOutputStream : llvm::raw_pwrite_stream {
-    LLVMArrayOutputStream() { SetUnbuffered(); }
+    LLVMArrayOutputStream() {
+        SetUnbuffered();
+    }
 
     ~LLVMArrayOutputStream() override = default;
 
     void flush() = delete;
 
-    std::vector<U8> &&getOutput() { return std::move(output); }
+    std::vector<U8> &&getOutput() {
+        return std::move(output);
+    }
 
 protected:
     virtual void write_impl(const char *data, size_t numBytes) override {
@@ -72,7 +74,9 @@ protected:
         memcpy(output.data() + offset, data, numBytes);
     }
 
-    virtual U64 current_pos() const override { return output.size(); }
+    virtual U64 current_pos() const override {
+        return output.size();
+    }
 
 private:
     std::vector<U8> output;
@@ -86,23 +90,19 @@ static void optimizeLLVMModule(llvm::Module &llvmModule, bool shouldLogMetrics) 
     fpm.add(llvm::createJumpThreadingPass());
     fpm.add(llvm::createConstantPropagationPass());
     fpm.doInitialization();
-    for (auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt) { fpm.run(*functionIt); }
+    for (auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt) {
+        fpm.run(*functionIt);
+    }
 }
 
-std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext &llvmContext,
-                                           llvm::Module &&llvmModule,
-                                           bool shouldLogMetrics) {
+std::vector<U8> LLVMJIT::compileLLVMModule(LLVMContext &llvmContext, llvm::Module &&llvmModule, bool shouldLogMetrics) {
     auto targetTriple = llvm::sys::getProcessTriple();
 #ifdef __APPLE__
     // Didn't figure out exactly why, but this works around a problem with the MacOS dynamic loader.
     // Without it, our symbols can't be found in the JITed object file.
     targetTriple += "-elf";
 #endif
-    std::unique_ptr<llvm::TargetMachine> targetMachine(llvm::EngineBuilder().selectTarget(
-            llvm::Triple(targetTriple),
-            "",
-            llvm::sys::getHostCPUName(),
-            llvm::SmallVector<std::string, 0>{LLVM_TARGET_ATTRIBUTES}));
+    std::unique_ptr<llvm::TargetMachine> targetMachine(llvm::EngineBuilder().selectTarget(llvm::Triple(targetTriple), "", llvm::sys::getHostCPUName(), llvm::SmallVector<std::string, 0>{LLVM_TARGET_ATTRIBUTES}));
 
     // Get a target machine object for this host, and set the module to use its data layout.
     llvmModule.setDataLayout(targetMachine->createDataLayout());

@@ -24,8 +24,7 @@ static Uptr getNumPlatformPages(Uptr numBytes) {
 
 static Function *makeDummyFunction(const char *debugName) {
     FunctionMutableData *functionMutableData = new FunctionMutableData(debugName);
-    Function *function
-            = new Function(functionMutableData, UINTPTR_MAX, IR::FunctionType::Encoding{0});
+    Function *function = new Function(functionMutableData, UINTPTR_MAX, IR::FunctionType::Encoding{0});
     functionMutableData->function = function;
     return function;
 }
@@ -58,8 +57,7 @@ static Table *createTableImpl(Compartment *compartment, IR::TableType type, std:
     const U64 tableMaxBytes = sizeof(Table::Element) * tableMaxElements;
     const U64 tableMaxPages = tableMaxBytes >> pageBytesLog2;
 
-    table->elements
-            = (Table::Element *) Platform::allocateVirtualPages(tableMaxPages + numGuardPages);
+    table->elements = (Table::Element *) Platform::allocateVirtualPages(tableMaxPages + numGuardPages);
     table->numReservedBytes = tableMaxBytes;
     table->numReservedElements = tableMaxElements;
     if (!table->elements) {
@@ -76,34 +74,34 @@ static Table *createTableImpl(Compartment *compartment, IR::TableType type, std:
 }
 
 static Iptr growTableImpl(Table *table, Uptr numElementsToGrow, bool initializeNewElements) {
-    if (!numElementsToGrow) { return table->numElements.load(std::memory_order_acquire); }
+    if (!numElementsToGrow) {
+        return table->numElements.load(std::memory_order_acquire);
+    }
 
     Lock<Platform::Mutex> resizingLock(table->resizingMutex);
 
     const Uptr previousNumElements = table->numElements.load(std::memory_order_acquire);
 
     // If the growth would cause the table's size to exceed its maximum, return -1.
-    if (numElementsToGrow > table->type.size.max
-        || previousNumElements > table->type.size.max - numElementsToGrow
-        || numElementsToGrow > IR::maxTableElems
-        || previousNumElements > IR::maxTableElems - numElementsToGrow) { return -1; }
+    if (numElementsToGrow > table->type.size.max || previousNumElements > table->type.size.max - numElementsToGrow ||
+        numElementsToGrow > IR::maxTableElems || previousNumElements > IR::maxTableElems - numElementsToGrow) {
+        return -1;
+    }
 
     // Try to commit pages for the new elements, and return -1 if the commit fails.
     const Uptr newNumElements = previousNumElements + numElementsToGrow;
-    const Uptr previousNumPlatformPages
-            = getNumPlatformPages(previousNumElements * sizeof(Table::Element));
+    const Uptr previousNumPlatformPages = getNumPlatformPages(previousNumElements * sizeof(Table::Element));
     const Uptr newNumPlatformPages = getNumPlatformPages(newNumElements * sizeof(Table::Element));
-    if (newNumPlatformPages != previousNumPlatformPages
-        && !Platform::commitVirtualPages(
+    if (newNumPlatformPages != previousNumPlatformPages && !Platform::commitVirtualPages(
             (U8 *) table->elements + (previousNumPlatformPages << Platform::getPageSizeLog2()),
-            newNumPlatformPages - previousNumPlatformPages)) { return -1; }
+            newNumPlatformPages - previousNumPlatformPages)) {
+        return -1;
+    }
 
     if (initializeNewElements) {
         // Write the uninitialized sentinel value to the new elements.
         for (Uptr elementIndex = previousNumElements; elementIndex < newNumElements; ++elementIndex) {
-            table->elements[elementIndex].biasedValue.store(
-                    objectToBiasedTableElementValue(getUninitializedElement()),
-                    std::memory_order_release);
+            table->elements[elementIndex].biasedValue.store(objectToBiasedTableElementValue(getUninitializedElement()), std::memory_order_release);
         }
     }
 
@@ -114,7 +112,9 @@ static Iptr growTableImpl(Table *table, Uptr numElementsToGrow, bool initializeN
 Table *Runtime::createTable(Compartment *compartment, IR::TableType type, std::string &&debugName) {
     wavmAssert(type.size.min <= UINTPTR_MAX);
     Table *table = createTableImpl(compartment, type, std::move(debugName));
-    if (!table) { return nullptr; }
+    if (!table) {
+        return nullptr;
+    }
 
     // Grow the table to the type's minimum size.
     if (growTableImpl(table, Uptr(type.size.min), true) == -1) {
@@ -162,8 +162,7 @@ Table::~Table() {
     // Free the virtual address space.
     const Uptr pageBytesLog2 = Platform::getPageSizeLog2();
     if (numReservedBytes > 0) {
-        Platform::freeVirtualPages((U8 *) elements,
-                                   (numReservedBytes >> pageBytesLog2) + numGuardPages);
+        Platform::freeVirtualPages((U8 *) elements, (numReservedBytes >> pageBytesLog2) + numGuardPages);
     }
     elements = nullptr;
     numElements = numReservedBytes = numReservedElements = 0;
@@ -174,8 +173,7 @@ static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) 
 
     // Use a saturated index to access the table data to ensure that it's harmless for the CPU to
     // speculate past the above bounds check.
-    const Uptr saturatedIndex
-            = Platform::saturateToBounds(index, U64(table->numReservedElements) - 1);
+    const Uptr saturatedIndex = Platform::saturateToBounds(index, U64(table->numReservedElements) - 1);
 
     // Compute the biased value to store in the table.
     const Uptr biasedValue = objectToBiasedTableElementValue(object);
@@ -184,8 +182,9 @@ static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) 
     // the element being replaced is an out-of-bounds sentinel value.
     Uptr oldBiasedValue = table->elements[saturatedIndex].biasedValue;
     while (true) {
-        if (table->elements[saturatedIndex].biasedValue.compare_exchange_weak(
-                oldBiasedValue, biasedValue, std::memory_order_acq_rel)) { break; }
+        if (table->elements[saturatedIndex].biasedValue.compare_exchange_weak(oldBiasedValue, biasedValue, std::memory_order_acq_rel)) {
+            break;
+        }
     };
 
     return biasedTableElementValueToObject(oldBiasedValue);
@@ -196,12 +195,10 @@ static Object *getTableElementNonNull(Table *table, Uptr index) {
 
     // Use a saturated index to access the table data to ensure that it's harmless for the CPU to
     // speculate past the above bounds check.
-    const Uptr saturatedIndex
-            = Platform::saturateToBounds(index, U64(table->numReservedElements) - 1);
+    const Uptr saturatedIndex = Platform::saturateToBounds(index, U64(table->numReservedElements) - 1);
 
     // Read the table element.
-    const Uptr biasedValue
-            = table->elements[saturatedIndex].biasedValue.load(std::memory_order_acquire);
+    const Uptr biasedValue = table->elements[saturatedIndex].biasedValue.load(std::memory_order_acquire);
     Object *object = biasedTableElementValueToObject(biasedValue);
 
     wavmAssert(object);
@@ -212,7 +209,9 @@ Object *Runtime::setTableElement(Table *table, Uptr index, Object *newValue) {
     wavmAssert(!newValue || isInCompartment(newValue, table->compartment));
 
     // If the new value is null, write the uninitialized sentinel value instead.
-    if (!newValue) { newValue = getUninitializedElement(); }
+    if (!newValue) {
+        newValue = getUninitializedElement();
+    }
 
     // Write the table element.
     Object *oldObject = setTableElementNonNull(table, index, newValue);
@@ -237,29 +236,13 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "table.get", Object*, table_get, U32 i
     return getTableElement(table, index);
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "table.set",
-                          void,
-                          table_set,
-                          U32 index,
-                          Object *value,
-                          Uptr tableId) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "table.set", void, table_set, U32 index, Object *value, Uptr tableId) {
     Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
     setTableElement(table, index, value);
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "table.init",
-                          void,
-                          table_init,
-                          U32 destOffset,
-                          U32 sourceOffset,
-                          U32 numElements,
-                          Uptr moduleInstanceId,
-                          Uptr tableId,
-                          Uptr elemSegmentIndex) {
-    ModuleInstance *moduleInstance
-            = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "table.init", void, table_init, U32 destOffset, U32 sourceOffset, U32 numElements, Uptr moduleInstanceId, Uptr tableId, Uptr elemSegmentIndex) {
+    ModuleInstance *moduleInstance = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
     Lock<Platform::Mutex> passiveElemSegmentsLock(moduleInstance->passiveElemSegmentsMutex);
 
     if (!moduleInstance->passiveElemSegments.contains(elemSegmentIndex)) {
@@ -268,8 +251,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
         // Copy the passive elem segment shared_ptr, and unlock the mutex. It's important to
         // explicitly unlock the mutex before calling setTableElement, as setTableElement trigger a
         // signal that will unwind the stack without calling the Lock destructor.
-        std::shared_ptr<const std::vector<Object *>> passiveElemSegmentObjects
-                = moduleInstance->passiveElemSegments[elemSegmentIndex];
+        std::shared_ptr<const std::vector<Object *>> passiveElemSegmentObjects = moduleInstance->passiveElemSegments[elemSegmentIndex];
         passiveElemSegmentsLock.unlock();
 
         Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
@@ -278,8 +260,7 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
             const U64 sourceIndex = U64(sourceOffset) + index;
             const U64 destIndex = U64(destOffset) + index;
 
-            setTableElement(
-                    table, Uptr(destIndex), asObject((*passiveElemSegmentObjects)[sourceIndex]));
+            setTableElement(table, Uptr(destIndex), asObject((*passiveElemSegmentObjects)[sourceIndex]));
         }
     }
 }

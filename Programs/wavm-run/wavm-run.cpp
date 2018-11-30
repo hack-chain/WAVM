@@ -23,18 +23,17 @@ struct RootResolver : Resolver {
     Compartment *compartment;
     HashMap<std::string, ModuleInstance *> moduleNameToInstanceMap;
 
-    RootResolver(Compartment *inCompartment) : compartment(inCompartment) {}
+    RootResolver(Compartment *inCompartment) : compartment(inCompartment) {
+    }
 
-    bool resolve(const std::string &moduleName,
-                 const std::string &exportName,
-                 ExternType type,
-                 Object *&outObject) override {
+    bool resolve(const std::string &moduleName, const std::string &exportName, ExternType type, Object *&outObject) override {
         auto namedInstance = moduleNameToInstanceMap.get(moduleName);
         if (namedInstance) {
             outObject = getInstanceExport(*namedInstance, exportName);
             if (outObject) {
-                if (isA(outObject, type)) { return true; }
-                else {
+                if (isA(outObject, type)) {
+                    return true;
+                } else {
                     std::cout << "Resolved import %s.%s to a %s, but was expecting %s\n" << moduleName.c_str()
                               << exportName.c_str() << asString(getObjectType(outObject)).c_str()
                               << asString(type).c_str();
@@ -74,18 +73,13 @@ struct RootResolver : Resolver {
                 return getInstanceExport(stubModuleInstance, "importStub");
             }
             case IR::ExternKind::memory: {
-                return asObject(
-                        Runtime::createMemory(compartment, asMemoryType(type), std::string(exportName)));
+                return asObject(Runtime::createMemory(compartment, asMemoryType(type), std::string(exportName)));
             }
             case IR::ExternKind::table: {
-                return asObject(
-                        Runtime::createTable(compartment, asTableType(type), std::string(exportName)));
+                return asObject(Runtime::createTable(compartment, asTableType(type), std::string(exportName)));
             }
             case IR::ExternKind::global: {
-                return asObject(Runtime::createGlobal(
-                        compartment,
-                        asGlobalType(type),
-                        IR::Value(asGlobalType(type).valueType, IR::UntaggedValue())));
+                return asObject(Runtime::createGlobal(compartment, asGlobalType(type), IR::Value(asGlobalType(type).valueType, IR::UntaggedValue())));
             }
             default:
                 Errors::unreachable();
@@ -148,13 +142,16 @@ static int run(const char *filename, char **args) {
     }
 
     // Instantiate the module.
-    ModuleInstance *moduleInstance = instantiateModule(compartment, module, std::move(linkResult.resolvedImports),
-                                                       filename);
-    if (!moduleInstance) { return EXIT_FAILURE; }
+    ModuleInstance *moduleInstance = instantiateModule(compartment, module, std::move(linkResult.resolvedImports), filename);
+    if (!moduleInstance) {
+        return EXIT_FAILURE;
+    }
 
     // Call the module start function, if it has one.
     Function *startFunction = getStartFunction(moduleInstance);
-    if (startFunction) { invokeFunctionChecked(context, startFunction, {}); }
+    if (startFunction) {
+        invokeFunctionChecked(context, startFunction, {});
+    }
 
     // Call the Emscripten global initalizers.
     Emscripten::initializeGlobals(context, irModule, moduleInstance);
@@ -176,7 +173,9 @@ static int run(const char *filename, char **args) {
     if (functionType.params().size() == 2) {
         std::vector<const char *> argStrings;
         argStrings.push_back(filename);
-        while (*args) { argStrings.push_back(*args++); };
+        while (*args) {
+            argStrings.push_back(*args++);
+        };
 
         wavmAssert(emscriptenInstance);
         Emscripten::injectCommandArgs(emscriptenInstance, argStrings, invokeArgs);

@@ -135,9 +135,7 @@ namespace WAVM {
         }
 
         inline llvm::Constant *emitLiteral(llvm::LLVMContext &llvmContext, V128 value) {
-            return llvm::ConstantVector::get(
-                    {llvm::ConstantInt::get(llvmContext, llvm::APInt(64, value.u64[0], false)),
-                     llvm::ConstantInt::get(llvmContext, llvm::APInt(64, value.u64[1], false))});
+            return llvm::ConstantVector::get({llvm::ConstantInt::get(llvmContext, llvm::APInt(64, value.u64[0], false)), llvm::ConstantInt::get(llvmContext, llvm::APInt(64, value.u64[1], false))});
         }
 
         inline llvm::Constant *emitLiteralPointer(const void *pointer, llvm::Type *intOrPointerType) {
@@ -156,8 +154,7 @@ namespace WAVM {
             for (Uptr typeIndex = 0; typeIndex < typeTuple.size(); ++typeIndex) {
                 llvmTypes[typeIndex] = asLLVMType(llvmContext, typeTuple[typeIndex]);
             }
-            return llvm::StructType::get(llvmContext,
-                                         llvm::ArrayRef<llvm::Type *>(llvmTypes, typeTuple.size()));
+            return llvm::StructType::get(llvmContext, llvm::ArrayRef<llvm::Type *>(llvmTypes, typeTuple.size()));
         }
 
         inline bool areResultsReturnedDirectly(IR::TypeTuple results) {
@@ -170,8 +167,7 @@ namespace WAVM {
             return results.size() + 1 <= maxDirectlyReturnedValues;
         }
 
-        inline llvm::StructType *getLLVMReturnStructType(LLVMContext &llvmContext,
-                                                         IR::TypeTuple results) {
+        inline llvm::StructType *getLLVMReturnStructType(LLVMContext &llvmContext, IR::TypeTuple results) {
             if (areResultsReturnedDirectly(results)) {
                 // A limited number of results can be packed into a struct and returned directly.
                 return llvm::StructType::get(llvmContext.i8PtrType, asLLVMType(llvmContext, results));
@@ -182,22 +178,21 @@ namespace WAVM {
             }
         }
 
-        inline llvm::Constant *getZeroedLLVMReturnStruct(LLVMContext &llvmContext,
-                                                         IR::TypeTuple resultType) {
+        inline llvm::Constant *getZeroedLLVMReturnStruct(LLVMContext &llvmContext, IR::TypeTuple resultType) {
             return llvm::Constant::getNullValue(getLLVMReturnStructType(llvmContext, resultType));
         }
 
         // Converts a WebAssembly function type to a LLVM type.
-        inline llvm::FunctionType *asLLVMType(LLVMContext &llvmContext,
-                                              IR::FunctionType functionType,
-                                              IR::CallingConvention callingConvention) {
+        inline llvm::FunctionType *asLLVMType(LLVMContext &llvmContext, IR::FunctionType functionType, IR::CallingConvention callingConvention) {
             const Uptr numImplicitParameters = callingConvention == IR::CallingConvention::c ? 0 : 1;
             const Uptr numParameters = numImplicitParameters + functionType.params().size();
             auto llvmArgTypes = (llvm::Type **) alloca(sizeof(llvm::Type *) * numParameters);
-            if (callingConvention != IR::CallingConvention::c) { llvmArgTypes[0] = llvmContext.i8PtrType; }
+            if (callingConvention != IR::CallingConvention::c) {
+                llvmArgTypes[0] = llvmContext.i8PtrType;
+            }
             for (Uptr argIndex = 0; argIndex < functionType.params().size(); ++argIndex) {
-                llvmArgTypes[argIndex + numImplicitParameters]
-                        = asLLVMType(llvmContext, functionType.params()[argIndex]);
+                llvmArgTypes[argIndex +
+                             numImplicitParameters] = asLLVMType(llvmContext, functionType.params()[argIndex]);
             }
 
             llvm::Type *llvmReturnType;
@@ -227,8 +222,7 @@ namespace WAVM {
                 default:
                     Errors::unreachable();
             };
-            return llvm::FunctionType::get(
-                    llvmReturnType, llvm::ArrayRef<llvm::Type *>(llvmArgTypes, numParameters), false);
+            return llvm::FunctionType::get(llvmReturnType, llvm::ArrayRef<llvm::Type *>(llvmArgTypes, numParameters), false);
         }
 
         inline llvm::CallingConv::ID asLLVMCallingConv(IR::CallingConvention callingConvention) {
@@ -246,47 +240,26 @@ namespace WAVM {
             }
         }
 
-        inline llvm::Constant *getMemoryIdFromOffset(LLVMContext &llvmContext,
-                                                     llvm::Constant *memoryOffset) {
-            return llvm::ConstantExpr::getExactUDiv(
-                    llvm::ConstantExpr::getSub(
-                            memoryOffset,
-                            emitLiteral(llvmContext,
-                                        Uptr(offsetof(Runtime::CompartmentRuntimeData, memoryBases)))),
-                    emitLiteral(llvmContext, Uptr(sizeof(Uptr))));
+        inline llvm::Constant *getMemoryIdFromOffset(LLVMContext &llvmContext, llvm::Constant *memoryOffset) {
+            return llvm::ConstantExpr::getExactUDiv(llvm::ConstantExpr::getSub(memoryOffset, emitLiteral(llvmContext, Uptr(offsetof(Runtime::CompartmentRuntimeData, memoryBases)))), emitLiteral(llvmContext, Uptr(sizeof(Uptr))));
         }
 
-        inline llvm::Constant *getTableIdFromOffset(LLVMContext &llvmContext,
-                                                    llvm::Constant *tableOffset) {
-            return llvm::ConstantExpr::getExactUDiv(
-                    llvm::ConstantExpr::getSub(
-                            tableOffset,
-                            emitLiteral(llvmContext,
-                                        Uptr(offsetof(Runtime::CompartmentRuntimeData, tableBases)))),
-                    emitLiteral(llvmContext, Uptr(sizeof(Uptr))));
+        inline llvm::Constant *getTableIdFromOffset(LLVMContext &llvmContext, llvm::Constant *tableOffset) {
+            return llvm::ConstantExpr::getExactUDiv(llvm::ConstantExpr::getSub(tableOffset, emitLiteral(llvmContext, Uptr(offsetof(Runtime::CompartmentRuntimeData, tableBases)))), emitLiteral(llvmContext, Uptr(sizeof(Uptr))));
         }
 
-        inline void setRuntimeFunctionPrefix(LLVMContext &llvmContext,
-                                             llvm::Function *function,
-                                             llvm::Constant *mutableData,
-                                             llvm::Constant *moduleInstanceId,
-                                             llvm::Constant *typeId) {
-            function->setPrefixData(
-                    llvm::ConstantArray::get(llvm::ArrayType::get(llvmContext.iptrType, 4),
-                                             {emitLiteral(llvmContext, Uptr(Runtime::ObjectKind::function)),
-                                              mutableData,
-                                              moduleInstanceId,
-                                              typeId}));
-            static_assert(offsetof(Runtime::Function, object) == sizeof(Uptr) * 0,
-                          "Function prefix must match Runtime::Function layout");
-            static_assert(offsetof(Runtime::Function, mutableData) == sizeof(Uptr) * 1,
-                          "Function prefix must match Runtime::Function layout");
-            static_assert(offsetof(Runtime::Function, moduleInstanceId) == sizeof(Uptr) * 2,
-                          "Function prefix must match Runtime::Function layout");
-            static_assert(offsetof(Runtime::Function, encodedType) == sizeof(Uptr) * 3,
-                          "Function prefix must match Runtime::Function layout");
-            static_assert(offsetof(Runtime::Function, code) == sizeof(Uptr) * 4,
-                          "Function prefix must match Runtime::Function layout");
+        inline void setRuntimeFunctionPrefix(LLVMContext &llvmContext, llvm::Function *function, llvm::Constant *mutableData, llvm::Constant *moduleInstanceId, llvm::Constant *typeId) {
+            function->setPrefixData(llvm::ConstantArray::get(llvm::ArrayType::get(llvmContext.iptrType, 4), {emitLiteral(llvmContext, Uptr(Runtime::ObjectKind::function)), mutableData, moduleInstanceId, typeId}));
+            static_assert(offsetof(Runtime::Function, object) ==
+                          sizeof(Uptr) * 0, "Function prefix must match Runtime::Function layout");
+            static_assert(offsetof(Runtime::Function, mutableData) ==
+                          sizeof(Uptr) * 1, "Function prefix must match Runtime::Function layout");
+            static_assert(offsetof(Runtime::Function, moduleInstanceId) ==
+                          sizeof(Uptr) * 2, "Function prefix must match Runtime::Function layout");
+            static_assert(offsetof(Runtime::Function, encodedType) ==
+                          sizeof(Uptr) * 3, "Function prefix must match Runtime::Function layout");
+            static_assert(offsetof(Runtime::Function, code) ==
+                          sizeof(Uptr) * 4, "Function prefix must match Runtime::Function layout");
         }
 
         // Functions that map between the symbols used for externally visible functions and the function
@@ -295,9 +268,7 @@ namespace WAVM {
         }
 
         // Emits LLVM IR for a module.
-        void emitModule(const IR::Module &irModule,
-                        LLVMContext &llvmContext,
-                        llvm::Module &outLLVMModule);
+        void emitModule(const IR::Module &irModule, LLVMContext &llvmContext, llvm::Module &outLLVMModule);
 
         // Used to override LLVM's default behavior of looking up unresolved symbols in DLL exports.
         llvm::JITEvaluatedSymbol resolveJITImport(llvm::StringRef name);
@@ -309,9 +280,7 @@ namespace WAVM {
             std::map<Uptr, Runtime::Function *> addressToFunctionMap;
             HashMap<std::string, Runtime::Function *> nameToFunctionMap;
 
-            Module(const std::vector<U8> &inObjectBytes,
-                   const HashMap<std::string, Uptr> &importedSymbolMap,
-                   bool shouldLogMetrics);
+            Module(const std::vector<U8> &inObjectBytes, const HashMap<std::string, Uptr> &importedSymbolMap, bool shouldLogMetrics);
 
             ~Module();
 
@@ -324,17 +293,8 @@ namespace WAVM {
             std::unique_ptr<llvm::object::ObjectFile> object;
         };
 
-        extern std::vector<U8> compileLLVMModule(LLVMContext &llvmContext,
-                                                 llvm::Module &&llvmModule,
-                                                 bool shouldLogMetrics);
+        extern std::vector<U8> compileLLVMModule(LLVMContext &llvmContext, llvm::Module &&llvmModule, bool shouldLogMetrics);
 
-        extern void processSEHTables(U8 *imageBase,
-                                     const llvm::LoadedObjectInfo &loadedObject,
-                                     const llvm::object::SectionRef &pdataSection,
-                                     const U8 *pdataCopy,
-                                     Uptr pdataNumBytes,
-                                     const llvm::object::SectionRef &xdataSection,
-                                     const U8 *xdataCopy,
-                                     Uptr sehTrampolineAddress);
+        extern void processSEHTables(U8 *imageBase, const llvm::LoadedObjectInfo &loadedObject, const llvm::object::SectionRef &pdataSection, const U8 *pdataCopy, Uptr pdataNumBytes, const llvm::object::SectionRef &xdataSection, const U8 *xdataCopy, Uptr sehTrampolineAddress);
     }
 }

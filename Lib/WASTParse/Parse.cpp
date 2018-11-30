@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <cstdarg>
 #include <cstdio>
@@ -30,18 +29,13 @@ void WAST::findClosingParenthesis(CursorState *cursor, const Token *openingParen
                 --depth;
                 break;
             case t_eof:
-                parseErrorf(cursor->parseState,
-                            openingParenthesisToken,
-                            "reached end of input while trying to find closing parenthesis");
+                parseErrorf(cursor->parseState, openingParenthesisToken, "reached end of input while trying to find closing parenthesis");
                 throw FatalParseException();
         }
     }
 }
 
-static void parseErrorfImpl(ParseState *parseState,
-                            Uptr charOffset,
-                            const char *messageFormat,
-                            va_list messageArgs) {
+static void parseErrorfImpl(ParseState *parseState, Uptr charOffset, const char *messageFormat, va_list messageArgs) {
     // Call vsnprintf to determine how many bytes the formatted string will be.
     // vsnprintf consumes the va_list passed to it, so make a copy of it.
     va_list messageArgsProbe;
@@ -55,8 +49,8 @@ static void parseErrorfImpl(ParseState *parseState,
     formattedMessage.resize(numFormattedChars);
 
     // Print the formatted message
-    int numWrittenChars = std::vsnprintf(
-            (char *) formattedMessage.data(), numFormattedChars + 1, messageFormat, messageArgs);
+    int numWrittenChars = std::vsnprintf((char *) formattedMessage.data(),
+                                         numFormattedChars + 1, messageFormat, messageArgs);
     wavmAssert(numWrittenChars == numFormattedChars);
 
     // Add the error to the cursor's error list.
@@ -77,10 +71,7 @@ void WAST::parseErrorf(ParseState *parseState, const char *nextChar, const char 
     va_end(messageArguments);
 }
 
-void WAST::parseErrorf(ParseState *parseState,
-                       const Token *nextToken,
-                       const char *messageFormat,
-                       ...) {
+void WAST::parseErrorf(ParseState *parseState, const Token *nextToken, const char *messageFormat, ...) {
     va_list messageArguments;
     va_start(messageArguments, messageFormat);
     parseErrorfImpl(parseState, nextToken->begin, messageFormat, messageArguments);
@@ -154,9 +145,7 @@ ReferenceType WAST::parseReferenceType(CursorState *cursor) {
     return result;
 }
 
-FunctionType WAST::parseFunctionType(CursorState *cursor,
-                                     NameToIndexMap &outLocalNameToIndexMap,
-                                     std::vector<std::string> &outLocalDisassemblyNames) {
+FunctionType WAST::parseFunctionType(CursorState *cursor, NameToIndexMap &outLocalNameToIndexMap, std::vector<std::string> &outLocalDisassemblyNames) {
     std::vector<ValueType> parameters;
     std::vector<ValueType> results;
 
@@ -184,17 +173,16 @@ FunctionType WAST::parseFunctionType(CursorState *cursor,
             require(cursor, t_result);
 
             ValueType result;
-            while (tryParseValueType(cursor, result)) { results.push_back(result); };
+            while (tryParseValueType(cursor, result)) {
+                results.push_back(result);
+            };
         });
     };
 
     return FunctionType(TypeTuple(results), TypeTuple(parameters));
 }
 
-UnresolvedFunctionType WAST::parseFunctionTypeRefAndOrDecl(
-        CursorState *cursor,
-        NameToIndexMap &outLocalNameToIndexMap,
-        std::vector<std::string> &outLocalDisassemblyNames) {
+UnresolvedFunctionType WAST::parseFunctionTypeRefAndOrDecl(CursorState *cursor, NameToIndexMap &outLocalNameToIndexMap, std::vector<std::string> &outLocalDisassemblyNames) {
     // Parse an optional function type reference.
     Reference functionTypeRef;
     if (cursor->nextToken[0].type == t_leftParenthesis && cursor->nextToken[1].type == t_type) {
@@ -208,8 +196,7 @@ UnresolvedFunctionType WAST::parseFunctionTypeRefAndOrDecl(
     }
 
     // Parse the explicit function parameters and result type.
-    FunctionType explicitFunctionType
-            = parseFunctionType(cursor, outLocalNameToIndexMap, outLocalDisassemblyNames);
+    FunctionType explicitFunctionType = parseFunctionType(cursor, outLocalNameToIndexMap, outLocalDisassemblyNames);
 
     UnresolvedFunctionType result;
     result.reference = functionTypeRef;
@@ -217,31 +204,21 @@ UnresolvedFunctionType WAST::parseFunctionTypeRefAndOrDecl(
     return result;
 }
 
-IndexedFunctionType WAST::resolveFunctionType(ModuleState *moduleState,
-                                              const UnresolvedFunctionType &unresolvedType) {
-    if (!unresolvedType.reference) { return getUniqueFunctionTypeIndex(moduleState, unresolvedType.explicitType); }
-    else {
+IndexedFunctionType WAST::resolveFunctionType(ModuleState *moduleState, const UnresolvedFunctionType &unresolvedType) {
+    if (!unresolvedType.reference) {
+        return getUniqueFunctionTypeIndex(moduleState, unresolvedType.explicitType);
+    } else {
         // Resolve the referenced type.
-        const Uptr referencedFunctionTypeIndex = resolveRef(moduleState->parseState,
-                                                            moduleState->typeNameToIndexMap,
-                                                            moduleState->module.types.size(),
-                                                            unresolvedType.reference);
+        const Uptr referencedFunctionTypeIndex = resolveRef(moduleState->parseState, moduleState->typeNameToIndexMap, moduleState->module.types.size(), unresolvedType.reference);
 
         // Validate that if the function definition has both a type reference and explicit
         // parameter/result type declarations, they match.
-        const bool hasExplicitParametersOrResultType
-                = unresolvedType.explicitType != FunctionType();
+        const bool hasExplicitParametersOrResultType = unresolvedType.explicitType != FunctionType();
         if (hasExplicitParametersOrResultType) {
-            if (referencedFunctionTypeIndex != UINTPTR_MAX
-                && moduleState->module.types[referencedFunctionTypeIndex]
-                   != unresolvedType.explicitType) {
-                parseErrorf(
-                        moduleState->parseState,
-                        unresolvedType.reference.token,
-                        "referenced function type (%s) does not match declared parameters and "
-                        "results (%s)",
-                        asString(moduleState->module.types[referencedFunctionTypeIndex]).c_str(),
-                        asString(unresolvedType.explicitType).c_str());
+            if (referencedFunctionTypeIndex != UINTPTR_MAX &&
+                moduleState->module.types[referencedFunctionTypeIndex] != unresolvedType.explicitType) {
+                parseErrorf(moduleState->parseState, unresolvedType.reference.token, "referenced function type (%s) does not match declared parameters and "
+                                                                                     "results (%s)", asString(moduleState->module.types[referencedFunctionTypeIndex]).c_str(), asString(unresolvedType.explicitType).c_str());
             }
         }
 
@@ -249,11 +226,9 @@ IndexedFunctionType WAST::resolveFunctionType(ModuleState *moduleState,
     }
 }
 
-IndexedFunctionType WAST::getUniqueFunctionTypeIndex(ModuleState *moduleState,
-                                                     FunctionType functionType) {
+IndexedFunctionType WAST::getUniqueFunctionTypeIndex(ModuleState *moduleState, FunctionType functionType) {
     // If this type is not in the module's type table yet, add it.
-    Uptr &functionTypeIndex
-            = moduleState->functionTypeToIndexMap.getOrAdd(functionType, UINTPTR_MAX);
+    Uptr &functionTypeIndex = moduleState->functionTypeToIndexMap.getOrAdd(functionType, UINTPTR_MAX);
     if (functionTypeIndex == UINTPTR_MAX) {
         functionTypeIndex = moduleState->module.types.size();
         moduleState->module.types.push_back(functionType);
@@ -265,7 +240,9 @@ IndexedFunctionType WAST::getUniqueFunctionTypeIndex(ModuleState *moduleState,
 static void parseStringChars(const char *&nextChar, ParseState *parseState, std::string &outString);
 
 bool WAST::tryParseName(CursorState *cursor, Name &outName) {
-    if (cursor->nextToken->type != t_quotedName && cursor->nextToken->type != t_name) { return false; }
+    if (cursor->nextToken->type != t_quotedName && cursor->nextToken->type != t_name) {
+        return false;
+    }
 
     const char *firstChar = cursor->parseState->string + cursor->nextToken->begin;
     const char *nextChar = firstChar;
@@ -282,19 +259,18 @@ bool WAST::tryParseName(CursorState *cursor, Name &outName) {
         {
             std::string quotedNameChars;
             parseStringChars(nextChar, cursor->parseState, quotedNameChars);
-            cursor->parseState->quotedNameStrings.push_back(
-                    std::unique_ptr<std::string>{new std::string(std::move(quotedNameChars))});
+            cursor->parseState->quotedNameStrings.push_back(std::unique_ptr<std::string>{new std::string(std::move(quotedNameChars))});
         }
-        const std::unique_ptr<std::string> &quotedName
-                = cursor->parseState->quotedNameStrings.back();
+        const std::unique_ptr<std::string> &quotedName = cursor->parseState->quotedNameStrings.back();
         wavmAssert(quotedName->size() <= UINT32_MAX);
         outName = Name(quotedName->data(), U32(quotedName->size()), cursor->nextToken->begin);
     } else {
         // Find the first non-name character.
         while (true) {
             const char c = *nextChar;
-            if (isalpha(c)) { ++nextChar; }
-            else {
+            if (isalpha(c)) {
+                ++nextChar;
+            } else {
                 break;
             }
         };
@@ -321,21 +297,16 @@ bool WAST::tryParseNameOrIndexRef(CursorState *cursor, Reference &outRef) {
     return false;
 }
 
-bool WAST::tryParseAndResolveNameOrIndexRef(CursorState *cursor,
-                                            const NameToIndexMap &nameToIndexMap,
-                                            Uptr maxIndex,
-                                            const char *context,
-                                            Uptr &outIndex) {
+bool WAST::tryParseAndResolveNameOrIndexRef(CursorState *cursor, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const char *context, Uptr &outIndex) {
     Reference ref;
-    if (!tryParseNameOrIndexRef(cursor, ref)) { return false; }
+    if (!tryParseNameOrIndexRef(cursor, ref)) {
+        return false;
+    }
     outIndex = resolveRef(cursor->parseState, nameToIndexMap, maxIndex, ref);
     return true;
 }
 
-Uptr WAST::parseAndResolveNameOrIndexRef(CursorState *cursor,
-                                         const NameToIndexMap &nameToIndexMap,
-                                         Uptr maxIndex,
-                                         const char *context) {
+Uptr WAST::parseAndResolveNameOrIndexRef(CursorState *cursor, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const char *context) {
     Uptr resolvedIndex;
     if (!tryParseAndResolveNameOrIndexRef(cursor, nameToIndexMap, maxIndex, context, resolvedIndex)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected %s name or index", context);
@@ -344,29 +315,19 @@ Uptr WAST::parseAndResolveNameOrIndexRef(CursorState *cursor,
     return resolvedIndex;
 }
 
-void WAST::bindName(ParseState *parseState,
-                    NameToIndexMap &nameToIndexMap,
-                    const Name &name,
-                    Uptr index) {
+void WAST::bindName(ParseState *parseState, NameToIndexMap &nameToIndexMap, const Name &name, Uptr index) {
     if (name) {
         if (!nameToIndexMap.add(name, index)) {
             const HashMapPair<Name, Uptr> *nameIndexPair = nameToIndexMap.getPair(name);
             wavmAssert(nameIndexPair);
-            const TextFileLocus previousDefinitionLocus = calcLocusFromOffset(
-                    parseState->string, parseState->lineInfo, nameIndexPair->key.getSourceOffset());
-            parseErrorf(parseState,
-                        name.getSourceOffset(),
-                        "redefinition of name defined at %s",
-                        previousDefinitionLocus.describe().c_str());
+            const TextFileLocus previousDefinitionLocus = calcLocusFromOffset(parseState->string, parseState->lineInfo, nameIndexPair->key.getSourceOffset());
+            parseErrorf(parseState, name.getSourceOffset(), "redefinition of name defined at %s", previousDefinitionLocus.describe().c_str());
             nameToIndexMap.set(name, index);
         }
     }
 }
 
-Uptr WAST::resolveRef(ParseState *parseState,
-                      const NameToIndexMap &nameToIndexMap,
-                      Uptr maxIndex,
-                      const Reference &ref) {
+Uptr WAST::resolveRef(ParseState *parseState, const NameToIndexMap &nameToIndexMap, Uptr maxIndex, const Reference &ref) {
     switch (ref.type) {
         case Reference::Type::index: {
             if (ref.index >= maxIndex) {
@@ -390,8 +351,9 @@ Uptr WAST::resolveRef(ParseState *parseState,
 }
 
 bool WAST::tryParseHexit(const char *&nextChar, U8 &outValue) {
-    if (*nextChar >= '0' && *nextChar <= '9') { outValue = *nextChar - '0'; }
-    else if (*nextChar >= 'a' && *nextChar <= 'f') {
+    if (*nextChar >= '0' && *nextChar <= '9') {
+        outValue = *nextChar - '0';
+    } else if (*nextChar >= 'a' && *nextChar <= 'f') {
         outValue = *nextChar - 'a' + 10;
     } else if (*nextChar >= 'A' && *nextChar <= 'F') {
         outValue = *nextChar - 'A' + 10;
@@ -403,14 +365,14 @@ bool WAST::tryParseHexit(const char *&nextChar, U8 &outValue) {
     return true;
 }
 
-static void parseCharEscapeCode(const char *&nextChar,
-                                ParseState *parseState,
-                                std::string &outString) {
+static void parseCharEscapeCode(const char *&nextChar, ParseState *parseState, std::string &outString) {
     U8 firstNibble;
     if (tryParseHexit(nextChar, firstNibble)) {
         // Parse an 8-bit literal from two hexits.
         U8 secondNibble;
-        if (!tryParseHexit(nextChar, secondNibble)) { parseErrorf(parseState, nextChar, "expected hexit"); }
+        if (!tryParseHexit(nextChar, secondNibble)) {
+            parseErrorf(parseState, nextChar, "expected hexit");
+        }
         outString += char(firstNibble * 16 + secondNibble);
     } else {
         switch (*nextChar) {
@@ -440,7 +402,9 @@ static void parseCharEscapeCode(const char *&nextChar,
                 break;
             case 'u': {
                 // \u{...} - Unicode codepoint from hexadecimal number
-                if (nextChar[1] != '{') { parseErrorf(parseState, nextChar, "expected '{'"); }
+                if (nextChar[1] != '{') {
+                    parseErrorf(parseState, nextChar, "expected '{'");
+                }
                 nextChar += 2;
 
                 // Parse the hexadecimal number.
@@ -450,7 +414,8 @@ static void parseCharEscapeCode(const char *&nextChar,
                 while (tryParseHexit(nextChar, hexit)) {
                     if (codepoint > (UINT32_MAX - hexit) / 16) {
                         codepoint = UINT32_MAX;
-                        while (tryParseHexit(nextChar, hexit)) {};
+                        while (tryParseHexit(nextChar, hexit)) {
+                        };
                         break;
                     }
                     wavmAssert(codepoint * 16 + hexit >= codepoint);
@@ -466,7 +431,9 @@ static void parseCharEscapeCode(const char *&nextChar,
                 // Encode the codepoint as UTF-8.
                 Unicode::encodeUTF8CodePoint(codepoint, outString);
 
-                if (*nextChar != '}') { parseErrorf(parseState, nextChar, "expected '}'"); }
+                if (*nextChar != '}') {
+                    parseErrorf(parseState, nextChar, "expected '}'");
+                }
                 ++nextChar;
                 break;
             }
@@ -497,7 +464,9 @@ static void parseStringChars(const char *&nextChar, ParseState *parseState, std:
 }
 
 bool WAST::tryParseString(CursorState *cursor, std::string &outString) {
-    if (cursor->nextToken->type != t_string) { return false; }
+    if (cursor->nextToken->type != t_string) {
+        return false;
+    }
 
     // Parse a string literal; the lexer has already rejected unterminated strings, so this just
     // needs to copy the characters and evaluate escape codes.

@@ -19,15 +19,14 @@ namespace WAVM {
         struct ValidationException {
             std::string message;
 
-            ValidationException(std::string &&inMessage) : message(inMessage) {}
+            ValidationException(std::string &&inMessage) : message(inMessage) {
+            }
         };
 
         struct CodeValidationStreamImpl;
 
         struct CodeValidationStream {
-            IR_API CodeValidationStream(const Module &module,
-                                        const FunctionDef &function,
-                                        DeferredCodeValidationState &deferredCodeValidationState);
+            IR_API CodeValidationStream(const Module &module, const FunctionDef &function, DeferredCodeValidationState &deferredCodeValidationState);
 
             IR_API ~CodeValidationStream();
 
@@ -43,16 +42,14 @@ namespace WAVM {
             CodeValidationStreamImpl *impl;
         };
 
-        template<typename InnerStream>
-        struct CodeValidationProxyStream {
-            CodeValidationProxyStream(const Module &module,
-                                      const FunctionDef &function,
-                                      InnerStream &inInnerStream,
-                                      DeferredCodeValidationState &deferredCodeValidationState)
+        template<typename InnerStream> struct CodeValidationProxyStream {
+            CodeValidationProxyStream(const Module &module, const FunctionDef &function, InnerStream &inInnerStream, DeferredCodeValidationState &deferredCodeValidationState)
                     : codeValidationStream(module, function, deferredCodeValidationState), innerStream(inInnerStream) {
             }
 
-            void finishValidation() { codeValidationStream.finish(); }
+            void finishValidation() {
+                codeValidationStream.finish();
+            }
 
 #define VISIT_OPCODE(_, name, nameString, Imm, ...)                                                \
     void name(Imm imm = {})                                                                        \
@@ -90,9 +87,7 @@ namespace WAVM {
 
         IR_API void validateElemSegments(const IR::Module &module);
 
-        IR_API void validateDataSegments(
-                const IR::Module &module,
-                const DeferredCodeValidationState &deferredCodeValidationState);
+        IR_API void validateDataSegments(const IR::Module &module, const DeferredCodeValidationState &deferredCodeValidationState);
 
         inline void validatePreCodeSections(const IR::Module &module) {
             validateTypes(module);
@@ -107,9 +102,7 @@ namespace WAVM {
             validateElemSegments(module);
         }
 
-        inline void validatePostCodeSections(
-                const IR::Module &module,
-                const DeferredCodeValidationState &deferredCodeValidationState) {
+        inline void validatePostCodeSections(const IR::Module &module, const DeferredCodeValidationState &deferredCodeValidationState) {
             validateDataSegments(module, deferredCodeValidationState);
         }
     }

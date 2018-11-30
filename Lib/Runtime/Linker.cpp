@@ -24,24 +24,15 @@ static IR::ExceptionType resolveImportType(const IR::Module &module, IR::Excepti
     return type;
 }
 
-template<typename Instance, typename Type>
-void linkImport(const IR::Module &module,
-                const Import<Type> &import,
-                Resolver &resolver,
-                LinkResult &linkResult,
-                std::vector<Instance *> &resolvedImports) {
+template<typename Instance, typename Type> void linkImport(const IR::Module &module, const Import<Type> &import, Resolver &resolver, LinkResult &linkResult, std::vector<Instance *> &resolvedImports) {
     // Ask the resolver for a value for this import.
     Object *importValue;
-    if (resolver.resolve(import.moduleName,
-                         import.exportName,
-                         resolveImportType(module, import.type),
-                         importValue)) {
+    if (resolver.resolve(import.moduleName, import.exportName, resolveImportType(module, import.type), importValue)) {
         // Sanity check that the resolver returned an object of the right type.
         wavmAssert(isA(importValue, resolveImportType(module, import.type)));
         resolvedImports.push_back(as<Instance>(importValue));
     } else {
-        linkResult.missingImports.push_back(
-                {import.moduleName, import.exportName, resolveImportType(module, import.type)});
+        linkResult.missingImports.push_back({import.moduleName, import.exportName, resolveImportType(module, import.type)});
     }
 }
 

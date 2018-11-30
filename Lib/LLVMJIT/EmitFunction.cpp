@@ -33,7 +33,9 @@ PHIVector EmitFunctionContext::createPHIs(llvm::BasicBlock *basicBlock, IR::Type
         result.push_back(irBuilder.CreatePHI(asLLVMType(llvmContext, type[elementIndex]), 2));
     }
 
-    if (originalBlock) { irBuilder.SetInsertPoint(originalBlock); }
+    if (originalBlock) {
+        irBuilder.SetInsertPoint(originalBlock);
+    }
 
     return result;
 }
@@ -60,7 +62,9 @@ void EmitFunctionContext::logOperator(const std::string &operatorDescription) {
     if (ENABLE_LOGGING) {
         std::string controlStackString;
         for (Uptr stackIndex = 0; stackIndex < controlStack.size(); ++stackIndex) {
-            if (!controlStack[stackIndex].isReachable) { controlStackString += "("; }
+            if (!controlStack[stackIndex].isReachable) {
+                controlStackString += "(";
+            }
             switch (controlStack[stackIndex].type) {
                 case ControlContext::Type::function:
                     controlStackString += "F";
@@ -86,20 +90,26 @@ void EmitFunctionContext::logOperator(const std::string &operatorDescription) {
                 default:
                     Errors::unreachable();
             };
-            if (!controlStack[stackIndex].isReachable) { controlStackString += ")"; }
+            if (!controlStack[stackIndex].isReachable) {
+                controlStackString += ")";
+            }
         }
 
         std::string stackString;
         const Uptr stackBase = controlStack.size() == 0 ? 0 : controlStack.back().outerStackSize;
         for (Uptr stackIndex = 0; stackIndex < stack.size(); ++stackIndex) {
-            if (stackIndex == stackBase) { stackString += "| "; }
+            if (stackIndex == stackBase) {
+                stackString += "| ";
+            }
             {
                 llvm::raw_string_ostream stackTypeStream(stackString);
                 stack[stackIndex]->getType()->print(stackTypeStream, true);
             }
             stackString += " ";
         }
-        if (stack.size() == stackBase) { stackString += "|"; }
+        if (stack.size() == stackBase) {
+            stackString += "|";
+        }
 
         std::cout << "%-50s %-50s %-50s\n" << controlStackString.c_str() << operatorDescription.c_str()
                   << stackString.c_str();
@@ -108,68 +118,34 @@ void EmitFunctionContext::logOperator(const std::string &operatorDescription) {
 
 // Traps a divide-by-zero
 void EmitFunctionContext::trapDivideByZero(llvm::Value *divisor) {
-    emitConditionalTrapIntrinsic(
-            irBuilder.CreateICmpEQ(divisor, llvm::Constant::getNullValue(divisor->getType())),
-            "divideByZeroOrIntegerOverflowTrap",
-            FunctionType(),
-            {});
+    emitConditionalTrapIntrinsic(irBuilder.CreateICmpEQ(divisor, llvm::Constant::getNullValue(divisor->getType())), "divideByZeroOrIntegerOverflowTrap", FunctionType(), {});
 }
 
 // Traps on (x / 0) or (INT_MIN / -1).
-void EmitFunctionContext::trapDivideByZeroOrIntegerOverflow(ValueType type,
-                                                            llvm::Value *left,
-                                                            llvm::Value *right) {
-    emitConditionalTrapIntrinsic(
-            irBuilder.CreateOr(
-                    irBuilder.CreateAnd(
-                            irBuilder.CreateICmpEQ(left,
-                                                   type == ValueType::i32
-                                                   ? emitLiteral(llvmContext, (U32) INT32_MIN)
-                                                   : emitLiteral(llvmContext, (U64) INT64_MIN)),
-                            irBuilder.CreateICmpEQ(right,
-                                                   type == ValueType::i32 ? emitLiteral(llvmContext, (U32) -1)
-                                                                          : emitLiteral(llvmContext, (U64) -1))),
-                    irBuilder.CreateICmpEQ(right, llvmContext.typedZeroConstants[(Uptr) type])),
-            "divideByZeroOrIntegerOverflowTrap",
-            FunctionType(),
-            {});
+void EmitFunctionContext::trapDivideByZeroOrIntegerOverflow(ValueType type, llvm::Value *left, llvm::Value *right) {
+    emitConditionalTrapIntrinsic(irBuilder.CreateOr(irBuilder.CreateAnd(irBuilder.CreateICmpEQ(left, type ==
+                                                                                                     ValueType::i32 ? emitLiteral(llvmContext, (U32) INT32_MIN) : emitLiteral(llvmContext, (U64) INT64_MIN)), irBuilder.CreateICmpEQ(right,
+                                                                                                                                                                                                                                     type ==
+                                                                                                                                                                                                                                     ValueType::i32 ? emitLiteral(llvmContext, (U32) -1) : emitLiteral(llvmContext, (U64) -1))), irBuilder.CreateICmpEQ(right, llvmContext.typedZeroConstants[(Uptr) type])), "divideByZeroOrIntegerOverflowTrap", FunctionType(), {});
 }
 
 // Emits a call to a WAVM intrinsic function.
-ValueVector EmitFunctionContext::emitRuntimeIntrinsic(
-        const char *intrinsicName,
-        FunctionType intrinsicType,
-        const std::initializer_list<llvm::Value *> &args) {
+ValueVector EmitFunctionContext::emitRuntimeIntrinsic(const char *intrinsicName, FunctionType intrinsicType, const std::initializer_list<llvm::Value *> &args) {
     llvm::Function *intrinsicFunction = moduleContext.llvmModule->getFunction(intrinsicName);
     if (!intrinsicFunction) {
-        intrinsicFunction = llvm::Function::Create(
-                asLLVMType(llvmContext, intrinsicType, CallingConvention::intrinsic),
-                llvm::Function::ExternalLinkage,
-                intrinsicName,
-                moduleContext.llvmModule);
+        intrinsicFunction = llvm::Function::Create(asLLVMType(llvmContext, intrinsicType, CallingConvention::intrinsic), llvm::Function::ExternalLinkage, intrinsicName, moduleContext.llvmModule);
         intrinsicFunction->setCallingConv(asLLVMCallingConv(CallingConvention::intrinsic));
     }
 
-    return emitCallOrInvoke(intrinsicFunction,
-                            args,
-                            intrinsicType,
-                            CallingConvention::intrinsic,
-                            getInnermostUnwindToBlock());
+    return emitCallOrInvoke(intrinsicFunction, args, intrinsicType, CallingConvention::intrinsic, getInnermostUnwindToBlock());
 }
 
 // A helper function to emit a conditional call to a non-returning intrinsic function.
-void EmitFunctionContext::emitConditionalTrapIntrinsic(
-        llvm::Value *booleanCondition,
-        const char *intrinsicName,
-        FunctionType intrinsicType,
-        const std::initializer_list<llvm::Value *> &args) {
-    auto trueBlock
-            = llvm::BasicBlock::Create(llvmContext, llvm::Twine(intrinsicName) + "Trap", function);
-    auto endBlock
-            = llvm::BasicBlock::Create(llvmContext, llvm::Twine(intrinsicName) + "Skip", function);
+void EmitFunctionContext::emitConditionalTrapIntrinsic(llvm::Value *booleanCondition, const char *intrinsicName, FunctionType intrinsicType, const std::initializer_list<llvm::Value *> &args) {
+    auto trueBlock = llvm::BasicBlock::Create(llvmContext, llvm::Twine(intrinsicName) + "Trap", function);
+    auto endBlock = llvm::BasicBlock::Create(llvmContext, llvm::Twine(intrinsicName) + "Skip", function);
 
-    irBuilder.CreateCondBr(
-            booleanCondition, trueBlock, endBlock, moduleContext.likelyFalseBranchWeights);
+    irBuilder.CreateCondBr(booleanCondition, trueBlock, endBlock, moduleContext.likelyFalseBranchWeights);
 
     irBuilder.SetInsertPoint(trueBlock);
     emitRuntimeIntrinsic(intrinsicName, intrinsicType, args);
@@ -182,29 +158,16 @@ void EmitFunctionContext::emitConditionalTrapIntrinsic(
 // Control structure operators
 //
 
-void EmitFunctionContext::pushControlStack(ControlContext::Type type,
-                                           TypeTuple resultTypes,
-                                           llvm::BasicBlock *endBlock,
-                                           const PHIVector &endPHIs,
-                                           llvm::BasicBlock *elseBlock,
-                                           const ValueVector &elseArgs) {
+void EmitFunctionContext::pushControlStack(ControlContext::Type type, TypeTuple resultTypes, llvm::BasicBlock *endBlock, const PHIVector &endPHIs, llvm::BasicBlock *elseBlock, const ValueVector &elseArgs) {
     // The unreachable operator filtering should filter out any opcodes that call pushControlStack.
-    if (controlStack.size()) { errorUnless(controlStack.back().isReachable); }
+    if (controlStack.size()) {
+        errorUnless(controlStack.back().isReachable);
+    }
 
-    controlStack.push_back({type,
-                            endBlock,
-                            endPHIs,
-                            elseBlock,
-                            elseArgs,
-                            resultTypes,
-                            stack.size(),
-                            branchTargetStack.size(),
-                            true});
+    controlStack.push_back({type, endBlock, endPHIs, elseBlock, elseArgs, resultTypes, stack.size(), branchTargetStack.size(), true});
 }
 
-void EmitFunctionContext::pushBranchTarget(TypeTuple branchArgumentType,
-                                           llvm::BasicBlock *branchTargetBlock,
-                                           const PHIVector &branchTargetPHIs) {
+void EmitFunctionContext::pushBranchTarget(TypeTuple branchArgumentType, llvm::BasicBlock *branchTargetBlock, const PHIVector &branchTargetPHIs) {
     branchTargetStack.push_back({branchArgumentType, branchTargetBlock, branchTargetPHIs});
 }
 
@@ -214,11 +177,9 @@ void EmitFunctionContext::branchToEndOfControlContext() {
     if (currentContext.isReachable) {
         // If the control context expects a result, take it from the operand stack and add it to the
         // control context's end PHI.
-        for (Iptr resultIndex = Iptr(currentContext.resultTypes.size()) - 1; resultIndex >= 0;
-             --resultIndex) {
+        for (Iptr resultIndex = Iptr(currentContext.resultTypes.size()) - 1; resultIndex >= 0; --resultIndex) {
             llvm::Value *result = pop();
-            currentContext.endPHIs[resultIndex]->addIncoming(coerceToCanonicalType(result),
-                                                             irBuilder.GetInsertBlock());
+            currentContext.endPHIs[resultIndex]->addIncoming(coerceToCanonicalType(result), irBuilder.GetInsertBlock());
         }
 
         // Branch to the control context's end.
@@ -242,8 +203,7 @@ void EmitFunctionContext::enterUnreachable() {
 struct UnreachableOpVisitor {
     typedef void Result;
 
-    UnreachableOpVisitor(EmitFunctionContext &inContext)
-            : context(inContext), unreachableControlDepth(0) {
+    UnreachableOpVisitor(EmitFunctionContext &inContext) : context(inContext), unreachableControlDepth(0) {
     }
 
 #define VISIT_OP(opcode, name, nameString, Imm, ...)                                               \
@@ -257,33 +217,48 @@ struct UnreachableOpVisitor {
 
     // Keep track of control structure nesting level in unreachable code, so we know when we reach
     // the end of the unreachable code.
-    void block(ControlStructureImm) { ++unreachableControlDepth; }
+    void block(ControlStructureImm) {
+        ++unreachableControlDepth;
+    }
 
-    void loop(ControlStructureImm) { ++unreachableControlDepth; }
+    void loop(ControlStructureImm) {
+        ++unreachableControlDepth;
+    }
 
-    void if_(ControlStructureImm) { ++unreachableControlDepth; }
+    void if_(ControlStructureImm) {
+        ++unreachableControlDepth;
+    }
 
     // If an else or end opcode would signal an end to the unreachable code, then pass it through to
     // the IR emitter.
     void else_(NoImm imm) {
-        if (!unreachableControlDepth) { context.else_(imm); }
+        if (!unreachableControlDepth) {
+            context.else_(imm);
+        }
     }
 
     void end(NoImm imm) {
-        if (!unreachableControlDepth) { context.end(imm); }
-        else {
+        if (!unreachableControlDepth) {
+            context.end(imm);
+        } else {
             --unreachableControlDepth;
         }
     }
 
-    void try_(ControlStructureImm imm) { ++unreachableControlDepth; }
+    void try_(ControlStructureImm imm) {
+        ++unreachableControlDepth;
+    }
 
     void catch_(ExceptionTypeImm imm) {
-        if (!unreachableControlDepth) { context.catch_(imm); }
+        if (!unreachableControlDepth) {
+            context.catch_(imm);
+        }
     }
 
     void catch_all(NoImm imm) {
-        if (!unreachableControlDepth) { context.catch_all(imm); }
+        if (!unreachableControlDepth) {
+            context.catch_all(imm);
+        }
     }
 
 private:
@@ -299,22 +274,13 @@ void EmitFunctionContext::emit() {
     }
     auto diParamArray = moduleContext.diBuilder.getOrCreateTypeArray(diFunctionParameterTypes);
     auto diFunctionType = moduleContext.diBuilder.createSubroutineType(diParamArray);
-    diFunction = moduleContext.diBuilder.createFunction(moduleContext.diModuleScope,
-                                                        function->getName(),
-                                                        function->getName(),
-                                                        moduleContext.diModuleScope,
-                                                        0,
-                                                        diFunctionType,
-                                                        false,
-                                                        true,
-                                                        0);
+    diFunction = moduleContext.diBuilder.createFunction(moduleContext.diModuleScope, function->getName(), function->getName(), moduleContext.diModuleScope, 0, diFunctionType, false, true, 0);
     function->setSubprogram(diFunction);
 
     // Create the return basic block, and push the root control context for the function.
     auto returnBlock = llvm::BasicBlock::Create(llvmContext, "return", function);
     auto returnPHIs = createPHIs(returnBlock, functionType.results());
-    pushControlStack(
-            ControlContext::Type::function, functionType.results(), returnBlock, returnPHIs);
+    pushControlStack(ControlContext::Type::function, functionType.results(), returnBlock, returnPHIs);
     pushBranchTarget(functionType.results(), returnBlock, returnPHIs);
 
     // Create an initial basic block for the function.
@@ -327,12 +293,10 @@ void EmitFunctionContext::emit() {
 
     // Create and initialize allocas for all the locals and parameters.
     for (Uptr localIndex = 0;
-         localIndex < functionType.params().size() + functionDef.nonParameterLocalTypes.size();
-         ++localIndex) {
-        auto localType
-                = localIndex < functionType.params().size()
-                  ? functionType.params()[localIndex]
-                  : functionDef.nonParameterLocalTypes[localIndex - functionType.params().size()];
+         localIndex < functionType.params().size() + functionDef.nonParameterLocalTypes.size(); ++localIndex) {
+        auto localType = localIndex <
+                         functionType.params().size() ? functionType.params()[localIndex] : functionDef.nonParameterLocalTypes[
+                                 localIndex - functionType.params().size()];
         auto localPointer = irBuilder.CreateAlloca(asLLVMType(llvmContext, localType), nullptr, "");
         localPointers.push_back(localPointer);
 
@@ -347,12 +311,7 @@ void EmitFunctionContext::emit() {
     }
 
     if (EMIT_ENTER_EXIT_HOOKS) {
-        emitRuntimeIntrinsic(
-                "debugEnterFunction",
-                FunctionType({}, {ValueType::anyfunc}),
-                {llvm::ConstantExpr::getSub(
-                        llvm::ConstantExpr::getPtrToInt(function, llvmContext.iptrType),
-                        emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))))});
+        emitRuntimeIntrinsic("debugEnterFunction", FunctionType({}, {ValueType::anyfunc}), {llvm::ConstantExpr::getSub(llvm::ConstantExpr::getPtrToInt(function, llvmContext.iptrType), emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))))});
     }
 
     // Decode the WebAssembly opcodes and emit LLVM IR for them.
@@ -361,24 +320,21 @@ void EmitFunctionContext::emit() {
     OperatorPrinter operatorPrinter(irModule, functionDef);
     Uptr opIndex = 0;
     while (decoder && controlStack.size()) {
-        irBuilder.SetCurrentDebugLocation(
-                llvm::DILocation::get(llvmContext, (unsigned int) opIndex++, 0, diFunction));
-        if (ENABLE_LOGGING) { logOperator(decoder.decodeOpWithoutConsume(operatorPrinter)); }
+        irBuilder.SetCurrentDebugLocation(llvm::DILocation::get(llvmContext, (unsigned int) opIndex++, 0, diFunction));
+        if (ENABLE_LOGGING) {
+            logOperator(decoder.decodeOpWithoutConsume(operatorPrinter));
+        }
 
-        if (controlStack.back().isReachable) { decoder.decodeOp(*this); }
-        else {
+        if (controlStack.back().isReachable) {
+            decoder.decodeOp(*this);
+        } else {
             decoder.decodeOp(unreachableOpVisitor);
         }
     };
     wavmAssert(irBuilder.GetInsertBlock() == returnBlock);
 
     if (EMIT_ENTER_EXIT_HOOKS) {
-        emitRuntimeIntrinsic(
-                "debugExitFunction",
-                FunctionType({}, {ValueType::anyfunc}),
-                {llvm::ConstantExpr::getSub(
-                        llvm::ConstantExpr::getPtrToInt(function, llvmContext.iptrType),
-                        emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))))});
+        emitRuntimeIntrinsic("debugExitFunction", FunctionType({}, {ValueType::anyfunc}), {llvm::ConstantExpr::getSub(llvm::ConstantExpr::getPtrToInt(function, llvmContext.iptrType), emitLiteral(llvmContext, Uptr(offsetof(Runtime::Function, code))))});
     }
 
     // Emit the function return.

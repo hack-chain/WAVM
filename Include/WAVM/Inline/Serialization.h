@@ -14,7 +14,8 @@ namespace WAVM {
         struct FatalSerializationException {
             std::string message;
 
-            FatalSerializationException(std::string &&inMessage) : message(std::move(inMessage)) {}
+            FatalSerializationException(std::string &&inMessage) : message(std::move(inMessage)) {
+            }
         };
 
         // An abstract output stream.
@@ -23,14 +24,19 @@ namespace WAVM {
                 isInput = false
             };
 
-            OutputStream() : next(nullptr), end(nullptr) {}
+            OutputStream() : next(nullptr), end(nullptr) {
+            }
 
-            Uptr capacity() const { return SIZE_MAX; }
+            Uptr capacity() const {
+                return SIZE_MAX;
+            }
 
             // Advances the stream cursor by numBytes, and returns a pointer to the previous stream
             // cursor.
             inline U8 *advance(Uptr numBytes) {
-                if (next + numBytes > end) { extendBuffer(numBytes); }
+                if (next + numBytes > end) {
+                    extendBuffer(numBytes);
+                }
                 wavmAssert(next + numBytes <= end);
 
                 U8 *data = next;
@@ -79,14 +85,17 @@ namespace WAVM {
                 isInput = true
             };
 
-            InputStream(const U8 *inNext, const U8 *inEnd) : next(inNext), end(inEnd) {}
+            InputStream(const U8 *inNext, const U8 *inEnd) : next(inNext), end(inEnd) {
+            }
 
             virtual Uptr capacity() const = 0;
 
             // Advances the stream cursor by numBytes, and returns a pointer to the previous stream
             // cursor.
             inline const U8 *advance(Uptr numBytes) {
-                if (next + numBytes > end) { getMoreData(numBytes); }
+                if (next + numBytes > end) {
+                    getMoreData(numBytes);
+                }
                 const U8 *data = next;
                 next += numBytes;
                 return data;
@@ -95,7 +104,9 @@ namespace WAVM {
             // Returns a pointer to the current stream cursor, ensuring that there are at least numBytes
             // following it.
             inline const U8 *peek(Uptr numBytes) {
-                if (next + numBytes > end) { getMoreData(numBytes); }
+                if (next + numBytes > end) {
+                    getMoreData(numBytes);
+                }
                 return next;
             }
 
@@ -111,9 +122,12 @@ namespace WAVM {
 
         // An input stream that reads from a contiguous range of memory.
         struct MemoryInputStream : InputStream {
-            MemoryInputStream(const U8 *begin, Uptr numBytes) : InputStream(begin, begin + numBytes) {}
+            MemoryInputStream(const U8 *begin, Uptr numBytes) : InputStream(begin, begin + numBytes) {
+            }
 
-            virtual Uptr capacity() const { return end - next; }
+            virtual Uptr capacity() const {
+                return end - next;
+            }
 
         private:
             virtual void getMoreData(Uptr numBytes) {
@@ -123,91 +137,79 @@ namespace WAVM {
 
         // Serialize raw byte sequences.
         FORCEINLINE void serializeBytes(OutputStream &stream, const U8 *bytes, Uptr numBytes) {
-            if (numBytes) { memcpy(stream.advance(numBytes), bytes, numBytes); }
+            if (numBytes) {
+                memcpy(stream.advance(numBytes), bytes, numBytes);
+            }
         }
 
         FORCEINLINE void serializeBytes(InputStream &stream, U8 *bytes, Uptr numBytes) {
-            if (numBytes) { memcpy(bytes, stream.advance(numBytes), numBytes); }
+            if (numBytes) {
+                memcpy(bytes, stream.advance(numBytes), numBytes);
+            }
         }
 
         // Serialize basic C++ types.
-        template<typename Stream, typename Value>
-        FORCEINLINE void serializeNativeValue(Stream &stream, Value &value) {
+        template<typename Stream, typename Value> FORCEINLINE void serializeNativeValue(Stream &stream, Value &value) {
             serializeBytes(stream, (U8 *) &value, sizeof(Value));
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, U8 &i) {
+        template<typename Stream> void serialize(Stream &stream, U8 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, U32 &i) {
+        template<typename Stream> void serialize(Stream &stream, U32 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, U64 &i) {
+        template<typename Stream> void serialize(Stream &stream, U64 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, I8 &i) {
+        template<typename Stream> void serialize(Stream &stream, I8 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, I32 &i) {
+        template<typename Stream> void serialize(Stream &stream, I32 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, I64 &i) {
+        template<typename Stream> void serialize(Stream &stream, I64 &i) {
             serializeNativeValue(stream, i);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, F32 &f) {
+        template<typename Stream> void serialize(Stream &stream, F32 &f) {
             serializeNativeValue(stream, f);
         }
 
-        template<typename Stream>
-        void serialize(Stream &stream, F64 &f) {
+        template<typename Stream> void serialize(Stream &stream, F64 &f) {
             serializeNativeValue(stream, f);
         }
 
         // LEB128 variable-length integer serialization.
-        template<typename Value, Uptr maxBits>
-        FORCEINLINE void serializeVarInt(OutputStream &stream,
-                                         Value &inValue,
-                                         Value minValue,
-                                         Value maxValue) {
+        template<typename Value, Uptr maxBits> FORCEINLINE void serializeVarInt(OutputStream &stream, Value &inValue, Value minValue, Value maxValue) {
             Value value = inValue;
 
             if (value < minValue || value > maxValue) {
                 throw FatalSerializationException(
-                        std::string("out-of-range value: ") + std::to_string(minValue)
-                        + "<=" + std::to_string(value) + "<=" + std::to_string(maxValue));
+                        std::string("out-of-range value: ") + std::to_string(minValue) + "<=" + std::to_string(value) +
+                        "<=" + std::to_string(maxValue));
             }
 
             bool more = true;
             while (more) {
                 U8 outputByte = (U8) (value & 127);
                 value >>= 7;
-                more = std::is_signed<Value>::value
-                       ? (value != 0 && value != Value(-1)) || (value >= 0 && (outputByte & 0x40))
-                         || (value < 0 && !(outputByte & 0x40))
-                       : (value != 0);
-                if (more) { outputByte |= 0x80; }
+                more = std::is_signed<Value>::value ? (value != 0 && value != Value(-1)) ||
+                                                      (value >= 0 && (outputByte & 0x40)) ||
+                                                      (value < 0 && !(outputByte & 0x40)) : (value != 0);
+                if (more) {
+                    outputByte |= 0x80;
+                }
                 *stream.advance(1) = outputByte;
             };
         }
 
-        template<typename Value, Uptr maxBits>
-        FORCEINLINE void serializeVarInt(InputStream &stream,
-                                         Value &value,
-                                         Value minValue,
-                                         Value maxValue) {
+        template<typename Value, Uptr maxBits> FORCEINLINE void serializeVarInt(InputStream &stream, Value &value, Value minValue, Value maxValue) {
             // First, read the variable number of input bytes into a fixed size buffer.
             enum {
                 maxBytes = (maxBits + 6) / 7
@@ -220,7 +222,9 @@ namespace WAVM {
                 bytes[numBytes] = byte;
                 ++numBytes;
                 signExtendShift -= 7;
-                if (!(byte & 0x80)) { break; }
+                if (!(byte & 0x80)) {
+                    break;
+                }
             };
 
             // Ensure that the input does not encode more than maxBits of data.
@@ -234,16 +238,14 @@ namespace WAVM {
             const U8 lastByte = bytes[maxBytes - 1];
             if (!std::is_signed<Value>::value) {
                 if ((lastByte & ~lastByteUsedMask) != 0) {
-                    throw FatalSerializationException(
-                            "Invalid unsigned LEB encoding: unused bits in final byte must be 0");
+                    throw FatalSerializationException("Invalid unsigned LEB encoding: unused bits in final byte must be 0");
                 }
             } else {
                 const I8 signBit = I8((lastByte & lastBitUsedMask) << numUnusedBitsInLast);
                 const I8 signExtendedLastBit = signBit >> numUnusedBitsInLast;
                 if ((lastByte & ~lastByteUsedMask) != (signExtendedLastBit & lastByteSignedMask)) {
-                    throw FatalSerializationException(
-                            "Invalid signed LEB encoding: unused bits in final byte must match the "
-                            "most-significant used bit");
+                    throw FatalSerializationException("Invalid signed LEB encoding: unused bits in final byte must match the "
+                                                      "most-significant used bit");
                 }
             }
 
@@ -261,24 +263,21 @@ namespace WAVM {
             // Check that the output integer is in the expected range.
             if (value < minValue || value > maxValue) {
                 throw FatalSerializationException(
-                        std::string("out-of-range value: ") + std::to_string(minValue)
-                        + "<=" + std::to_string(value) + "<=" + std::to_string(maxValue));
+                        std::string("out-of-range value: ") + std::to_string(minValue) + "<=" + std::to_string(value) +
+                        "<=" + std::to_string(maxValue));
             }
         }
 
-        template<typename Stream, typename Value>
-        void serializeVarUInt7(Stream &stream, Value &value) {
+        template<typename Stream, typename Value> void serializeVarUInt7(Stream &stream, Value &value) {
             serializeVarInt<Value, 7>(stream, value, 0, 127);
         }
 
-        template<typename Stream, typename Value>
-        void serializeVarUInt32(Stream &stream, Value &value) {
+        template<typename Stream, typename Value> void serializeVarUInt32(Stream &stream, Value &value) {
             serializeVarInt<Value, 32>(stream, value, 0, UINT32_MAX);
         }
 
         // Serialize containers.
-        template<typename Stream>
-        void serialize(Stream &stream, std::string &string) {
+        template<typename Stream> void serialize(Stream &stream, std::string &string) {
             Uptr size = string.size();
             serializeVarUInt32(stream, size);
             if (Stream::isInput) {
@@ -294,10 +293,7 @@ namespace WAVM {
             }
         }
 
-        template<typename Stream, typename Element, typename Allocator, typename SerializeElement>
-        void serializeArray(Stream &stream,
-                            std::vector<Element, Allocator> &vector,
-                            SerializeElement serializeElement) {
+        template<typename Stream, typename Element, typename Allocator, typename SerializeElement> void serializeArray(Stream &stream, std::vector<Element, Allocator> &vector, SerializeElement serializeElement) {
             Uptr size = vector.size();
             serializeVarUInt32(stream, size);
             if (Stream::isInput) {
@@ -311,14 +307,16 @@ namespace WAVM {
                 }
                 vector.shrink_to_fit();
             } else {
-                for (Uptr index = 0; index < vector.size(); ++index) { serializeElement(stream, vector[index]); }
+                for (Uptr index = 0; index < vector.size(); ++index) {
+                    serializeElement(stream, vector[index]);
+                }
             }
         }
 
-        template<typename Stream, typename Element, typename Allocator>
-        void serialize(Stream &stream, std::vector<Element, Allocator> &vector) {
-            serializeArray(
-                    stream, vector, [](Stream &stream, Element &element) { serialize(stream, element); });
+        template<typename Stream, typename Element, typename Allocator> void serialize(Stream &stream, std::vector<Element, Allocator> &vector) {
+            serializeArray(stream, vector, [](Stream &stream, Element &element) {
+                serialize(stream, element);
+            });
         }
     }
 }

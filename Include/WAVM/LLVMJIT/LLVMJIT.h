@@ -69,33 +69,18 @@ namespace WAVM {
         };
 
         // Loads a module from object code, and binds its undefined symbols to the provided bindings.
-        LLVMJIT_API std::shared_ptr<Module> loadModule(
-                const std::vector<U8> &objectFileBytes,
-                HashMap<std::string, FunctionBinding> &&wavmIntrinsicsExportMap,
-                std::vector<IR::FunctionType> &&types,
-                std::vector<FunctionBinding> &&functionImports,
-                std::vector<TableBinding> &&tables,
-                std::vector<MemoryBinding> &&memories,
-                std::vector<GlobalBinding> &&globals,
-                std::vector<ExceptionTypeBinding> &&exceptionTypes,
-                ModuleInstanceBinding moduleInstance,
-                Uptr tableReferenceBias,
-                const std::vector<Runtime::FunctionMutableData *> &functionDefMutableDatas);
+        LLVMJIT_API std::shared_ptr<Module> loadModule(const std::vector<U8> &objectFileBytes, HashMap<std::string, FunctionBinding> &&wavmIntrinsicsExportMap, std::vector<IR::FunctionType> &&types, std::vector<FunctionBinding> &&functionImports, std::vector<TableBinding> &&tables, std::vector<MemoryBinding> &&memories, std::vector<GlobalBinding> &&globals, std::vector<ExceptionTypeBinding> &&exceptionTypes, ModuleInstanceBinding moduleInstance, Uptr tableReferenceBias, const std::vector<Runtime::FunctionMutableData *> &functionDefMutableDatas);
 
         // Finds the JIT function whose code contains the given address. If no JIT function contains the
         // given address, returns null.
         LLVMJIT_API Runtime::Function *getFunctionByAddress(Uptr address);
 
-        typedef Runtime::ContextRuntimeData *(*InvokeThunkPointer)(Runtime::Function *,
-                                                                   Runtime::ContextRuntimeData *);
+        typedef Runtime::ContextRuntimeData *(*InvokeThunkPointer)(Runtime::Function *, Runtime::ContextRuntimeData *);
 
         // Generates an invoke thunk for a specific function type.
         LLVMJIT_API InvokeThunkPointer getInvokeThunk(IR::FunctionType functionType);
 
         // Generates a thunk to call a native function from generated code.
-        LLVMJIT_API Runtime::Function *getIntrinsicThunk(void *nativeFunction,
-                                                         IR::FunctionType functionType,
-                                                         IR::CallingConvention callingConvention,
-                                                         const char *debugName);
+        LLVMJIT_API Runtime::Function *getIntrinsicThunk(void *nativeFunction, IR::FunctionType functionType, IR::CallingConvention callingConvention, const char *debugName);
     }
 }

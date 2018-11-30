@@ -43,13 +43,17 @@ namespace libunwind {
 
         void setRegister(int num, uint32_t value);
 
-        bool validFloatRegister(int) const { return false; }
+        bool validFloatRegister(int) const {
+            return false;
+        }
 
         double getFloatRegister(int num) const;
 
         void setFloatRegister(int num, double value);
 
-        bool validVectorRegister(int) const { return false; }
+        bool validVectorRegister(int) const {
+            return false;
+        }
 
         v128 getVectorRegister(int num) const;
 
@@ -59,39 +63,73 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_X86; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_X86;
+        }
 
-        uint32_t getSP() const { return _registers.__esp; }
+        uint32_t getSP() const {
+            return _registers.__esp;
+        }
 
-        void setSP(uint32_t value) { _registers.__esp = value; }
+        void setSP(uint32_t value) {
+            _registers.__esp = value;
+        }
 
-        uint32_t getIP() const { return _registers.__eip; }
+        uint32_t getIP() const {
+            return _registers.__eip;
+        }
 
-        void setIP(uint32_t value) { _registers.__eip = value; }
+        void setIP(uint32_t value) {
+            _registers.__eip = value;
+        }
 
-        uint32_t getEBP() const { return _registers.__ebp; }
+        uint32_t getEBP() const {
+            return _registers.__ebp;
+        }
 
-        void setEBP(uint32_t value) { _registers.__ebp = value; }
+        void setEBP(uint32_t value) {
+            _registers.__ebp = value;
+        }
 
-        uint32_t getEBX() const { return _registers.__ebx; }
+        uint32_t getEBX() const {
+            return _registers.__ebx;
+        }
 
-        void setEBX(uint32_t value) { _registers.__ebx = value; }
+        void setEBX(uint32_t value) {
+            _registers.__ebx = value;
+        }
 
-        uint32_t getECX() const { return _registers.__ecx; }
+        uint32_t getECX() const {
+            return _registers.__ecx;
+        }
 
-        void setECX(uint32_t value) { _registers.__ecx = value; }
+        void setECX(uint32_t value) {
+            _registers.__ecx = value;
+        }
 
-        uint32_t getEDX() const { return _registers.__edx; }
+        uint32_t getEDX() const {
+            return _registers.__edx;
+        }
 
-        void setEDX(uint32_t value) { _registers.__edx = value; }
+        void setEDX(uint32_t value) {
+            _registers.__edx = value;
+        }
 
-        uint32_t getESI() const { return _registers.__esi; }
+        uint32_t getESI() const {
+            return _registers.__esi;
+        }
 
-        void setESI(uint32_t value) { _registers.__esi = value; }
+        void setESI(uint32_t value) {
+            _registers.__esi = value;
+        }
 
-        uint32_t getEDI() const { return _registers.__edi; }
+        uint32_t getEDI() const {
+            return _registers.__edi;
+        }
 
-        void setEDI(uint32_t value) { _registers.__edi = value; }
+        void setEDI(uint32_t value) {
+            _registers.__edi = value;
+        }
 
     private:
         struct GPRs {
@@ -117,8 +155,7 @@ namespace libunwind {
     };
 
     inline Registers_x86::Registers_x86(const void *registers) {
-        static_assert((check_fit<Registers_x86, unw_context_t>::does_fit),
-                      "x86 registers do not fit into unw_context_t");
+        static_assert((check_fit<Registers_x86, unw_context_t>::does_fit), "x86 registers do not fit into unw_context_t");
         memcpy(&_registers, registers, sizeof(_registers));
     }
 
@@ -278,7 +315,9 @@ namespace libunwind {
 
         void setRegister(int num, uint64_t value);
 
-        bool validFloatRegister(int) const { return false; }
+        bool validFloatRegister(int) const {
+            return false;
+        }
 
         double getFloatRegister(int num) const;
 
@@ -294,39 +333,73 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_X86_64; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_X86_64;
+        }
 
-        uint64_t getSP() const { return _registers.__rsp; }
+        uint64_t getSP() const {
+            return _registers.__rsp;
+        }
 
-        void setSP(uint64_t value) { _registers.__rsp = value; }
+        void setSP(uint64_t value) {
+            _registers.__rsp = value;
+        }
 
-        uint64_t getIP() const { return _registers.__rip; }
+        uint64_t getIP() const {
+            return _registers.__rip;
+        }
 
-        void setIP(uint64_t value) { _registers.__rip = value; }
+        void setIP(uint64_t value) {
+            _registers.__rip = value;
+        }
 
-        uint64_t getRBP() const { return _registers.__rbp; }
+        uint64_t getRBP() const {
+            return _registers.__rbp;
+        }
 
-        void setRBP(uint64_t value) { _registers.__rbp = value; }
+        void setRBP(uint64_t value) {
+            _registers.__rbp = value;
+        }
 
-        uint64_t getRBX() const { return _registers.__rbx; }
+        uint64_t getRBX() const {
+            return _registers.__rbx;
+        }
 
-        void setRBX(uint64_t value) { _registers.__rbx = value; }
+        void setRBX(uint64_t value) {
+            _registers.__rbx = value;
+        }
 
-        uint64_t getR12() const { return _registers.__r12; }
+        uint64_t getR12() const {
+            return _registers.__r12;
+        }
 
-        void setR12(uint64_t value) { _registers.__r12 = value; }
+        void setR12(uint64_t value) {
+            _registers.__r12 = value;
+        }
 
-        uint64_t getR13() const { return _registers.__r13; }
+        uint64_t getR13() const {
+            return _registers.__r13;
+        }
 
-        void setR13(uint64_t value) { _registers.__r13 = value; }
+        void setR13(uint64_t value) {
+            _registers.__r13 = value;
+        }
 
-        uint64_t getR14() const { return _registers.__r14; }
+        uint64_t getR14() const {
+            return _registers.__r14;
+        }
 
-        void setR14(uint64_t value) { _registers.__r14 = value; }
+        void setR14(uint64_t value) {
+            _registers.__r14 = value;
+        }
 
-        uint64_t getR15() const { return _registers.__r15; }
+        uint64_t getR15() const {
+            return _registers.__r15;
+        }
 
-        void setR15(uint64_t value) { _registers.__r15 = value; }
+        void setR15(uint64_t value) {
+            _registers.__r15 = value;
+        }
 
     private:
         struct GPRs {
@@ -362,8 +435,7 @@ namespace libunwind {
     };
 
     inline Registers_x86_64::Registers_x86_64(const void *registers) {
-        static_assert((check_fit<Registers_x86_64, unw_context_t>::does_fit),
-                      "x86_64 registers do not fit into unw_context_t");
+        static_assert((check_fit<Registers_x86_64, unw_context_t>::does_fit), "x86_64 registers do not fit into unw_context_t");
         memcpy(&_registers, registers, sizeof(_registers));
     }
 
@@ -633,15 +705,25 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC;
+        }
 
-        uint64_t getSP() const { return _registers.__r1; }
+        uint64_t getSP() const {
+            return _registers.__r1;
+        }
 
-        void setSP(uint32_t value) { _registers.__r1 = value; }
+        void setSP(uint32_t value) {
+            _registers.__r1 = value;
+        }
 
-        uint64_t getIP() const { return _registers.__srr0; }
+        uint64_t getIP() const {
+            return _registers.__srr0;
+        }
 
-        void setIP(uint32_t value) { _registers.__srr0 = value; }
+        void setIP(uint32_t value) {
+            _registers.__srr0 = value;
+        }
 
     private:
         struct ppc_thread_state_t {
@@ -700,21 +782,15 @@ namespace libunwind {
     };
 
     inline Registers_ppc::Registers_ppc(const void *registers) {
-        static_assert((check_fit<Registers_ppc, unw_context_t>::does_fit),
-                      "ppc registers do not fit into unw_context_t");
-        memcpy(&_registers, static_cast<const uint8_t *>(registers),
-               sizeof(_registers));
-        static_assert(sizeof(ppc_thread_state_t) == 160,
-                      "expected float register offset to be 160");
+        static_assert((check_fit<Registers_ppc, unw_context_t>::does_fit), "ppc registers do not fit into unw_context_t");
+        memcpy(&_registers, static_cast<const uint8_t *>(registers), sizeof(_registers));
+        static_assert(sizeof(ppc_thread_state_t) == 160, "expected float register offset to be 160");
         memcpy(&_floatRegisters,
-               static_cast<const uint8_t *>(registers) + sizeof(ppc_thread_state_t),
-               sizeof(_floatRegisters));
-        static_assert(sizeof(ppc_thread_state_t) + sizeof(ppc_float_state_t) == 424,
-                      "expected vector register offset to be 424 bytes");
-        memcpy(_vectorRegisters,
-               static_cast<const uint8_t *>(registers) + sizeof(ppc_thread_state_t) +
-               sizeof(ppc_float_state_t),
-               sizeof(_vectorRegisters));
+               static_cast<const uint8_t *>(registers) + sizeof(ppc_thread_state_t), sizeof(_floatRegisters));
+        static_assert(sizeof(ppc_thread_state_t) + sizeof(ppc_float_state_t) ==
+                      424, "expected vector register offset to be 424 bytes");
+        memcpy(_vectorRegisters, static_cast<const uint8_t *>(registers) + sizeof(ppc_thread_state_t) +
+                                 sizeof(ppc_float_state_t), sizeof(_vectorRegisters));
     }
 
     inline Registers_ppc::Registers_ppc() {
@@ -1215,15 +1291,25 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC64; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_PPC64;
+        }
 
-        uint64_t getSP() const { return _registers.__r1; }
+        uint64_t getSP() const {
+            return _registers.__r1;
+        }
 
-        void setSP(uint64_t value) { _registers.__r1 = value; }
+        void setSP(uint64_t value) {
+            _registers.__r1 = value;
+        }
 
-        uint64_t getIP() const { return _registers.__srr0; }
+        uint64_t getIP() const {
+            return _registers.__srr0;
+        }
 
-        void setIP(uint64_t value) { _registers.__srr0 = value; }
+        void setIP(uint64_t value) {
+            _registers.__srr0 = value;
+        }
 
     private:
         struct ppc64_thread_state_t {
@@ -1283,18 +1369,13 @@ namespace libunwind {
     };
 
     inline Registers_ppc64::Registers_ppc64(const void *registers) {
-        static_assert((check_fit<Registers_ppc64, unw_context_t>::does_fit),
-                      "ppc64 registers do not fit into unw_context_t");
-        memcpy(&_registers, static_cast<const uint8_t *>(registers),
-               sizeof(_registers));
-        static_assert(sizeof(_registers) == 312,
-                      "expected vector scalar register offset to be 312");
+        static_assert((check_fit<Registers_ppc64, unw_context_t>::does_fit), "ppc64 registers do not fit into unw_context_t");
+        memcpy(&_registers, static_cast<const uint8_t *>(registers), sizeof(_registers));
+        static_assert(sizeof(_registers) == 312, "expected vector scalar register offset to be 312");
         memcpy(&_vectorScalarRegisters,
-               static_cast<const uint8_t *>(registers) + sizeof(_registers),
-               sizeof(_vectorScalarRegisters));
-        static_assert(sizeof(_registers) +
-                      sizeof(_vectorScalarRegisters) == 1336,
-                      "expected vector register offset to be 1336 bytes");
+               static_cast<const uint8_t *>(registers) + sizeof(_registers), sizeof(_vectorScalarRegisters));
+        static_assert(sizeof(_registers) + sizeof(_vectorScalarRegisters) ==
+                      1336, "expected vector register offset to be 1336 bytes");
     }
 
     inline Registers_ppc64::Registers_ppc64() {
@@ -1873,19 +1954,33 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM64;
+        }
 
-        uint64_t getSP() const { return _registers.__sp; }
+        uint64_t getSP() const {
+            return _registers.__sp;
+        }
 
-        void setSP(uint64_t value) { _registers.__sp = value; }
+        void setSP(uint64_t value) {
+            _registers.__sp = value;
+        }
 
-        uint64_t getIP() const { return _registers.__pc; }
+        uint64_t getIP() const {
+            return _registers.__pc;
+        }
 
-        void setIP(uint64_t value) { _registers.__pc = value; }
+        void setIP(uint64_t value) {
+            _registers.__pc = value;
+        }
 
-        uint64_t getFP() const { return _registers.__fp; }
+        uint64_t getFP() const {
+            return _registers.__fp;
+        }
 
-        void setFP(uint64_t value) { _registers.__fp = value; }
+        void setFP(uint64_t value) {
+            _registers.__fp = value;
+        }
 
     private:
         struct GPRs {
@@ -1906,14 +2001,11 @@ namespace libunwind {
     };
 
     inline Registers_arm64::Registers_arm64(const void *registers) {
-        static_assert((check_fit<Registers_arm64, unw_context_t>::does_fit),
-                      "arm64 registers do not fit into unw_context_t");
+        static_assert((check_fit<Registers_arm64, unw_context_t>::does_fit), "arm64 registers do not fit into unw_context_t");
         memcpy(&_registers, registers, sizeof(_registers));
-        static_assert(sizeof(GPRs) == 0x110,
-                      "expected VFP registers to be at offset 272");
+        static_assert(sizeof(GPRs) == 0x110, "expected VFP registers to be at offset 272");
         memcpy(_vectorHalfRegisters,
-               static_cast<const uint8_t *>(registers) + sizeof(GPRs),
-               sizeof(_vectorHalfRegisters));
+               static_cast<const uint8_t *>(registers) + sizeof(GPRs), sizeof(_vectorHalfRegisters));
     }
 
     inline Registers_arm64::Registers_arm64() {
@@ -2165,15 +2257,25 @@ namespace libunwind {
             restoreCoreAndJumpTo();
         }
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_ARM;
+        }
 
-        uint32_t getSP() const { return _registers.__sp; }
+        uint32_t getSP() const {
+            return _registers.__sp;
+        }
 
-        void setSP(uint32_t value) { _registers.__sp = value; }
+        void setSP(uint32_t value) {
+            _registers.__sp = value;
+        }
 
-        uint32_t getIP() const { return _registers.__pc; }
+        uint32_t getIP() const {
+            return _registers.__pc;
+        }
 
-        void setIP(uint32_t value) { _registers.__pc = value; }
+        void setIP(uint32_t value) {
+            _registers.__pc = value;
+        }
 
         void saveVFPAsX() {
             assert(_use_X_for_vfp_save || !_saved_vfp_d0_d15);
@@ -2258,11 +2360,8 @@ namespace libunwind {
     };
 
     inline Registers_arm::Registers_arm(const void *registers)
-            : _use_X_for_vfp_save(false),
-              _saved_vfp_d0_d15(false),
-              _saved_vfp_d16_d31(false) {
-        static_assert((check_fit<Registers_arm, unw_context_t>::does_fit),
-                      "arm registers do not fit into unw_context_t");
+            : _use_X_for_vfp_save(false), _saved_vfp_d0_d15(false), _saved_vfp_d16_d31(false) {
+        static_assert((check_fit<Registers_arm, unw_context_t>::does_fit), "arm registers do not fit into unw_context_t");
         // See unw_getcontext() note about data.
         memcpy(&_registers, registers, sizeof(_registers));
         memset(&_vfp_d0_d15_pad, 0, sizeof(_vfp_d0_d15_pad));
@@ -2276,9 +2375,7 @@ namespace libunwind {
     }
 
     inline Registers_arm::Registers_arm()
-            : _use_X_for_vfp_save(false),
-              _saved_vfp_d0_d15(false),
-              _saved_vfp_d16_d31(false) {
+            : _use_X_for_vfp_save(false), _saved_vfp_d0_d15(false), _saved_vfp_d16_d31(false) {
         memset(&_registers, 0, sizeof(_registers));
         memset(&_vfp_d0_d15_pad, 0, sizeof(_vfp_d0_d15_pad));
         memset(&_vfp_d16_d31, 0, sizeof(_vfp_d16_d31));
@@ -2666,15 +2763,25 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_OR1K; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_OR1K;
+        }
 
-        uint64_t getSP() const { return _registers.__r[1]; }
+        uint64_t getSP() const {
+            return _registers.__r[1];
+        }
 
-        void setSP(uint32_t value) { _registers.__r[1] = value; }
+        void setSP(uint32_t value) {
+            _registers.__r[1] = value;
+        }
 
-        uint64_t getIP() const { return _registers.__r[9]; }
+        uint64_t getIP() const {
+            return _registers.__r[9];
+        }
 
-        void setIP(uint32_t value) { _registers.__r[9] = value; }
+        void setIP(uint32_t value) {
+            _registers.__r[9] = value;
+        }
 
     private:
         struct or1k_thread_state_t {
@@ -2685,10 +2792,8 @@ namespace libunwind {
     };
 
     inline Registers_or1k::Registers_or1k(const void *registers) {
-        static_assert((check_fit<Registers_or1k, unw_context_t>::does_fit),
-                      "or1k registers do not fit into unw_context_t");
-        memcpy(&_registers, static_cast<const uint8_t *>(registers),
-               sizeof(_registers));
+        static_assert((check_fit<Registers_or1k, unw_context_t>::does_fit), "or1k registers do not fit into unw_context_t");
+        memcpy(&_registers, static_cast<const uint8_t *>(registers), sizeof(_registers));
     }
 
     inline Registers_or1k::Registers_or1k() {
@@ -2745,8 +2850,7 @@ namespace libunwind {
         _LIBUNWIND_ABORT("or1k float support not implemented");
     }
 
-    inline void Registers_or1k::setFloatRegister(int /* regNum */,
-                                                 double /* value */) {
+    inline void Registers_or1k::setFloatRegister(int /* regNum */, double /* value */) {
         _LIBUNWIND_ABORT("or1k float support not implemented");
     }
 
@@ -2868,15 +2972,25 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS;
+        }
 
-        uint32_t getSP() const { return _registers.__r[29]; }
+        uint32_t getSP() const {
+            return _registers.__r[29];
+        }
 
-        void setSP(uint32_t value) { _registers.__r[29] = value; }
+        void setSP(uint32_t value) {
+            _registers.__r[29] = value;
+        }
 
-        uint32_t getIP() const { return _registers.__pc; }
+        uint32_t getIP() const {
+            return _registers.__pc;
+        }
 
-        void setIP(uint32_t value) { _registers.__pc = value; }
+        void setIP(uint32_t value) {
+            _registers.__pc = value;
+        }
 
     private:
         struct mips_o32_thread_state_t {
@@ -2890,10 +3004,8 @@ namespace libunwind {
     };
 
     inline Registers_mips_o32::Registers_mips_o32(const void *registers) {
-        static_assert((check_fit<Registers_mips_o32, unw_context_t>::does_fit),
-                      "mips_o32 registers do not fit into unw_context_t");
-        memcpy(&_registers, static_cast<const uint8_t *>(registers),
-               sizeof(_registers));
+        static_assert((check_fit<Registers_mips_o32, unw_context_t>::does_fit), "mips_o32 registers do not fit into unw_context_t");
+        memcpy(&_registers, static_cast<const uint8_t *>(registers), sizeof(_registers));
     }
 
     inline Registers_mips_o32::Registers_mips_o32() {
@@ -2965,8 +3077,7 @@ namespace libunwind {
         _LIBUNWIND_ABORT("mips_o32 float support not implemented");
     }
 
-    inline void Registers_mips_o32::setFloatRegister(int /* regNum */,
-                                                     double /* value */) {
+    inline void Registers_mips_o32::setFloatRegister(int /* regNum */, double /* value */) {
         _LIBUNWIND_ABORT("mips_o32 float support not implemented");
     }
 
@@ -3091,15 +3202,25 @@ namespace libunwind {
 
         void jumpto();
 
-        static int lastDwarfRegNum() { return _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS; }
+        static int lastDwarfRegNum() {
+            return _LIBUNWIND_HIGHEST_DWARF_REGISTER_MIPS;
+        }
 
-        uint64_t getSP() const { return _registers.__r[29]; }
+        uint64_t getSP() const {
+            return _registers.__r[29];
+        }
 
-        void setSP(uint64_t value) { _registers.__r[29] = value; }
+        void setSP(uint64_t value) {
+            _registers.__r[29] = value;
+        }
 
-        uint64_t getIP() const { return _registers.__pc; }
+        uint64_t getIP() const {
+            return _registers.__pc;
+        }
 
-        void setIP(uint64_t value) { _registers.__pc = value; }
+        void setIP(uint64_t value) {
+            _registers.__pc = value;
+        }
 
     private:
         struct mips_newabi_thread_state_t {
@@ -3113,10 +3234,8 @@ namespace libunwind {
     };
 
     inline Registers_mips_newabi::Registers_mips_newabi(const void *registers) {
-        static_assert((check_fit<Registers_mips_newabi, unw_context_t>::does_fit),
-                      "mips_newabi registers do not fit into unw_context_t");
-        memcpy(&_registers, static_cast<const uint8_t *>(registers),
-               sizeof(_registers));
+        static_assert((check_fit<Registers_mips_newabi, unw_context_t>::does_fit), "mips_newabi registers do not fit into unw_context_t");
+        memcpy(&_registers, static_cast<const uint8_t *>(registers), sizeof(_registers));
     }
 
     inline Registers_mips_newabi::Registers_mips_newabi() {
@@ -3188,8 +3307,7 @@ namespace libunwind {
         _LIBUNWIND_ABORT("mips_newabi float support not implemented");
     }
 
-    inline void Registers_mips_newabi::setFloatRegister(int /* regNum */,
-                                                        double /* value */) {
+    inline void Registers_mips_newabi::setFloatRegister(int /* regNum */, double /* value */) {
         _LIBUNWIND_ABORT("mips_newabi float support not implemented");
     }
 

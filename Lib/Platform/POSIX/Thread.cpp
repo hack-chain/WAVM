@@ -69,12 +69,7 @@ void SigAltStack::init() {
     if (!base) {
         // Allocate a stack to use when handling signals, so stack overflow can be handled
         // safely.
-        base = (U8 *) mmap(nullptr,
-                           sigAltStackNumBytes,
-                           PROT_READ | PROT_WRITE,
-                           MAP_PRIVATE | MAP_ANONYMOUS,
-                           -1,
-                           0);
+        base = (U8 *) mmap(nullptr, sigAltStackNumBytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         errorUnless(base != MAP_FAILED);
         stack_t sigAltStackInfo;
         sigAltStackInfo.ss_size = sigAltStackNumBytes;
@@ -126,17 +121,14 @@ NO_ASAN static void *createThreadEntry(void *argsVoid) {
         threadEntryFramePointer = getStackPointer();
 
         result = (*args->entry)(args->entryArgument);
-    }
-    catch (ExitThreadException exception) {
+    } catch (ExitThreadException exception) {
         result = exception.exitCode;
     }
 
     return reinterpret_cast<void *>(result);
 }
 
-Platform::Thread *Platform::createThread(Uptr numStackBytes,
-                                         I64 (*threadEntry)(void *),
-                                         void *argument) {
+Platform::Thread *Platform::createThread(Uptr numStackBytes, I64 (*threadEntry)(void *), void *argument) {
     auto thread = new Thread;
     auto createArgs = new CreateThreadArgs;
     createArgs->entry = threadEntry;
@@ -177,8 +169,7 @@ NO_ASAN static void *forkThreadEntry(void *argsVoid) {
         threadEntryFramePointer = args->threadEntryFramePointer;
 
         result = switchToForkedStackContext(&args->forkContext, args->threadEntryFramePointer);
-    }
-    catch (ExitThreadException exception) {
+    } catch (ExitThreadException exception) {
         result = exception.exitCode;
     }
 
@@ -199,7 +190,9 @@ NO_ASAN Thread *Platform::forkCurrentThread() {
     if (!threadEntryFramePointer) {
         Errors::fatal("Cannot fork a thread that wasn't created by Platform::createThread");
     }
-    if (innermostSignalContext) { Errors::fatal("Cannot fork a thread with catchSignals on the stack"); }
+    if (innermostSignalContext) {
+        Errors::fatal("Cannot fork a thread with catchSignals on the stack");
+    }
 
     // Capture the current execution state in forkThreadArgs->forkContext.
     // The forked thread will load this execution context, and "return" from this function on the
@@ -228,16 +221,12 @@ NO_ASAN Thread *Platform::forkCurrentThread() {
         }
 
         // Allocate a stack for the forked thread, and copy this thread's stack to it.
-        U8 *forkedMinStackAddr = (U8 *) mmap(nullptr,
-                                             numStackBytes,
+        U8 *forkedMinStackAddr = (U8 *) mmap(nullptr, numStackBytes,
                                              PROT_READ | PROT_WRITE,
-                                             MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK_FLAGS,
-                                             -1,
-                                             0);
+                                             MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK_FLAGS, -1, 0);
         errorUnless(forkedMinStackAddr != MAP_FAILED);
         U8 *forkedMaxStackAddr = forkedMinStackAddr + numStackBytes - PTHREAD_STACK_MIN;
-        memcpyToCallFromNoASAN(
-                forkedMaxStackAddr - numActiveStackBytes, minActiveStackAddr, numActiveStackBytes);
+        memcpyToCallFromNoASAN(forkedMaxStackAddr - numActiveStackBytes, minActiveStackAddr, numActiveStackBytes);
 
         // Compute the offset to add to stack pointers to translate them to the forked thread's
         // stack.
@@ -257,8 +246,7 @@ NO_ASAN Thread *Platform::forkCurrentThread() {
         errorUnless(!pthread_attr_setstack(threadAttr, forkedMinStackAddr, numStackBytes));
 
         auto thread = new Thread;
-        errorUnless(!pthread_create(
-                &thread->id, threadAttr, (void *(*)(void *)) forkThreadEntry, forkThreadArgs));
+        errorUnless(!pthread_create(&thread->id, threadAttr, (void *(*)(void *)) forkThreadEntry, forkThreadArgs));
 
         errorUnless(!pthread_attr_destroy(threadAttr));
         delete threadAttr;
@@ -267,4 +255,6 @@ NO_ASAN Thread *Platform::forkCurrentThread() {
     }
 }
 
-Uptr Platform::getNumberOfHardwareThreads() { return std::thread::hardware_concurrency(); }
+Uptr Platform::getNumberOfHardwareThreads() {
+    return std::thread::hardware_concurrency();
+}

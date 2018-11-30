@@ -30,59 +30,38 @@ namespace libunwind {
 
 /// CompactUnwinder_x86 uses a compact unwind info to virtually "step" (aka
 /// unwind) by modifying a Registers_x86 register set
-    template<typename A>
-    class CompactUnwinder_x86 {
+    template<typename A> class CompactUnwinder_x86 {
     public:
 
-        static int stepWithCompactEncoding(compact_unwind_encoding_t info,
-                                           uint32_t functionStart, A &addressSpace,
-                                           Registers_x86 &registers);
+        static int stepWithCompactEncoding(compact_unwind_encoding_t info, uint32_t functionStart, A &addressSpace, Registers_x86 &registers);
 
     private:
         typename A::pint_t pint_t;
 
         static void frameUnwind(A &addressSpace, Registers_x86 &registers);
 
-        static void framelessUnwind(A &addressSpace,
-                                    typename A::pint_t returnAddressLocation,
-                                    Registers_x86 &registers);
+        static void framelessUnwind(A &addressSpace, typename A::pint_t returnAddressLocation, Registers_x86 &registers);
 
-        static int
-        stepWithCompactEncodingEBPFrame(compact_unwind_encoding_t compactEncoding,
-                                        uint32_t functionStart, A &addressSpace,
-                                        Registers_x86 &registers);
+        static int stepWithCompactEncodingEBPFrame(compact_unwind_encoding_t compactEncoding, uint32_t functionStart, A &addressSpace, Registers_x86 &registers);
 
-        static int stepWithCompactEncodingFrameless(
-                compact_unwind_encoding_t compactEncoding, uint32_t functionStart,
-                A &addressSpace, Registers_x86 &registers, bool indirectStackSize);
+        static int stepWithCompactEncodingFrameless(compact_unwind_encoding_t compactEncoding, uint32_t functionStart, A &addressSpace, Registers_x86 &registers, bool indirectStackSize);
     };
 
-    template<typename A>
-    int CompactUnwinder_x86<A>::stepWithCompactEncoding(
-            compact_unwind_encoding_t compactEncoding, uint32_t functionStart,
-            A &addressSpace, Registers_x86 &registers) {
+    template<typename A> int CompactUnwinder_x86<A>::stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding, uint32_t functionStart, A &addressSpace, Registers_x86 &registers) {
         switch (compactEncoding & UNWIND_X86_MODE_MASK) {
             case UNWIND_X86_MODE_EBP_FRAME:
-                return stepWithCompactEncodingEBPFrame(compactEncoding, functionStart,
-                                                       addressSpace, registers);
+                return stepWithCompactEncodingEBPFrame(compactEncoding, functionStart, addressSpace, registers);
             case UNWIND_X86_MODE_STACK_IMMD:
-                return stepWithCompactEncodingFrameless(compactEncoding, functionStart,
-                                                        addressSpace, registers, false);
+                return stepWithCompactEncodingFrameless(compactEncoding, functionStart, addressSpace, registers, false);
             case UNWIND_X86_MODE_STACK_IND:
-                return stepWithCompactEncodingFrameless(compactEncoding, functionStart,
-                                                        addressSpace, registers, true);
+                return stepWithCompactEncodingFrameless(compactEncoding, functionStart, addressSpace, registers, true);
         }
         _LIBUNWIND_ABORT("invalid compact unwind encoding");
     }
 
-    template<typename A>
-    int CompactUnwinder_x86<A>::stepWithCompactEncodingEBPFrame(
-            compact_unwind_encoding_t compactEncoding, uint32_t functionStart,
-            A &addressSpace, Registers_x86 &registers) {
-        uint32_t savedRegistersOffset =
-                EXTRACT_BITS(compactEncoding, UNWIND_X86_EBP_FRAME_OFFSET);
-        uint32_t savedRegistersLocations =
-                EXTRACT_BITS(compactEncoding, UNWIND_X86_EBP_FRAME_REGISTERS);
+    template<typename A> int CompactUnwinder_x86<A>::stepWithCompactEncodingEBPFrame(compact_unwind_encoding_t compactEncoding, uint32_t functionStart, A &addressSpace, Registers_x86 &registers) {
+        uint32_t savedRegistersOffset = EXTRACT_BITS(compactEncoding, UNWIND_X86_EBP_FRAME_OFFSET);
+        uint32_t savedRegistersLocations = EXTRACT_BITS(compactEncoding, UNWIND_X86_EBP_FRAME_REGISTERS);
 
         uint32_t savedRegisters = registers.getEBP() - 4 * savedRegistersOffset;
         for (int i = 0; i < 5; ++i) {
@@ -108,8 +87,7 @@ namespace libunwind {
                 default:
                     (void) functionStart;
                     _LIBUNWIND_DEBUG_LOG("bad register for EBP frame, encoding=%08X for  "
-                                         "function starting at 0x%X",
-                                         compactEncoding, functionStart);
+                                         "function starting at 0x%X", compactEncoding, functionStart);
                     _LIBUNWIND_ABORT("invalid compact unwind encoding");
             }
             savedRegisters += 4;
@@ -119,18 +97,11 @@ namespace libunwind {
         return UNW_STEP_SUCCESS;
     }
 
-    template<typename A>
-    int CompactUnwinder_x86<A>::stepWithCompactEncodingFrameless(
-            compact_unwind_encoding_t encoding, uint32_t functionStart,
-            A &addressSpace, Registers_x86 &registers, bool indirectStackSize) {
-        uint32_t stackSizeEncoded =
-                EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_SIZE);
-        uint32_t stackAdjust =
-                EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_ADJUST);
-        uint32_t regCount =
-                EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_REG_COUNT);
-        uint32_t permutation =
-                EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_REG_PERMUTATION);
+    template<typename A> int CompactUnwinder_x86<A>::stepWithCompactEncodingFrameless(compact_unwind_encoding_t encoding, uint32_t functionStart, A &addressSpace, Registers_x86 &registers, bool indirectStackSize) {
+        uint32_t stackSizeEncoded = EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_SIZE);
+        uint32_t stackAdjust = EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_ADJUST);
+        uint32_t regCount = EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_REG_COUNT);
+        uint32_t permutation = EXTRACT_BITS(encoding, UNWIND_X86_FRAMELESS_STACK_REG_PERMUTATION);
         uint32_t stackSize = stackSizeEncoded * 4;
         if (indirectStackSize) {
             // stack size is encoded in subl $xxx,%esp instruction
@@ -227,8 +198,7 @@ namespace libunwind {
                     break;
                 default:
                     _LIBUNWIND_DEBUG_LOG("bad register for frameless, encoding=%08X for "
-                                         "function starting at 0x%X",
-                                         encoding, functionStart);
+                                         "function starting at 0x%X", encoding, functionStart);
                     _LIBUNWIND_ABORT("invalid compact unwind encoding");
             }
             savedRegisters += 4;
@@ -238,9 +208,7 @@ namespace libunwind {
     }
 
 
-    template<typename A>
-    void CompactUnwinder_x86<A>::frameUnwind(A &addressSpace,
-                                             Registers_x86 &registers) {
+    template<typename A> void CompactUnwinder_x86<A>::frameUnwind(A &addressSpace, Registers_x86 &registers) {
         typename A::pint_t bp = registers.getEBP();
         // ebp points to old ebp
         registers.setEBP(addressSpace.get32(bp));
@@ -250,10 +218,7 @@ namespace libunwind {
         registers.setIP(addressSpace.get32(bp + 4));
     }
 
-    template<typename A>
-    void CompactUnwinder_x86<A>::framelessUnwind(
-            A &addressSpace, typename A::pint_t returnAddressLocation,
-            Registers_x86 &registers) {
+    template<typename A> void CompactUnwinder_x86<A>::framelessUnwind(A &addressSpace, typename A::pint_t returnAddressLocation, Registers_x86 &registers) {
         // return address is on stack after last saved register
         registers.setIP(addressSpace.get32(returnAddressLocation));
         // old esp is before return address
@@ -267,58 +232,38 @@ namespace libunwind {
 
 /// CompactUnwinder_x86_64 uses a compact unwind info to virtually "step" (aka
 /// unwind) by modifying a Registers_x86_64 register set
-    template<typename A>
-    class CompactUnwinder_x86_64 {
+    template<typename A> class CompactUnwinder_x86_64 {
     public:
 
-        static int stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding,
-                                           uint64_t functionStart, A &addressSpace,
-                                           Registers_x86_64 &registers);
+        static int stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers);
 
     private:
         typename A::pint_t pint_t;
 
         static void frameUnwind(A &addressSpace, Registers_x86_64 &registers);
 
-        static void framelessUnwind(A &addressSpace, uint64_t returnAddressLocation,
-                                    Registers_x86_64 &registers);
+        static void framelessUnwind(A &addressSpace, uint64_t returnAddressLocation, Registers_x86_64 &registers);
 
-        static int
-        stepWithCompactEncodingRBPFrame(compact_unwind_encoding_t compactEncoding,
-                                        uint64_t functionStart, A &addressSpace,
-                                        Registers_x86_64 &registers);
+        static int stepWithCompactEncodingRBPFrame(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers);
 
-        static int stepWithCompactEncodingFrameless(
-                compact_unwind_encoding_t compactEncoding, uint64_t functionStart,
-                A &addressSpace, Registers_x86_64 &registers, bool indirectStackSize);
+        static int stepWithCompactEncodingFrameless(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers, bool indirectStackSize);
     };
 
-    template<typename A>
-    int CompactUnwinder_x86_64<A>::stepWithCompactEncoding(
-            compact_unwind_encoding_t compactEncoding, uint64_t functionStart,
-            A &addressSpace, Registers_x86_64 &registers) {
+    template<typename A> int CompactUnwinder_x86_64<A>::stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers) {
         switch (compactEncoding & UNWIND_X86_64_MODE_MASK) {
             case UNWIND_X86_64_MODE_RBP_FRAME:
-                return stepWithCompactEncodingRBPFrame(compactEncoding, functionStart,
-                                                       addressSpace, registers);
+                return stepWithCompactEncodingRBPFrame(compactEncoding, functionStart, addressSpace, registers);
             case UNWIND_X86_64_MODE_STACK_IMMD:
-                return stepWithCompactEncodingFrameless(compactEncoding, functionStart,
-                                                        addressSpace, registers, false);
+                return stepWithCompactEncodingFrameless(compactEncoding, functionStart, addressSpace, registers, false);
             case UNWIND_X86_64_MODE_STACK_IND:
-                return stepWithCompactEncodingFrameless(compactEncoding, functionStart,
-                                                        addressSpace, registers, true);
+                return stepWithCompactEncodingFrameless(compactEncoding, functionStart, addressSpace, registers, true);
         }
         _LIBUNWIND_ABORT("invalid compact unwind encoding");
     }
 
-    template<typename A>
-    int CompactUnwinder_x86_64<A>::stepWithCompactEncodingRBPFrame(
-            compact_unwind_encoding_t compactEncoding, uint64_t functionStart,
-            A &addressSpace, Registers_x86_64 &registers) {
-        uint32_t savedRegistersOffset =
-                EXTRACT_BITS(compactEncoding, UNWIND_X86_64_RBP_FRAME_OFFSET);
-        uint32_t savedRegistersLocations =
-                EXTRACT_BITS(compactEncoding, UNWIND_X86_64_RBP_FRAME_REGISTERS);
+    template<typename A> int CompactUnwinder_x86_64<A>::stepWithCompactEncodingRBPFrame(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers) {
+        uint32_t savedRegistersOffset = EXTRACT_BITS(compactEncoding, UNWIND_X86_64_RBP_FRAME_OFFSET);
+        uint32_t savedRegistersLocations = EXTRACT_BITS(compactEncoding, UNWIND_X86_64_RBP_FRAME_REGISTERS);
 
         uint64_t savedRegisters = registers.getRBP() - 8 * savedRegistersOffset;
         for (int i = 0; i < 5; ++i) {
@@ -344,8 +289,7 @@ namespace libunwind {
                 default:
                     (void) functionStart;
                     _LIBUNWIND_DEBUG_LOG("bad register for RBP frame, encoding=%08X for "
-                                         "function starting at 0x%llX",
-                                         compactEncoding, functionStart);
+                                         "function starting at 0x%llX", compactEncoding, functionStart);
                     _LIBUNWIND_ABORT("invalid compact unwind encoding");
             }
             savedRegisters += 8;
@@ -355,18 +299,11 @@ namespace libunwind {
         return UNW_STEP_SUCCESS;
     }
 
-    template<typename A>
-    int CompactUnwinder_x86_64<A>::stepWithCompactEncodingFrameless(
-            compact_unwind_encoding_t encoding, uint64_t functionStart, A &addressSpace,
-            Registers_x86_64 &registers, bool indirectStackSize) {
-        uint32_t stackSizeEncoded =
-                EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_SIZE);
-        uint32_t stackAdjust =
-                EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_ADJUST);
-        uint32_t regCount =
-                EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_REG_COUNT);
-        uint32_t permutation =
-                EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_REG_PERMUTATION);
+    template<typename A> int CompactUnwinder_x86_64<A>::stepWithCompactEncodingFrameless(compact_unwind_encoding_t encoding, uint64_t functionStart, A &addressSpace, Registers_x86_64 &registers, bool indirectStackSize) {
+        uint32_t stackSizeEncoded = EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_SIZE);
+        uint32_t stackAdjust = EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_ADJUST);
+        uint32_t regCount = EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_REG_COUNT);
+        uint32_t permutation = EXTRACT_BITS(encoding, UNWIND_X86_64_FRAMELESS_STACK_REG_PERMUTATION);
         uint32_t stackSize = stackSizeEncoded * 8;
         if (indirectStackSize) {
             // stack size is encoded in subl $xxx,%esp instruction
@@ -463,8 +400,7 @@ namespace libunwind {
                     break;
                 default:
                     _LIBUNWIND_DEBUG_LOG("bad register for frameless, encoding=%08X for "
-                                         "function starting at 0x%llX",
-                                         encoding, functionStart);
+                                         "function starting at 0x%llX", encoding, functionStart);
                     _LIBUNWIND_ABORT("invalid compact unwind encoding");
             }
             savedRegisters += 8;
@@ -474,9 +410,7 @@ namespace libunwind {
     }
 
 
-    template<typename A>
-    void CompactUnwinder_x86_64<A>::frameUnwind(A &addressSpace,
-                                                Registers_x86_64 &registers) {
+    template<typename A> void CompactUnwinder_x86_64<A>::frameUnwind(A &addressSpace, Registers_x86_64 &registers) {
         uint64_t rbp = registers.getRBP();
         // ebp points to old ebp
         registers.setRBP(addressSpace.get64(rbp));
@@ -486,10 +420,7 @@ namespace libunwind {
         registers.setIP(addressSpace.get64(rbp + 8));
     }
 
-    template<typename A>
-    void CompactUnwinder_x86_64<A>::framelessUnwind(A &addressSpace,
-                                                    uint64_t returnAddressLocation,
-                                                    Registers_x86_64 &registers) {
+    template<typename A> void CompactUnwinder_x86_64<A>::framelessUnwind(A &addressSpace, uint64_t returnAddressLocation, Registers_x86_64 &registers) {
         // return address is on stack after last saved register
         registers.setIP(addressSpace.get64(returnAddressLocation));
         // old esp is before return address
@@ -503,48 +434,31 @@ namespace libunwind {
 
 /// CompactUnwinder_arm64 uses a compact unwind info to virtually "step" (aka
 /// unwind) by modifying a Registers_arm64 register set
-    template<typename A>
-    class CompactUnwinder_arm64 {
+    template<typename A> class CompactUnwinder_arm64 {
     public:
 
-        static int stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding,
-                                           uint64_t functionStart, A &addressSpace,
-                                           Registers_arm64 &registers);
+        static int stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_arm64 &registers);
 
     private:
         typename A::pint_t pint_t;
 
-        static int
-        stepWithCompactEncodingFrame(compact_unwind_encoding_t compactEncoding,
-                                     uint64_t functionStart, A &addressSpace,
-                                     Registers_arm64 &registers);
+        static int stepWithCompactEncodingFrame(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_arm64 &registers);
 
-        static int stepWithCompactEncodingFrameless(
-                compact_unwind_encoding_t compactEncoding, uint64_t functionStart,
-                A &addressSpace, Registers_arm64 &registers);
+        static int stepWithCompactEncodingFrameless(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_arm64 &registers);
     };
 
-    template<typename A>
-    int CompactUnwinder_arm64<A>::stepWithCompactEncoding(
-            compact_unwind_encoding_t compactEncoding, uint64_t functionStart,
-            A &addressSpace, Registers_arm64 &registers) {
+    template<typename A> int CompactUnwinder_arm64<A>::stepWithCompactEncoding(compact_unwind_encoding_t compactEncoding, uint64_t functionStart, A &addressSpace, Registers_arm64 &registers) {
         switch (compactEncoding & UNWIND_ARM64_MODE_MASK) {
             case UNWIND_ARM64_MODE_FRAME:
-                return stepWithCompactEncodingFrame(compactEncoding, functionStart,
-                                                    addressSpace, registers);
+                return stepWithCompactEncodingFrame(compactEncoding, functionStart, addressSpace, registers);
             case UNWIND_ARM64_MODE_FRAMELESS:
-                return stepWithCompactEncodingFrameless(compactEncoding, functionStart,
-                                                        addressSpace, registers);
+                return stepWithCompactEncodingFrameless(compactEncoding, functionStart, addressSpace, registers);
         }
         _LIBUNWIND_ABORT("invalid compact unwind encoding");
     }
 
-    template<typename A>
-    int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrameless(
-            compact_unwind_encoding_t encoding, uint64_t, A &addressSpace,
-            Registers_arm64 &registers) {
-        uint32_t stackSize =
-                16 * EXTRACT_BITS(encoding, UNWIND_ARM64_FRAMELESS_STACK_SIZE_MASK);
+    template<typename A> int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrameless(compact_unwind_encoding_t encoding, uint64_t, A &addressSpace, Registers_arm64 &registers) {
+        uint32_t stackSize = 16 * EXTRACT_BITS(encoding, UNWIND_ARM64_FRAMELESS_STACK_SIZE_MASK);
 
         uint64_t savedRegisterLoc = registers.getSP() + stackSize;
 
@@ -580,35 +494,27 @@ namespace libunwind {
         }
 
         if (encoding & UNWIND_ARM64_FRAME_D8_D9_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D8,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D8, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D9,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D9, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D10_D11_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D10,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D10, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D11,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D11, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D12_D13_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D12,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D12, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D13,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D13, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D14_D15_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D14,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D14, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D15,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D15, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
 
@@ -621,10 +527,7 @@ namespace libunwind {
         return UNW_STEP_SUCCESS;
     }
 
-    template<typename A>
-    int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrame(
-            compact_unwind_encoding_t encoding, uint64_t, A &addressSpace,
-            Registers_arm64 &registers) {
+    template<typename A> int CompactUnwinder_arm64<A>::stepWithCompactEncodingFrame(compact_unwind_encoding_t encoding, uint64_t, A &addressSpace, Registers_arm64 &registers) {
         uint64_t savedRegisterLoc = registers.getFP() - 8;
 
         if (encoding & UNWIND_ARM64_FRAME_X19_X20_PAIR) {
@@ -659,35 +562,27 @@ namespace libunwind {
         }
 
         if (encoding & UNWIND_ARM64_FRAME_D8_D9_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D8,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D8, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D9,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D9, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D10_D11_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D10,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D10, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D11,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D11, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D12_D13_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D12,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D12, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D13,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D13, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
         if (encoding & UNWIND_ARM64_FRAME_D14_D15_PAIR) {
-            registers.setFloatRegister(UNW_ARM64_D14,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D14, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
-            registers.setFloatRegister(UNW_ARM64_D15,
-                                       addressSpace.getDouble(savedRegisterLoc));
+            registers.setFloatRegister(UNW_ARM64_D15, addressSpace.getDouble(savedRegisterLoc));
             savedRegisterLoc -= 8;
         }
 

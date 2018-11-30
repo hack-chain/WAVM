@@ -63,13 +63,21 @@ namespace libunwind {
 
     class _LIBUNWIND_HIDDEN RWMutex {
     public:
-        bool lock_shared() { return pthread_rwlock_rdlock(&_lock) == 0; }
+        bool lock_shared() {
+            return pthread_rwlock_rdlock(&_lock) == 0;
+        }
 
-        bool unlock_shared() { return pthread_rwlock_unlock(&_lock) == 0; }
+        bool unlock_shared() {
+            return pthread_rwlock_unlock(&_lock) == 0;
+        }
 
-        bool lock() { return pthread_rwlock_wrlock(&_lock) == 0; }
+        bool lock() {
+            return pthread_rwlock_wrlock(&_lock) == 0;
+        }
 
-        bool unlock() { return pthread_rwlock_unlock(&_lock) == 0; }
+        bool unlock() {
+            return pthread_rwlock_unlock(&_lock) == 0;
+        }
 
     private:
         pthread_rwlock_t _lock = PTHREAD_RWLOCK_INITIALIZER;

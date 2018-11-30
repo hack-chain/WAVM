@@ -21,9 +21,7 @@ namespace WAVM {
 
         PLATFORM_API void handleAssertionFailure(const AssertMetadata &metadata);
 
-        [[noreturn]] PLATFORM_API void handleFatalError(const char *messageFormat,
-                                                        bool printCallStack,
-                                                        va_list varArgs);
+        [[noreturn]] PLATFORM_API void handleFatalError(const char *messageFormat, bool printCallStack, va_list varArgs);
 
         //
         // Call stack and exceptions

@@ -16,20 +16,19 @@ namespace WAVM {
     }
 }
 
-template<typename Float>
-Float quietNaN(Float value) {
+template<typename Float> Float quietNaN(Float value) {
     FloatComponents<Float> components;
     components.value = value;
-    components.bits.significand |= typename FloatComponents<Float>::Bits(1)
-            << (FloatComponents<Float>::numSignificandBits - 1);
+    components.bits.significand |=
+            typename FloatComponents<Float>::Bits(1) << (FloatComponents<Float>::numSignificandBits - 1);
     return components.value;
 }
 
-template<typename Float>
-Float floatMin(Float left, Float right) {
+template<typename Float> Float floatMin(Float left, Float right) {
     // If either operand is a NaN, convert it to a quiet NaN and return it.
-    if (left != left) { return quietNaN(left); }
-    else if (right != right) {
+    if (left != left) {
+        return quietNaN(left);
+    } else if (right != right) {
         return quietNaN(right);
     }
         // If either operand is less than the other, return it.
@@ -48,11 +47,11 @@ Float floatMin(Float left, Float right) {
     }
 }
 
-template<typename Float>
-Float floatMax(Float left, Float right) {
+template<typename Float> Float floatMax(Float left, Float right) {
     // If either operand is a NaN, convert it to a quiet NaN and return it.
-    if (left != left) { return quietNaN(left); }
-    else if (right != right) {
+    if (left != left) {
+        return quietNaN(left);
+    } else if (right != right) {
         return quietNaN(right);
     }
         // If either operand is less than the other, return it.
@@ -71,34 +70,34 @@ Float floatMax(Float left, Float right) {
     }
 }
 
-template<typename Float>
-Float floatCeil(Float value) {
-    if (value != value) { return quietNaN(value); }
-    else {
+template<typename Float> Float floatCeil(Float value) {
+    if (value != value) {
+        return quietNaN(value);
+    } else {
         return ceil(value);
     }
 }
 
-template<typename Float>
-Float floatFloor(Float value) {
-    if (value != value) { return quietNaN(value); }
-    else {
+template<typename Float> Float floatFloor(Float value) {
+    if (value != value) {
+        return quietNaN(value);
+    } else {
         return floor(value);
     }
 }
 
-template<typename Float>
-Float floatTrunc(Float value) {
-    if (value != value) { return quietNaN(value); }
-    else {
+template<typename Float> Float floatTrunc(Float value) {
+    if (value != value) {
+        return quietNaN(value);
+    } else {
         return trunc(value);
     }
 }
 
-template<typename Float>
-Float floatNearest(Float value) {
-    if (value != value) { return quietNaN(value); }
-    else {
+template<typename Float> Float floatNearest(Float value) {
+    if (value != value) {
+        return quietNaN(value);
+    } else {
         return nearbyint(value);
     }
 }
@@ -151,38 +150,24 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "f64.nearest", F64, f64Nearest, F64 va
     return floatNearest(value);
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "divideByZeroOrIntegerOverflowTrap",
-                          void,
-                          divideByZeroOrIntegerOverflowTrap) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "divideByZeroOrIntegerOverflowTrap", void, divideByZeroOrIntegerOverflowTrap) {
 }
 
 DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "unreachableTrap", void, unreachableTrap) {
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "invalidFloatOperationTrap",
-                          void,
-                          invalidFloatOperationTrap) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "invalidFloatOperationTrap", void, invalidFloatOperationTrap) {
 }
 
 static thread_local Uptr indentLevel = 0;
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "debugEnterFunction",
-                          void,
-                          debugEnterFunction,
-                          const Function *function) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "debugEnterFunction", void, debugEnterFunction, const Function *function) {
     std::cout << "ENTER: %*s\n" << U32(indentLevel * 4 + function->mutableData->debugName.size())
               << function->mutableData->debugName.c_str();
     ++indentLevel;
 }
 
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "debugExitFunction",
-                          void,
-                          debugExitFunction,
-                          const Function *function) {
+DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "debugExitFunction", void, debugExitFunction, const Function *function) {
     --indentLevel;
     std::cout << "EXIT:  %*s\n" << U32(indentLevel * 4 + function->mutableData->debugName.size())
               << function->mutableData->debugName.c_str();

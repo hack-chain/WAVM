@@ -28,14 +28,12 @@ namespace libunwind {
 
 /// DwarfInstructions maps abtract DWARF unwind instructions to a particular
 /// architecture
-    template<typename A, typename R>
-    class DwarfInstructions {
+    template<typename A, typename R> class DwarfInstructions {
     public:
         typedef typename A::pint_t pint_t;
         typedef typename A::sint_t sint_t;
 
-        static int stepWithDwarf(A &addressSpace, pint_t pc, pint_t fdeStart,
-                                 R &registers);
+        static int stepWithDwarf(A &addressSpace, pint_t pc, pint_t fdeStart, R &registers);
 
     private:
 
@@ -52,49 +50,35 @@ namespace libunwind {
         typedef typename CFI_Parser<A>::FDE_Info FDE_Info;
         typedef typename CFI_Parser<A>::CIE_Info CIE_Info;
 
-        static pint_t evaluateExpression(pint_t expression, A &addressSpace,
-                                         const R &registers,
-                                         pint_t initialStackValue);
+        static pint_t evaluateExpression(pint_t expression, A &addressSpace, const R &registers, pint_t initialStackValue);
 
-        static pint_t getSavedRegister(A &addressSpace, const R &registers,
-                                       pint_t cfa, const RegisterLocation &savedReg);
+        static pint_t getSavedRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg);
 
-        static double getSavedFloatRegister(A &addressSpace, const R &registers,
-                                            pint_t cfa, const RegisterLocation &savedReg);
+        static double getSavedFloatRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg);
 
-        static v128 getSavedVectorRegister(A &addressSpace, const R &registers,
-                                           pint_t cfa, const RegisterLocation &savedReg);
+        static v128 getSavedVectorRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg);
 
-        static pint_t getCFA(A &addressSpace, const PrologInfo &prolog,
-                             const R &registers) {
+        static pint_t getCFA(A &addressSpace, const PrologInfo &prolog, const R &registers) {
             if (prolog.cfaRegister != 0)
-                return (pint_t) ((sint_t) registers.getRegister((int) prolog.cfaRegister) +
-                                 prolog.cfaRegisterOffset);
+                return (pint_t) ((sint_t) registers.getRegister((int) prolog.cfaRegister) + prolog.cfaRegisterOffset);
             if (prolog.cfaExpression != 0)
-                return evaluateExpression((pint_t) prolog.cfaExpression, addressSpace,
-                                          registers, 0);
+                return evaluateExpression((pint_t) prolog.cfaExpression, addressSpace, registers, 0);
             assert(0 && "getCFA(): unknown location");
             __builtin_unreachable();
         }
     };
 
 
-    template<typename A, typename R>
-    typename A::pint_t DwarfInstructions<A, R>::getSavedRegister(
-            A &addressSpace, const R &registers, pint_t cfa,
-            const RegisterLocation &savedReg) {
+    template<typename A, typename R> typename A::pint_t DwarfInstructions<A, R>::getSavedRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg) {
         switch (savedReg.location) {
             case CFI_Parser<A>::kRegisterInCFA:
                 return addressSpace.getRegister(cfa + (pint_t) savedReg.value);
 
             case CFI_Parser<A>::kRegisterAtExpression:
-                return addressSpace.getRegister(
-                        evaluateExpression((pint_t) savedReg.value, addressSpace,
-                                           registers, cfa));
+                return addressSpace.getRegister(evaluateExpression((pint_t) savedReg.value, addressSpace, registers, cfa));
 
             case CFI_Parser<A>::kRegisterIsExpression:
-                return evaluateExpression((pint_t) savedReg.value, addressSpace,
-                                          registers, cfa);
+                return evaluateExpression((pint_t) savedReg.value, addressSpace, registers, cfa);
 
             case CFI_Parser<A>::kRegisterInRegister:
                 return registers.getRegister((int) savedReg.value);
@@ -107,18 +91,13 @@ namespace libunwind {
         _LIBUNWIND_ABORT("unsupported restore location for register");
     }
 
-    template<typename A, typename R>
-    double DwarfInstructions<A, R>::getSavedFloatRegister(
-            A &addressSpace, const R &registers, pint_t cfa,
-            const RegisterLocation &savedReg) {
+    template<typename A, typename R> double DwarfInstructions<A, R>::getSavedFloatRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg) {
         switch (savedReg.location) {
             case CFI_Parser<A>::kRegisterInCFA:
                 return addressSpace.getDouble(cfa + (pint_t) savedReg.value);
 
             case CFI_Parser<A>::kRegisterAtExpression:
-                return addressSpace.getDouble(
-                        evaluateExpression((pint_t) savedReg.value, addressSpace,
-                                           registers, cfa));
+                return addressSpace.getDouble(evaluateExpression((pint_t) savedReg.value, addressSpace, registers, cfa));
 
             case CFI_Parser<A>::kRegisterIsExpression:
             case CFI_Parser<A>::kRegisterUnused:
@@ -130,18 +109,13 @@ namespace libunwind {
         _LIBUNWIND_ABORT("unsupported restore location for float register");
     }
 
-    template<typename A, typename R>
-    v128 DwarfInstructions<A, R>::getSavedVectorRegister(
-            A &addressSpace, const R &registers, pint_t cfa,
-            const RegisterLocation &savedReg) {
+    template<typename A, typename R> v128 DwarfInstructions<A, R>::getSavedVectorRegister(A &addressSpace, const R &registers, pint_t cfa, const RegisterLocation &savedReg) {
         switch (savedReg.location) {
             case CFI_Parser<A>::kRegisterInCFA:
                 return addressSpace.getVector(cfa + (pint_t) savedReg.value);
 
             case CFI_Parser<A>::kRegisterAtExpression:
-                return addressSpace.getVector(
-                        evaluateExpression((pint_t) savedReg.value, addressSpace,
-                                           registers, cfa));
+                return addressSpace.getVector(evaluateExpression((pint_t) savedReg.value, addressSpace, registers, cfa));
 
             case CFI_Parser<A>::kRegisterIsExpression:
             case CFI_Parser<A>::kRegisterUnused:
@@ -153,16 +127,12 @@ namespace libunwind {
         _LIBUNWIND_ABORT("unsupported restore location for vector register");
     }
 
-    template<typename A, typename R>
-    int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pint_t pc,
-                                               pint_t fdeStart, R &registers) {
+    template<typename A, typename R> int DwarfInstructions<A, R>::stepWithDwarf(A &addressSpace, pint_t pc, pint_t fdeStart, R &registers) {
         FDE_Info fdeInfo;
         CIE_Info cieInfo;
-        if (CFI_Parser<A>::decodeFDE(addressSpace, fdeStart, &fdeInfo,
-                                     &cieInfo) == NULL) {
+        if (CFI_Parser<A>::decodeFDE(addressSpace, fdeStart, &fdeInfo, &cieInfo) == NULL) {
             PrologInfo prolog;
-            if (CFI_Parser<A>::parseFDEInstructions(addressSpace, fdeInfo, cieInfo, pc,
-                                                    &prolog)) {
+            if (CFI_Parser<A>::parseFDEInstructions(addressSpace, fdeInfo, cieInfo, pc, &prolog)) {
                 // get pointer to cfa (architecture specific)
                 pint_t cfa = getCFA(addressSpace, prolog, registers);
 
@@ -170,28 +140,19 @@ namespace libunwind {
                 R newRegisters = registers;
                 pint_t returnAddress = 0;
                 const int lastReg = R::lastDwarfRegNum();
-                assert(static_cast<int>(CFI_Parser<A>::kMaxRegisterNumber) >= lastReg &&
-                       "register range too large");
+                assert(static_cast<int>(CFI_Parser<A>::kMaxRegisterNumber) >= lastReg && "register range too large");
                 assert(lastReg >= (int) cieInfo.returnAddressRegister &&
                        "register range does not contain return address register");
                 for (int i = 0; i <= lastReg; ++i) {
-                    if (prolog.savedRegisters[i].location !=
-                        CFI_Parser<A>::kRegisterUnused) {
+                    if (prolog.savedRegisters[i].location != CFI_Parser<A>::kRegisterUnused) {
                         if (registers.validFloatRegister(i))
-                            newRegisters.setFloatRegister(
-                                    i, getSavedFloatRegister(addressSpace, registers, cfa,
-                                                             prolog.savedRegisters[i]));
+                            newRegisters.setFloatRegister(i, getSavedFloatRegister(addressSpace, registers, cfa, prolog.savedRegisters[i]));
                         else if (registers.validVectorRegister(i))
-                            newRegisters.setVectorRegister(
-                                    i, getSavedVectorRegister(addressSpace, registers, cfa,
-                                                              prolog.savedRegisters[i]));
+                            newRegisters.setVectorRegister(i, getSavedVectorRegister(addressSpace, registers, cfa, prolog.savedRegisters[i]));
                         else if (i == (int) cieInfo.returnAddressRegister)
-                            returnAddress = getSavedRegister(addressSpace, registers, cfa,
-                                                             prolog.savedRegisters[i]);
+                            returnAddress = getSavedRegister(addressSpace, registers, cfa, prolog.savedRegisters[i]);
                         else if (registers.validRegister(i))
-                            newRegisters.setRegister(
-                                    i, getSavedRegister(addressSpace, registers, cfa,
-                                                        prolog.savedRegisters[i]));
+                            newRegisters.setRegister(i, getSavedRegister(addressSpace, registers, cfa, prolog.savedRegisters[i]));
                         else
                             return UNW_EBADREG;
                     }
@@ -214,19 +175,14 @@ namespace libunwind {
         return UNW_EBADFRAME;
     }
 
-    template<typename A, typename R>
-    typename A::pint_t
-    DwarfInstructions<A, R>::evaluateExpression(pint_t expression, A &addressSpace,
-                                                const R &registers,
-                                                pint_t initialStackValue) {
+    template<typename A, typename R> typename A::pint_t DwarfInstructions<A, R>::evaluateExpression(pint_t expression, A &addressSpace, const R &registers, pint_t initialStackValue) {
         const bool log = false;
         pint_t p = expression;
         pint_t expressionEnd = expression + 20; // temp, until len read
         pint_t length = (pint_t) addressSpace.getULEB128(p, expressionEnd);
         expressionEnd = p + length;
         if (log)
-            fprintf(stderr, "evaluateExpression(): length=%" PRIu64 "\n",
-                    (uint64_t) length);
+            fprintf(stderr, "evaluateExpression(): length=%" PRIu64 "\n", (uint64_t) length);
         pint_t stack[100];
         pint_t *sp = stack;
         *(++sp) = initialStackValue;
