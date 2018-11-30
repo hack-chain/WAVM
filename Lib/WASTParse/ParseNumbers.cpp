@@ -29,7 +29,7 @@
 #define Long int
 #endif
 
-#include "../ThirdParty/dtoa/dtoa.c"
+#include "dtoa/dtoa.c"
 
 #ifdef _MSC_VER
 #pragma warning(pop)

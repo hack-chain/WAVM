@@ -229,7 +229,7 @@ add_subdirectory(Lib/NFA)
 add_subdirectory(Lib/Platform)
 add_subdirectory(Lib/RegExp)
 add_subdirectory(Lib/WASTParse)
-add_subdirectory(ThirdParty/dtoa)
+add_subdirectory(Include/dtoa)
 
 if (WAVM_ENABLE_RUNTIME)
     add_subdirectory(Lib/Emscripten)
