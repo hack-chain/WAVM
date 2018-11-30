@@ -30,18 +30,9 @@ namespace WAVM {
 
         typedef bool (*SignalHandler)(Signal, const CallStack &);
 
-        PLATFORM_API void setSignalHandler(SignalHandler handler);
-
         PLATFORM_API void registerEHFrames(const U8 *imageBase, const U8 *ehFrames, Uptr numBytes);
 
         PLATFORM_API void deregisterEHFrames(const U8 *imageBase, const U8 *ehFrames, Uptr numBytes);
-
-        // Calls a thunk, catching any platform exceptions raised.
-        // If a platform exception is caught, the exception is passed to the handler function, and true
-        // is returned. If no exceptions are caught, false is returned.
-        PLATFORM_API bool catchPlatformExceptions(const std::function<void()> &thunk, const std::function<void(void *, const CallStack &)> &handler);
-
-        [[noreturn]] PLATFORM_API void raisePlatformException(void *data);
 
         enum {
             SEH_WAVM_EXCEPTION = 0xE0000001

@@ -8,18 +8,6 @@
 using namespace WAVM;
 using namespace WAVM::Platform;
 
-U64 Platform::getMonotonicClock() {
-#ifdef __APPLE__
-    timeval timeVal;
-    gettimeofday(&timeVal, nullptr);
-    return U64(timeVal.tv_sec) * 1000000 + U64(timeVal.tv_usec);
-#else
-    timespec monotonicClock;
-    clock_gettime(CLOCK_MONOTONIC, &monotonicClock);
-    return U64(monotonicClock.tv_sec) * 1000000 + U64(monotonicClock.tv_nsec) / 1000;
-#endif
-}
-
 Platform::Event::Event() {
     static_assert(sizeof(pthreadMutex) == sizeof(pthread_mutex_t), "");
     static_assert(alignof(PthreadMutex) >= alignof(pthread_mutex_t), "");
@@ -44,32 +32,4 @@ Platform::Event::Event() {
 Platform::Event::~Event() {
     pthread_cond_destroy((pthread_cond_t *) &pthreadCond);
     errorUnless(!pthread_mutex_destroy((pthread_mutex_t *) &pthreadMutex));
-}
-
-bool Platform::Event::wait(U64 untilTime) {
-    errorUnless(!pthread_mutex_lock((pthread_mutex_t *) &pthreadMutex));
-
-    int result;
-    if (untilTime == UINT64_MAX) {
-        result = pthread_cond_wait((pthread_cond_t *) &pthreadCond, (pthread_mutex_t *) &pthreadMutex);
-    } else {
-        timespec untilTimeSpec;
-        untilTimeSpec.tv_sec = untilTime / 1000000;
-        untilTimeSpec.tv_nsec = (untilTime % 1000000) * 1000;
-
-        result = pthread_cond_timedwait((pthread_cond_t *) &pthreadCond, (pthread_mutex_t *) &pthreadMutex, &untilTimeSpec);
-    }
-
-    errorUnless(!pthread_mutex_unlock((pthread_mutex_t *) &pthreadMutex));
-
-    if (result == ETIMEDOUT) {
-        return false;
-    } else {
-        errorUnless(!result);
-        return true;
-    }
-}
-
-void Platform::Event::signal() {
-    errorUnless(!pthread_cond_signal((pthread_cond_t *) &pthreadCond));
 }

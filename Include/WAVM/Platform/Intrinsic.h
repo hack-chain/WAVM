@@ -3,61 +3,18 @@
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Platform/Defines.h"
 
-#ifdef _WIN32
-#include <intrin.h>
-#endif
-
 namespace WAVM {
     namespace Platform {
-        // The number of bytes in a cache line: assume 64 for now.
-        enum {
-            numCacheLineBytes = 64
-        };
-
-        // countLeadingZeroes returns the number of leading zeroes, or the bit width of the input if no
-        // bits are set.
         inline U32 countLeadingZeroes(U32 value) {
-#ifdef _WIN32
-            // BitScanReverse returns 0 if the input is 0.
-            unsigned long result;
-            return _BitScanReverse(&result, value) ? (31 - result) : 32;
-#else
             return value == 0 ? 32 : __builtin_clz(value);
-#endif
         }
 
         inline U64 countLeadingZeroes(U64 value) {
-#ifdef _WIN64
-            unsigned long result;
-            return _BitScanReverse64(&result, value) ? (63 - result) : 64;
-#elif defined(_WIN32)
-            DEBUG_TRAP();
-#else
             return value == 0 ? 64 : __builtin_clzll(value);
-#endif
-        }
-
-        // countTrailingZeroes returns the number of trailing zeroes, or the bit width of the input if
-        // no bits are set.
-        inline U32 countTrailingZeroes(U32 value) {
-#ifdef _WIN32
-            // BitScanForward returns 0 if the input is 0.
-            unsigned long result;
-            return _BitScanForward(&result, value) ? result : 32;
-#else
-            return value == 0 ? 32 : __builtin_ctz(value);
-#endif
         }
 
         inline U64 countTrailingZeroes(U64 value) {
-#ifdef _WIN64
-            unsigned long result;
-            return _BitScanForward64(&result, value) ? result : 64;
-#elif defined(_WIN32)
-            DEBUG_TRAP();
-#else
             return value == 0 ? 64 : __builtin_ctzll(value);
-#endif
         }
 
         inline U32 floorLogTwo(U32 value) {
