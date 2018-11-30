@@ -160,8 +160,7 @@ void EmitFunctionContext::end(NoImm) {
         for (Uptr elementIndex = 0; elementIndex < currentContext.endPHIs.size(); ++elementIndex) {
             if (currentContext.endPHIs[elementIndex]->getNumIncomingValues()) {
                 push(currentContext.endPHIs[elementIndex]);
-            }
-            else {
+            } else {
                 // If there weren't any incoming values for the end PHI, remove it and push
                 // a dummy value.
                 currentContext.endPHIs[elementIndex]->eraseFromParent();

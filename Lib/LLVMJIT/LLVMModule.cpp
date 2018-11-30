@@ -55,8 +55,7 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
 
         if (!KEEP_UNLOADED_MODULE_ADDRESSES_RESERVED) {
             Platform::freeVirtualPages(imageBaseAddress, numAllocatedImagePages);
-        }
-        else {
+        } else {
             // Decommit the image pages, but leave them reserved to catch any references to them
             // that might erroneously remain.
             Platform::decommitVirtualPages(imageBaseAddress, numAllocatedImagePages);

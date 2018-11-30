@@ -70,8 +70,7 @@ namespace {
                 wavmAssert(functionState->branchTargetNameToIndexMap[name] == branchTargetIndex);
                 if (previousBranchTargetIndex == UINTPTR_MAX) {
                     errorUnless(functionState->branchTargetNameToIndexMap.remove(name));
-                }
-                else {
+                } else {
                     functionState->branchTargetNameToIndexMap.set(name, previousBranchTargetIndex);
                 }
             }

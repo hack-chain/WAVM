@@ -275,6 +275,7 @@ namespace WAVM {
         void serializeVarUInt32(Stream &stream, Value &value) {
             serializeVarInt<Value, 32>(stream, value, 0, UINT32_MAX);
         }
+
         // Serialize containers.
         template<typename Stream>
         void serialize(Stream &stream, std::string &string) {

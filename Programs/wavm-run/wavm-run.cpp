@@ -1,6 +1,5 @@
 #include <inttypes.h>
 #include <stdlib.h>
-#include <string.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -117,7 +116,7 @@ inline bool readFile(const char *filename, std::vector<U8> &outFileContents) {
     return true;
 }
 
-static int run(const char *filename, char** args) {
+static int run(const char *filename, char **args) {
     std::vector<U8> fileBytes;
     if (!readFile(filename, fileBytes)) {
         return false;
@@ -129,10 +128,8 @@ static int run(const char *filename, char** args) {
         std::cout << "Error parsing WebAssembly text file";
     }
 
-    // Compile the module.
     Runtime::ModuleRef module = Runtime::compileModule(irModule);
 
-    // Link the module with the intrinsic modules.
     Compartment *compartment = Runtime::createCompartment();
     Context *context = Runtime::createContext(compartment);
     RootResolver rootResolver(compartment);
@@ -155,22 +152,19 @@ static int run(const char *filename, char** args) {
     }
 
     // Instantiate the module.
-    ModuleInstance *moduleInstance = instantiateModule(compartment, module, std::move(linkResult.resolvedImports), filename);
+    ModuleInstance *moduleInstance = instantiateModule(compartment, module, std::move(linkResult.resolvedImports),
+                                                       filename);
     if (!moduleInstance) { return EXIT_FAILURE; }
 
     // Call the module start function, if it has one.
     Function *startFunction = getStartFunction(moduleInstance);
     if (startFunction) { invokeFunctionChecked(context, startFunction, {}); }
 
-
     // Call the Emscripten global initalizers.
     Emscripten::initializeGlobals(context, irModule, moduleInstance);
 
-
     // Look up the function export to call.
-    Function *function;
-
-    function = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
+    Function *function = asFunctionNullable(getInstanceExport(moduleInstance, "main"));
     if (!function) {
         function = asFunctionNullable(getInstanceExport(moduleInstance, "_main"));
     }
@@ -211,5 +205,5 @@ int main(int argc, char **argv) {
                      "  -h|--help             Display this message\n";
         return EXIT_FAILURE;
     }
-    return run(argv[1], argv+2);
+    return run(argv[1], argv + 2);
 }

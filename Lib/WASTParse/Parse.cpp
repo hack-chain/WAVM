@@ -163,7 +163,7 @@ FunctionType WAST::parseFunctionType(CursorState *cursor,
     // Parse the function parameters.
     while (tryParseParenthesizedTagged(cursor, t_param, [&] {
         Name parameterName;
-        if (    tryParseName(cursor, parameterName)) {
+        if (tryParseName(cursor, parameterName)) {
             // (param <name> <type>)
             bindName(cursor->parseState, outLocalNameToIndexMap, parameterName, parameters.size());
             parameters.push_back(parseValueType(cursor));

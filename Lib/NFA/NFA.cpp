@@ -207,8 +207,7 @@ static std::vector<DFAState> convertToDFA(Builder *builder) {
 
             if (nextStateSet.size() == 1 && *nextStateSet.begin() < 0) {
                 localStateSetToDFAStateIndexMap.set(localNextStateSet, *nextStateSet.begin());
-            }
-            else {
+            } else {
                 // Find an existing DFA state corresponding to this NFA state set.
                 const StateIndex *nextDFAState = nfaStateSetToDFAStateMap.get(nextStateSet);
                 if (nextDFAState) { localStateSetToDFAStateIndexMap.set(localNextStateSet, *nextDFAState); }
