@@ -26,7 +26,7 @@ WAVM_ADD_LIBRARY(LLVMJIT ${Sources} ${PublicHeaders})
 # Find an installed build of LLVM
 find_package(LLVM REQUIRED CONFIG)
 
-if (LLVM_VERSION_MAJOR LESS 6)
+if (LLVM_VERSION_MAJOR LESS 6.0)
     message(FATAL_ERROR "WAVM requires LLVM version 6.0 or newer")
 endif ()
 

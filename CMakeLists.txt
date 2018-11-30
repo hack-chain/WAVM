@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8.0)
+cmake_minimum_required(VERSION 3.7.2)
 project(WAVM C CXX ASM)
 
 
@@ -256,11 +256,7 @@ install(
 add_custom_target(RootFiles SOURCES
         .clang-format
         .travis.yml
-        azure-pipelines.yml
         Build/azure-windows-build-job-template.yml
         Build/notify-discord.sh
         Build/travis-build.sh
-        LICENSE.md
-        README.md
-        run-clang-format.sh
-        WebAssembly.tmLanguage)
+        )
