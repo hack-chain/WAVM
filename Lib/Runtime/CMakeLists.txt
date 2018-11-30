@@ -2,7 +2,6 @@ set(Sources
         Atomics.cpp
         Compartment.cpp
         Context.cpp
-        Exception.cpp
         Global.cpp
         Intrinsics.cpp
         Invoke.cpp
