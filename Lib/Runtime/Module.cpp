@@ -44,7 +44,6 @@ ModuleRef Runtime::compileModule(const IR::Module &irModule) {
 
 ModuleInstance::~ModuleInstance() {
     if (id != UINTPTR_MAX) {
-        wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
         compartment->moduleInstances.removeOrFail(id);
     }
 }

@@ -7,7 +7,6 @@
 #include "WAVM/Inline/Errors.h"
 #include "WAVM/Platform/Exception.h"
 
-// This struct layout is replicated in POSIX.S
 struct ExecutionContext {
     U64 rbx;
     U64 rsp;
@@ -59,7 +58,7 @@ inline void __deregister_frame(const void* fde)
 }
 
 #else
-// Defined in POSIX.S
+
 extern "C" I64 saveExecutionState(ExecutionContext *outContext, I64 returnCode) noexcept(false);
 
 [[noreturn]] extern void loadExecutionState(ExecutionContext *context, I64 returnCode);
@@ -67,7 +66,6 @@ extern "C" I64 saveExecutionState(ExecutionContext *outContext, I64 returnCode) 
 extern "C" I64 switchToForkedStackContext(ExecutionContext *forkedContext, U8 *trampolineFramePointer) noexcept(false);
 extern "C" U8 *getStackPointer();
 
-// libunwind dynamic frame registration
 extern "C" void __register_frame(const void *fde);
 extern "C" void __deregister_frame(const void *fde);
 #endif
@@ -82,21 +80,8 @@ namespace WAVM {
             jmp_buf catchJump;
             std::function<bool(Platform::Signal, const Platform::CallStack &)> filter;
         };
-
-        struct SigAltStack {
-            ~SigAltStack();
-
-            void init();
-
-        private:
-            U8 *base = nullptr;
-        };
-
-        extern thread_local SigAltStack sigAltStack;
         extern thread_local SignalContext *innermostSignalContext;
 
         void dumpErrorCallStack(Uptr numOmittedFramesFromTop);
-
-        void getCurrentThreadStack(U8 *&outMinAddr, U8 *&outMaxAddr);
     }
 }

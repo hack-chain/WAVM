@@ -406,8 +406,6 @@ Module::Module(const std::vector<U8> &inObjectBytes, const HashMap<std::string, 
         wavmAssert(function->mutableData);
         function->mutableData->jitModule = this;
         function->mutableData->function = function;
-        function->mutableData->numCodeBytes = Uptr(symbolSizePair.second);
-        function->mutableData->offsetToOpIndexMap = std::move(std::move(offsetToOpIndexMap));
     }
 
     const Uptr moduleEndAddress = reinterpret_cast<Uptr>(memoryManager->getImageBaseAddress() +

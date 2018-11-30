@@ -139,7 +139,6 @@ Table *Runtime::createTable(Compartment *compartment, IR::TableType type, std::s
 
 Table::~Table() {
     if (id != UINTPTR_MAX) {
-        wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
 
         wavmAssert(compartment->tables[id] == this);
         compartment->tables.removeOrFail(id);

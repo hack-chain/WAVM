@@ -33,7 +33,6 @@ Context *Runtime::createContext(Compartment *compartment) {
 }
 
 Runtime::Context::~Context() {
-    wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
     compartment->contexts.removeOrFail(id);
 }
 
@@ -74,7 +73,6 @@ Global *Runtime::createGlobal(Compartment *compartment, GlobalType type, Value i
 
 Runtime::Global::~Global() {
     if (id != UINTPTR_MAX) {
-        wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
         compartment->globals.removeOrFail(id);
     }
 

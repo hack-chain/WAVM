@@ -60,10 +60,6 @@ namespace WAVM {
 #endif
         }
 
-        inline U64 floorLogTwo(U64 value) {
-            return value <= 1 ? 0 : 63 - countLeadingZeroes(value);
-        }
-
         inline U32 floorLogTwo(U32 value) {
             return value <= 1 ? 0 : 31 - countLeadingZeroes(value);
         }
@@ -72,57 +68,23 @@ namespace WAVM {
             return value <= 1 ? 0 : 63 - countLeadingZeroes(value * 2 - 1);
         }
 
-        inline U32 ceilLogTwo(U32 value) {
-            return value <= 1 ? 0 : 31 - countLeadingZeroes(value * 2 - 1);
-        }
-
         inline U64 saturateToBounds(U64 value, U64 maxValue) {
             return U64(value + ((I64(maxValue - value) >> 63) & (maxValue - value)));
         }
 
-        inline U32 saturateToBounds(U32 value, U32 maxValue) {
-            return U32(value + ((I32(maxValue - value) >> 31) & (maxValue - value)));
-        }
-
-        // Byte-wise memcpy and memset: these are different from the C library versions because in the
-        // event of a trap while reading/writing memory, they guarantee that every byte preceding the
-        // byte that trapped will have been written.
-        // On X86 they use "rep movsb" (for copy) and "rep stosb" (for set) which are microcoded on
-        // Intel Ivy Bridge and later processors, and supposedly competitive with the C library
-        // functions. On other architectures, it will fall back to a C loop, which is not likely to be
-        // competitive with the C library function.
-
         inline void bytewiseMemCopy(U8 *dest, const U8 *source, Uptr numBytes) {
-#ifdef _WIN32
-            __movsb(dest, source, numBytes);
-#elif defined(__i386__) || defined(__x86_64__)
             asm volatile("rep movsb"
             : "=D"(dest), "=S"(source), "=c"(numBytes)
             : "0"(dest), "1"(source), "2"(numBytes)
             : "memory");
-#else
-            for(Uptr index = 0; index < numBytes; ++index) { dest[index] = source[index]; }
-#endif
         }
 
         inline void bytewiseMemSet(U8 *dest, U8 value, Uptr numBytes) {
-#ifdef _WIN32
-            __stosb(dest, value, numBytes);
-#elif defined(__i386__) || defined(__x86_64__)
             asm volatile("rep stosb"
             : "=D"(dest), "=a"(value), "=c"(numBytes)
             : "0"(dest), "1"(value), "2"(numBytes)
             : "memory");
-#else
-            for(Uptr index = 0; index < numBytes; ++index) { dest[index] = value; }
-#endif
         }
-
-        // Byte-wise memmove: this uses the above byte-wise memcpy, but if the source and destination
-        // buffers overlap so the copy would overwrite the end of the source buffer before it is copied
-        // from, then split the copy into two: the overlapping end of the source buffer is copied first,
-        // so it can be overwritten by the second copy safely.
-
         inline void bytewiseMemMove(U8 *dest, U8 *source, Uptr numBytes) {
             const Uptr numNonOverlappingBytes = source < dest && source + numBytes > dest ? dest - source : numBytes;
 

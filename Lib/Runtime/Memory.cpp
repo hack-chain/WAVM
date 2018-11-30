@@ -107,8 +107,6 @@ Memory *Runtime::cloneMemory(Memory *memory, Compartment *newCompartment) {
 
 Runtime::Memory::~Memory() {
     if (id != UINTPTR_MAX) {
-        wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
-
         wavmAssert(compartment->memories[id] == this);
         compartment->memories.removeOrFail(id);
 

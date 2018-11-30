@@ -49,7 +49,6 @@ static void deliverSignal(Signal signal, const CallStack &callStack) {
             // Determine whether the faulting address was an address reserved by the stack.
             U8 *stackMinAddr;
             U8 *stackMaxAddr;
-            getCurrentThreadStack(stackMinAddr, stackMaxAddr);
             stackMinAddr -= sysconf(_SC_PAGESIZE);
             signal.type = signalInfo->si_addr >= stackMinAddr && signalInfo->si_addr <
                                                                  stackMaxAddr ? Signal::Type::stackOverflow : Signal::Type::accessViolation;
@@ -102,7 +101,6 @@ static void initSignals() {
 
 bool Platform::catchSignals(const std::function<void()> &thunk, const std::function<bool(Signal, const CallStack &)> &filter) {
     initSignals();
-    sigAltStack.init();
 
     SignalContext signalContext;
     signalContext.outerContext = innermostSignalContext;
@@ -138,15 +136,6 @@ static void terminateHandler() {
     } catch (...) {
         Errors::fatal("Unhandled C++ exception");
     }
-}
-
-void Platform::setSignalHandler(SignalHandler handler) {
-    initSignals();
-    sigAltStack.init();
-
-    std::set_terminate(terminateHandler);
-
-    portableSignalHandler.store(handler);
 }
 
 static void visitFDEs(const U8 *ehFrames, Uptr numBytes, void (*visitFDE)(const void *)) {

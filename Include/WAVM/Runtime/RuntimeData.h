@@ -27,16 +27,6 @@ namespace WAVM {
 
             invalid = 0xff,
         };
-        static_assert(Uptr(IR::ExternKind::function) ==
-                      Uptr(ObjectKind::function), "IR::ExternKind::function != ObjectKind::function");
-        static_assert(
-                Uptr(IR::ExternKind::table) == Uptr(ObjectKind::table), "IR::ExternKind::table != ObjectKind::table");
-        static_assert(Uptr(IR::ExternKind::memory) ==
-                      Uptr(ObjectKind::memory), "IR::ExternKind::memory != ObjectKind::memory");
-        static_assert(Uptr(IR::ExternKind::global) ==
-                      Uptr(ObjectKind::global), "IR::ExternKind::global != ObjectKind::global");
-        static_assert(Uptr(IR::ExternKind::exceptionType) ==
-                      Uptr(ObjectKind::exceptionType), "IR::ExternKind::exceptionType != ObjectKind::exceptionType");
 
 #define compartmentReservedBytes (4ull * 1024 * 1024 * 1024)
 
@@ -81,10 +71,6 @@ namespace WAVM {
             ExceptionType *type;
             U8 isUserException;
             IR::UntaggedValue arguments[1];
-
-            static Uptr calcNumBytes(Uptr numArguments) {
-                return offsetof(ExceptionData, arguments) + numArguments * sizeof(IR::UntaggedValue);
-            }
         };
 
         struct Object {
@@ -96,11 +82,9 @@ namespace WAVM {
             Runtime::Function *function = nullptr;
             Uptr numCodeBytes = 0;
             std::atomic<Uptr> numRootReferences{0};
-            std::map<U32, U32> offsetToOpIndexMap;
             std::string debugName;
 
-            FunctionMutableData(std::string &&inDebugName) : debugName(inDebugName) {
-            }
+            FunctionMutableData(std::string &&inDebugName) : debugName(inDebugName) {}
         };
 
         struct Function {

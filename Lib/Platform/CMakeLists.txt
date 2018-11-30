@@ -4,7 +4,6 @@ set(POSIXSources
         POSIX/Exception.cpp
         POSIX/Memory.cpp
         POSIX/Mutex.cpp
-        POSIX/Thread.cpp
         POSIX/POSIX.S
         POSIX/POSIXPrivate.h)
 
@@ -16,8 +15,7 @@ set(PublicHeaders
         ${WAVM_INCLUDE_DIR}/Platform/Exception.h
         ${WAVM_INCLUDE_DIR}/Platform/Intrinsic.h
         ${WAVM_INCLUDE_DIR}/Platform/Memory.h
-        ${WAVM_INCLUDE_DIR}/Platform/Mutex.h
-        ${WAVM_INCLUDE_DIR}/Platform/Thread.h)
+        ${WAVM_INCLUDE_DIR}/Platform/Mutex.h)
 
 if (MSVC)
     if (CMAKE_SIZEOF_VOID_P EQUAL 4)
