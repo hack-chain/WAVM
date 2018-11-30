@@ -192,7 +192,3 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "debugBreak", void, debugBreak) {
     std::cout << "================== wavmIntrinsics.debugBreak\n";
 }
 
-void Runtime::dummyReferenceWAVMIntrinsics() {
-    // This is just here make sure the static initializers for the intrinsic function registrations
-    // aren't removed as dead code.
-}

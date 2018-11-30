@@ -54,8 +54,6 @@ ModuleInstance *Runtime::instantiateModule(Compartment *compartment,
                                            ModuleConstRefParam module,
                                            ImportBindings &&imports,
                                            std::string &&moduleDebugName) {
-    dummyReferenceWAVMIntrinsics();
-
     Uptr id = UINTPTR_MAX;
     {
         Lock<Platform::Mutex> compartmentLock(compartment->mutex);
