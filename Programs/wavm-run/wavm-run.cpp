@@ -100,111 +100,32 @@ struct RootResolver : Resolver {
 
 struct File;
 
-enum class FileAccessMode {
-    readOnly = 0x1,
-    writeOnly = 0x2,
-    readWrite = 0x1 | 0x2,
-};
-
-enum class FileCreateMode {
-    createAlways,
-    createNew,
-    openAlways,
-    openExisting,
-    truncateExisting,
-};
-
-enum class StdDevice {
-    in,
-    out,
-    err,
-};
-
-enum class FileSeekOrigin {
-    begin = 0,
-    cur = 1,
-    end = 2
-};
-
 static File *fileIndexToPtr(int index) { return reinterpret_cast<File *>(-Iptr(index) - 1); }
 
-File* openFile(const std::string &pathName, FileAccessMode accessMode, FileCreateMode createMode) {
-    U32 flags = 0;
-    mode_t mode = 0;
-    switch (accessMode) {
-        case FileAccessMode::readOnly:
-            flags = O_RDONLY;
-            break;
-        case FileAccessMode::writeOnly:
-            flags = O_WRONLY;
-            break;
-        case FileAccessMode::readWrite:
-            flags = O_RDWR;
-            break;
-        default:
-            Errors::unreachable();
-    };
-
-    switch (createMode) {
-        case FileCreateMode::createAlways:
-            flags |= O_CREAT | O_TRUNC;
-            break;
-        case FileCreateMode::createNew:
-            flags |= O_CREAT | O_EXCL;
-            break;
-        case FileCreateMode::openAlways:
-            flags |= O_CREAT;
-            break;
-        case FileCreateMode::openExisting:
-            break;
-        case FileCreateMode::truncateExisting:
-            flags |= O_TRUNC;
-            break;
-        default:
-            Errors::unreachable();
-    };
-
-    switch (createMode) {
-        case FileCreateMode::createAlways:
-        case FileCreateMode::createNew:
-        case FileCreateMode::openAlways:
-            mode = S_IRWXU;
-            break;
-        default:
-            break;
-    };
-
-    const I32 result = open(pathName.c_str(), flags, mode);
+File* openFile(const std::string &pathName) {
+    const I32 result = open(pathName.c_str(), O_RDONLY, 0);
     return fileIndexToPtr(result);
 }
 
 static I32 filePtrToIndex(File *ptr) { return I32(-reinterpret_cast<Iptr>(ptr) - 1); }
 
-bool seekFile(File *file,
-              I64 offset,
-              FileSeekOrigin origin,
-              U64 *outAbsoluteOffset = nullptr) {
+bool seekFile(File *file, I64 offset, bool origin, U64 *outAbsoluteOffset = nullptr) {
     I32 whence = 0;
     switch (origin) {
-        case FileSeekOrigin::begin:
+        case 0:
             whence = SEEK_SET;
             break;
-        case FileSeekOrigin::cur:
-            whence = SEEK_CUR;
-            break;
-        case FileSeekOrigin::end:
+        case 1:
             whence = SEEK_END;
             break;
         default:
             Errors::unreachable();
     };
 
-#ifdef __linux__
     const I64 result = lseek64(filePtrToIndex(file), offset, whence);
-#else
-    const I64 result = lseek(filePtrToIndex(file), reinterpret_cast<off_t>(offset), whence);
-#endif
-    if (outAbsoluteOffset) { *outAbsoluteOffset = U64(result); }
+    if (outAbsoluteOffset) {
+        *outAbsoluteOffset = U64(result);
+    }
     return result != -1;
 }
 
@@ -214,31 +135,28 @@ bool closeFile(File *file) {
 
 bool readFile(File *file, void *outData, Uptr numBytes, Uptr *outNumBytesRead= nullptr) {
     ssize_t result = read(filePtrToIndex(file), outData, numBytes);
-    if (outNumBytesRead) { *outNumBytesRead = result; }
+    if (outNumBytesRead) {
+        *outNumBytesRead = result;
+    }
     return result >= 0;
 }
 
 inline bool loadFile(const char *filename, std::vector<U8> &outFileContents) {
-    File *file = openFile(filename, FileAccessMode::readOnly, FileCreateMode::openExisting);
+    File *file = openFile(filename);
     if (!file) {
         std::cout << "Couldn't read %s: couldn't open file.\n" << filename;
         return false;
     }
 
     U64 numFileBytes64 = 0;
-    errorUnless(seekFile(file, 0, FileSeekOrigin::end, &numFileBytes64));
-    if (numFileBytes64 > UINTPTR_MAX) {
-        std::cout << "Couldn't read %s: file doesn't fit in memory.\n" << filename;
-        errorUnless(closeFile(file));
-        return false;
-    }
+    seekFile(file, 0, 1, &numFileBytes64);
     const Uptr numFileBytes = Uptr(numFileBytes64);
 
     std::vector<U8> fileContents;
     outFileContents.resize(numFileBytes);
-    errorUnless(seekFile(file, 0, FileSeekOrigin::begin));
-    errorUnless(readFile(file, const_cast<U8*>(outFileContents.data()), numFileBytes));
-    errorUnless(closeFile(file));
+    seekFile(file, 0, 0);
+    readFile(file, const_cast<U8*>(outFileContents.data()), numFileBytes);
+    closeFile(file);
 
     return true;
 }
