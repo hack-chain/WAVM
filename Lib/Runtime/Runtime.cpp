@@ -165,17 +165,6 @@ FunctionType Runtime::getFunctionType(Function *function) {
     return function->encodedType;
 }
 
-Context *Runtime::getContextFromRuntimeData(ContextRuntimeData *contextRuntimeData) {
-    const CompartmentRuntimeData *compartmentRuntimeData = getCompartmentRuntimeData(contextRuntimeData);
-    const Uptr contextId = contextRuntimeData - compartmentRuntimeData->contexts;
-    Lock<Platform::Mutex> compartmentLock(compartmentRuntimeData->compartment->mutex);
-    return compartmentRuntimeData->compartment->contexts[contextId];
-}
-
-ContextRuntimeData *Runtime::getContextRuntimeData(const Context *context) {
-    return context->runtimeData;
-}
-
 ModuleInstance *Runtime::getModuleInstanceFromRuntimeData(ContextRuntimeData *contextRuntimeData, Uptr moduleInstanceId) {
     Compartment *compartment = getCompartmentRuntimeData(contextRuntimeData)->compartment;
     Lock<Platform::Mutex> compartmentLock(compartment->mutex);

@@ -44,49 +44,6 @@ Compartment *Runtime::createCompartment() {
     return new Compartment;
 }
 
-Object *Runtime::remapToClonedCompartment(Object *object, const Compartment *newCompartment) {
-    switch (object->kind) {
-        case ObjectKind::function:
-            return object;
-        case ObjectKind::table:
-            return newCompartment->tables[asTable(object)->id];
-        case ObjectKind::memory:
-            return newCompartment->memories[asMemory(object)->id];
-        case ObjectKind::global:
-            return newCompartment->globals[asGlobal(object)->id];
-        case ObjectKind::exceptionType:
-            return newCompartment->exceptionTypes[asExceptionType(object)->id];
-        case ObjectKind::moduleInstance:
-            return newCompartment->moduleInstances[asModuleInstance(object)->id];
-        default:
-            Errors::unreachable();
-    };
-}
-
-Function *Runtime::remapToClonedCompartment(Function *function, const Compartment *newCompartment) {
-    return function;
-}
-
-Table *Runtime::remapToClonedCompartment(Table *table, const Compartment *newCompartment) {
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    return newCompartment->tables[table->id];
-}
-
-Memory *Runtime::remapToClonedCompartment(Memory *memory, const Compartment *newCompartment) {
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    return newCompartment->memories[memory->id];
-}
-
-Global *Runtime::remapToClonedCompartment(Global *global, const Compartment *newCompartment) {
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    return newCompartment->globals[global->id];
-}
-
-ExceptionType *Runtime::remapToClonedCompartment(ExceptionType *exceptionType, const Compartment *newCompartment) {
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    return newCompartment->exceptionTypes[exceptionType->id];
-}
-
 bool Runtime::isInCompartment(Object *object, const Compartment *compartment) {
     if (object->kind == ObjectKind::function) {
         // The function may be in multiple compartments, but if this compartment maps the function's
