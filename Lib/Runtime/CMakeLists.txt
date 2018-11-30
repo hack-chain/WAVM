@@ -1,5 +1,4 @@
 set(Sources
-        Atomics.cpp
         Compartment.cpp
         Context.cpp
         Global.cpp
