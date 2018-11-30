@@ -61,7 +61,6 @@ ModuleInstance *Runtime::instantiateModule(Compartment *compartment,
                                            ModuleConstRefParam module,
                                            ImportBindings &&imports,
                                            std::string &&moduleDebugName) {
-    dummyReferenceAtomics();
     dummyReferenceWAVMIntrinsics();
 
     Uptr id = UINTPTR_MAX;

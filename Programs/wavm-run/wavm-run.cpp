@@ -87,10 +87,6 @@ struct RootResolver : Resolver {
                         asGlobalType(type),
                         IR::Value(asGlobalType(type).valueType, IR::UntaggedValue())));
             }
-            case IR::ExternKind::exceptionType: {
-                return asObject(
-                        Runtime::createExceptionType(compartment, asExceptionType(type), "importStub"));
-            }
             default:
                 Errors::unreachable();
         };

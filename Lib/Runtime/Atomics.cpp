@@ -67,15 +67,6 @@ static Value atomicLoad(const Value *valuePointer) {
     return valuePointerAtomic->load();
 }
 
-// Stores a value to memory with seq_cst memory order.
-// The caller must ensure that the pointer is naturally aligned.
-template<typename Value>
-static void atomicStore(Value *valuePointer, Value newValue) {
-    static_assert(sizeof(std::atomic<Value>) == sizeof(Value), "relying on non-standard behavior");
-    std::atomic<Value> *valuePointerAtomic = (std::atomic<Value> *) valuePointer;
-    valuePointerAtomic->store(newValue);
-}
-
 // Decodes a floating-point timeout value relative to startTime.
 static U64 getEndTimeFromTimeout(U64 startTime, F64 timeout) {
     const F64 timeoutMicroseconds = timeout * 1000.0;
@@ -237,9 +228,4 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
     I64 *valuePointer = &memoryRef<I64>(memory, address);
 
     return waitOnAddress(valuePointer, expectedValue, timeout);
-}
-
-void Runtime::dummyReferenceAtomics() {
-    // This is just here make sure the static initializers for the intrinsic function registrations
-    // aren't removed as dead code.
 }

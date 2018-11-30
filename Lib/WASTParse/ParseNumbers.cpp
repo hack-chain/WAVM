@@ -324,7 +324,6 @@ U8 WAST::parseI8(CursorState *cursor) {
     U32 result;
     if (!tryParseInt<U32>(cursor, result, INT8_MIN, UINT8_MAX)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected i8 literal");
-        throw RecoverParseException();
     }
     return U8(result);
 }
@@ -333,7 +332,6 @@ U16 WAST::parseI16(CursorState *cursor) {
     U32 result;
     if (!tryParseInt<U32>(cursor, result, INT16_MIN, UINT8_MAX)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected i16 literal");
-        throw RecoverParseException();
     }
     return U16(result);
 }
@@ -342,7 +340,6 @@ U32 WAST::parseI32(CursorState *cursor) {
     U32 result;
     if (!tryParseI32(cursor, result)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected i32 literal");
-        throw RecoverParseException();
     }
     return result;
 }
@@ -351,7 +348,6 @@ U64 WAST::parseI64(CursorState *cursor) {
     U64 result;
     if (!tryParseI64(cursor, result)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected i64 literal");
-        throw RecoverParseException();
     }
     return result;
 }
@@ -360,7 +356,6 @@ Uptr WAST::parseIptr(CursorState *cursor) {
     Uptr result;
     if (!tryParseIptr(cursor, result)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected integer literal");
-        throw RecoverParseException();
     }
     return result;
 }
@@ -369,7 +364,6 @@ F32 WAST::parseF32(CursorState *cursor) {
     F32 result;
     if (!tryParseFloat(cursor, result)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected f32 literal");
-        throw RecoverParseException();
     }
     return result;
 }
@@ -378,7 +372,6 @@ F64 WAST::parseF64(CursorState *cursor) {
     F64 result;
     if (!tryParseFloat(cursor, result)) {
         parseErrorf(cursor->parseState, cursor->nextToken, "expected f64 literal");
-        throw RecoverParseException();
     }
     return result;
 }
@@ -414,7 +407,6 @@ V128 WAST::parseV128(CursorState *cursor) {
             parseErrorf(cursor->parseState,
                         cursor->nextToken,
                         "expected 'i8', 'i16', 'i32', 'i64', 'f32', or 'f64'");
-            throw RecoverParseException();
     };
 
     return result;

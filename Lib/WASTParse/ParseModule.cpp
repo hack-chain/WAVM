@@ -118,7 +118,6 @@ static UnresolvedInitializerExpression parseInitializerExpression(CursorState *c
             default:
                 parseErrorf(cursor->parseState, cursor->nextToken, "expected initializer expression");
                 result.type = UnresolvedInitializerExpression::Type::error;
-                throw RecoverParseException();
         };
     });
 
@@ -211,7 +210,6 @@ static void parseImport(CursorState *cursor) {
                 break;
             default:
                 parseErrorf(cursor->parseState, cursor->nextToken, "invalid import type");
-                throw RecoverParseException();
         }
 
         // Parse an optional internal name for the import.
@@ -326,7 +324,6 @@ static void parseExport(CursorState *cursor) {
                 break;
             default:
                 parseErrorf(cursor->parseState, cursor->nextToken, "invalid export kind");
-                throw RecoverParseException();
         };
         ++cursor->nextToken;
 

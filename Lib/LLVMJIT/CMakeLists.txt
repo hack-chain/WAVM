@@ -17,7 +17,7 @@ set(Sources
         LLVMJITPrivate.h
         LLVMModule.cpp
         Thunk.cpp
-        Win64EH.cpp)
+        )
 set(PublicHeaders
         ${WAVM_INCLUDE_DIR}/LLVMJIT/LLVMJIT.h)
 
