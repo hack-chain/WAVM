@@ -24,33 +24,3 @@ Runtime::ExceptionType::~ExceptionType() {
         compartment->exceptionTypes.removeOrFail(id);
     }
 }
-
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "throwException", void, intrinsicThrowException, Uptr exceptionTypeId, Uptr argsBits, U32 isUserException) {
-    ExceptionType *exceptionType;
-    {
-        Compartment *compartment = getCompartmentRuntimeData(contextRuntimeData)->compartment;
-        Lock<Platform::Mutex> compartmentLock(compartment->mutex);
-        exceptionType = compartment->exceptionTypes[exceptionTypeId];
-    }
-    auto args = reinterpret_cast<const IR::UntaggedValue *>(Uptr(argsBits));
-
-    ExceptionData *exceptionData
-            = (ExceptionData *) malloc(ExceptionData::calcNumBytes(exceptionType->sig.params.size()));
-    exceptionData->typeId = exceptionTypeId;
-    exceptionData->type = exceptionType;
-    exceptionData->isUserException = isUserException ? 1 : 0;
-    memcpy(exceptionData->arguments,
-           args,
-           sizeof(IR::UntaggedValue) * exceptionType->sig.params.size());
-    Platform::raisePlatformException(exceptionData);
-}
-
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "rethrowException",
-                          void,
-                          rethrowException,
-                          Uptr exceptionBits) {
-    ExceptionData *exception = reinterpret_cast<ExceptionData *>(exceptionBits);
-    Platform::raisePlatformException(exception);
-}
-
