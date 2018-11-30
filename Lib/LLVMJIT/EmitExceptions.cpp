@@ -22,15 +22,13 @@ void EmitFunctionContext::endTry() {
 
 void EmitFunctionContext::endCatch() {
     wavmAssert(catchStack.size());
-    if (!USE_WINDOWS_SEH) {
-        CatchContext &catchContext = catchStack.back();
+    CatchContext &catchContext = catchStack.back();
 
-        irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
+    irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
 
-        emitRuntimeIntrinsic("rethrowException", FunctionType(TypeTuple{}, TypeTuple{inferValueType<Iptr>()}), {irBuilder.CreatePtrToInt(catchContext.exceptionPointer, llvmContext.iptrType)});
+    emitRuntimeIntrinsic("rethrowException", FunctionType(TypeTuple{}, TypeTuple{inferValueType<Iptr>()}), {irBuilder.CreatePtrToInt(catchContext.exceptionPointer, llvmContext.iptrType)});
 
-        irBuilder.CreateUnreachable();
-    }
+    irBuilder.CreateUnreachable();
 
     catchStack.pop_back();
 }
@@ -44,78 +42,38 @@ llvm::BasicBlock *EmitFunctionContext::getInnermostUnwindToBlock() {
 }
 
 void EmitFunctionContext::try_(ControlStructureImm imm) {
-    if (USE_WINDOWS_SEH) {
-        FunctionType blockType = resolveBlockType(irModule, imm.type);
+    FunctionType blockType = resolveBlockType(irModule, imm.type);
 
-        auto catchSwitchBlock = llvm::BasicBlock::Create(llvmContext, "catchSwitch", function);
-        auto originalInsertBlock = irBuilder.GetInsertBlock();
-        irBuilder.SetInsertPoint(catchSwitchBlock);
-        auto catchSwitchInst = irBuilder.CreateCatchSwitch(llvm::ConstantTokenNone::get(llvmContext), nullptr, 1);
-        irBuilder.SetInsertPoint(originalInsertBlock);
-        tryStack.push_back(TryContext{catchSwitchBlock});
-        catchStack.push_back(CatchContext{catchSwitchInst, nullptr, nullptr, nullptr, nullptr});
+    auto landingPadBlock = llvm::BasicBlock::Create(llvmContext, "landingPad", function);
+    auto originalInsertBlock = irBuilder.GetInsertBlock();
+    irBuilder.SetInsertPoint(landingPadBlock);
+    auto landingPadInst = irBuilder.CreateLandingPad(llvm::StructType::get(llvmContext, {llvmContext.i8PtrType, llvmContext.i32Type}), 1);
+    auto exceptionPointer = loadFromUntypedPointer(irBuilder.CreateCall(moduleContext.cxaBeginCatchFunction, {irBuilder.CreateExtractValue(landingPadInst, {0})}), llvmContext.i8Type->getPointerTo());
+    auto exceptionTypeId = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(exceptionPointer, {emitLiteral(llvmContext, Uptr(offsetof(ExceptionData, typeId)))}), llvmContext.iptrType);
 
-        // Create an end try+phi for the try result.
-        auto endBlock = llvm::BasicBlock::Create(llvmContext, "tryEnd", function);
-        auto endPHIs = createPHIs(endBlock, blockType.results());
+    irBuilder.SetInsertPoint(originalInsertBlock);
+    tryStack.push_back(TryContext{landingPadBlock});
+    catchStack.push_back(CatchContext{nullptr, landingPadInst, landingPadBlock, exceptionTypeId, exceptionPointer});
 
-        // Pop the try arguments.
-        llvm::Value **tryArgs = (llvm::Value **) alloca(sizeof(llvm::Value *) * blockType.params().size());
-        popMultiple(tryArgs, blockType.params().size());
+    // Add the platform exception type to the landing pad's type filter.
+    landingPadInst->addClause(moduleContext.userExceptionTypeInfo);
 
-        // Push a control context that ends at the end block/phi.
-        pushControlStack(ControlContext::Type::try_, blockType.results(), endBlock, endPHIs);
+    // Create an end try+phi for the try result.
+    auto endBlock = llvm::BasicBlock::Create(llvmContext, "tryEnd", function);
+    auto endPHIs = createPHIs(endBlock, blockType.results());
 
-        // Push a branch target for the end block/phi.
-        pushBranchTarget(blockType.results(), endBlock, endPHIs);
+    // Pop the try arguments.
+    llvm::Value **tryArgs = (llvm::Value **) alloca(sizeof(llvm::Value *) * blockType.params().size());
+    popMultiple(tryArgs, blockType.params().size());
 
-        // Repush the try arguments.
-        pushMultiple(tryArgs, blockType.params().size());
+    // Push a control context that ends at the end block/phi.
+    pushControlStack(ControlContext::Type::try_, blockType.results(), endBlock, endPHIs);
 
-        // Call a dummy function to workaround a LLVM bug on Windows with the recoverfp intrinsic if
-        // the try block doesn't contain any calls.
-        if (!moduleContext.tryPrologueDummyFunction) {
-            moduleContext.tryPrologueDummyFunction = llvm::Function::Create(llvm::FunctionType::get(llvm::Type::getVoidTy(llvmContext), false), llvm::GlobalValue::LinkageTypes::PrivateLinkage, "__try_prologue", moduleContext.llvmModule);
-            auto entryBasicBlock = llvm::BasicBlock::Create(llvmContext, "entry", moduleContext.tryPrologueDummyFunction);
-            llvm::IRBuilder<> dummyIRBuilder(llvmContext);
-            dummyIRBuilder.SetInsertPoint(entryBasicBlock);
-            dummyIRBuilder.CreateRetVoid();
-        }
-        emitCallOrInvoke(moduleContext.tryPrologueDummyFunction, {}, FunctionType(), CallingConvention::c, getInnermostUnwindToBlock());
-    } else {
-        FunctionType blockType = resolveBlockType(irModule, imm.type);
+    // Push a branch target for the end block/phi.
+    pushBranchTarget(blockType.results(), endBlock, endPHIs);
 
-        auto landingPadBlock = llvm::BasicBlock::Create(llvmContext, "landingPad", function);
-        auto originalInsertBlock = irBuilder.GetInsertBlock();
-        irBuilder.SetInsertPoint(landingPadBlock);
-        auto landingPadInst = irBuilder.CreateLandingPad(llvm::StructType::get(llvmContext, {llvmContext.i8PtrType, llvmContext.i32Type}), 1);
-        auto exceptionPointer = loadFromUntypedPointer(irBuilder.CreateCall(moduleContext.cxaBeginCatchFunction, {irBuilder.CreateExtractValue(landingPadInst, {0})}), llvmContext.i8Type->getPointerTo());
-        auto exceptionTypeId = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(exceptionPointer, {emitLiteral(llvmContext, Uptr(offsetof(ExceptionData, typeId)))}), llvmContext.iptrType);
-
-        irBuilder.SetInsertPoint(originalInsertBlock);
-        tryStack.push_back(TryContext{landingPadBlock});
-        catchStack.push_back(CatchContext{nullptr, landingPadInst, landingPadBlock, exceptionTypeId, exceptionPointer});
-
-        // Add the platform exception type to the landing pad's type filter.
-        landingPadInst->addClause(moduleContext.userExceptionTypeInfo);
-
-        // Create an end try+phi for the try result.
-        auto endBlock = llvm::BasicBlock::Create(llvmContext, "tryEnd", function);
-        auto endPHIs = createPHIs(endBlock, blockType.results());
-
-        // Pop the try arguments.
-        llvm::Value **tryArgs = (llvm::Value **) alloca(sizeof(llvm::Value *) * blockType.params().size());
-        popMultiple(tryArgs, blockType.params().size());
-
-        // Push a control context that ends at the end block/phi.
-        pushControlStack(ControlContext::Type::try_, blockType.results(), endBlock, endPHIs);
-
-        // Push a branch target for the end block/phi.
-        pushBranchTarget(blockType.results(), endBlock, endPHIs);
-
-        // Repush the try arguments.
-        pushMultiple(tryArgs, blockType.params().size());
-    }
+    // Repush the try arguments.
+    pushMultiple(tryArgs, blockType.params().size());
 }
 
 static llvm::Function *createSEHFilterFunction(LLVMContext &llvmContext, EmitFunctionContext &functionContext, llvm::Constant *catchTypeId, llvm::Value *&outExceptionDataAlloca) {
@@ -198,54 +156,21 @@ void EmitFunctionContext::catch_(ExceptionTypeImm imm) {
     const IR::ExceptionType catchType = irModule.exceptionTypes.getType(imm.exceptionTypeIndex);
     llvm::Constant *catchTypeId = moduleContext.exceptionTypeIds[imm.exceptionTypeIndex];
 
-    if (USE_WINDOWS_SEH) {
-        // Create a filter function that returns 1 for the specific exception type this instruction
-        // catches.
-        llvm::Value *exceptionDataAlloca = nullptr;
+    irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
+    auto isExceptionType = irBuilder.CreateICmpEQ(catchContext.exceptionTypeId, catchTypeId);
 
-        auto filterFunction = createSEHFilterFunction(llvmContext, *this, catchTypeId, exceptionDataAlloca);
+    auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
+    auto unhandledBlock = llvm::BasicBlock::Create(llvmContext, "unhandled", function);
+    irBuilder.CreateCondBr(isExceptionType, catchBlock, unhandledBlock);
+    catchContext.nextHandlerBlock = unhandledBlock;
+    irBuilder.SetInsertPoint(catchBlock);
 
-        // Create a block+catchpad that the catchswitch will transfer control to if the filter
-        // function returns 1.
-        auto catchPadBlock = llvm::BasicBlock::Create(llvmContext, "catchPad", function);
-        catchContext.catchSwitchInst->addHandler(catchPadBlock);
-        irBuilder.SetInsertPoint(catchPadBlock);
-        auto catchPadInst = irBuilder.CreateCatchPad(catchContext.catchSwitchInst, {filterFunction});
-
-        // Create a catchret that immediately returns from the catch "funclet" to a new non-funclet
-        // basic block.
-        auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
-        irBuilder.CreateCatchRet(catchPadInst, catchBlock);
-        irBuilder.SetInsertPoint(catchBlock);
-
-        catchContext.exceptionPointer = irBuilder.CreateLoad(exceptionDataAlloca);
-        for (Uptr argumentIndex = 0; argumentIndex < catchType.params.size(); ++argumentIndex) {
-            const ValueType parameters = catchType.params[argumentIndex];
-            auto argument = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(catchContext.exceptionPointer, {emitLiteral(llvmContext,
-                                                                                                                           offsetof(ExceptionData, arguments) +
-                                                                                                                           (catchType.params.size() -
-                                                                                                                            argumentIndex -
-                                                                                                                            1) *
-                                                                                                                           sizeof(ExceptionData::arguments[0]))}), asLLVMType(llvmContext, parameters), sizeof(ExceptionData::arguments[0]));
-            push(argument);
-        }
-    } else {
-        irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
-        auto isExceptionType = irBuilder.CreateICmpEQ(catchContext.exceptionTypeId, catchTypeId);
-
-        auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
-        auto unhandledBlock = llvm::BasicBlock::Create(llvmContext, "unhandled", function);
-        irBuilder.CreateCondBr(isExceptionType, catchBlock, unhandledBlock);
-        catchContext.nextHandlerBlock = unhandledBlock;
-        irBuilder.SetInsertPoint(catchBlock);
-
-        for (Iptr argumentIndex = catchType.params.size() - 1; argumentIndex >= 0; --argumentIndex) {
-            const ValueType parameters = catchType.params[argumentIndex];
-            const Uptr argumentOffset =
-                    offsetof(ExceptionData, arguments) + sizeof(ExceptionData::arguments[0]) * argumentIndex;
-            auto argument = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(catchContext.exceptionPointer, {emitLiteral(llvmContext, argumentOffset)}), asLLVMType(llvmContext, parameters), sizeof(ExceptionData::arguments[0]));
-            push(argument);
-        }
+    for (Iptr argumentIndex = catchType.params.size() - 1; argumentIndex >= 0; --argumentIndex) {
+        const ValueType parameters = catchType.params[argumentIndex];
+        const Uptr argumentOffset =
+                offsetof(ExceptionData, arguments) + sizeof(ExceptionData::arguments[0]) * argumentIndex;
+        auto argument = loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(catchContext.exceptionPointer, {emitLiteral(llvmContext, argumentOffset)}), asLLVMType(llvmContext, parameters), sizeof(ExceptionData::arguments[0]));
+        push(argument);
     }
 
     // Change the top of the control stack to a catch clause.
@@ -267,35 +192,14 @@ void EmitFunctionContext::catch_all(NoImm) {
 
     branchToEndOfControlContext();
 
-    if (USE_WINDOWS_SEH) {
-        // Create a filter function that returns 1 for any WebAssembly exception.
-        llvm::Value *exceptionDataAlloca = nullptr;
-        llvm::Function *filterFunction = createSEHFilterFunction(llvmContext, *this, nullptr, exceptionDataAlloca);
+    irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
+    auto isUserExceptionType = irBuilder.CreateICmpNE(loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(catchContext.exceptionPointer, {emitLiteral(llvmContext, Uptr(offsetof(ExceptionData, isUserException)))}), llvmContext.i8Type), llvm::ConstantInt::get(llvmContext.i8Type, llvm::APInt(8, 0, false)));
 
-        // Create a block+catchpad that the catchswitch will transfer control to if the filter
-        // function returns 1.
-        auto catchPadBlock = llvm::BasicBlock::Create(llvmContext, "catchPad", function);
-        catchContext.catchSwitchInst->addHandler(catchPadBlock);
-        irBuilder.SetInsertPoint(catchPadBlock);
-        auto catchPadInst = irBuilder.CreateCatchPad(catchContext.catchSwitchInst, {filterFunction});
-
-        // Create a catchret that immediately returns from the catch "funclet" to a new non-funclet
-        // basic block.
-        auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
-        irBuilder.CreateCatchRet(catchPadInst, catchBlock);
-        irBuilder.SetInsertPoint(catchBlock);
-
-        catchContext.exceptionPointer = irBuilder.CreateLoad(exceptionDataAlloca);
-    } else {
-        irBuilder.SetInsertPoint(catchContext.nextHandlerBlock);
-        auto isUserExceptionType = irBuilder.CreateICmpNE(loadFromUntypedPointer(irBuilder.CreateInBoundsGEP(catchContext.exceptionPointer, {emitLiteral(llvmContext, Uptr(offsetof(ExceptionData, isUserException)))}), llvmContext.i8Type), llvm::ConstantInt::get(llvmContext.i8Type, llvm::APInt(8, 0, false)));
-
-        auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
-        auto unhandledBlock = llvm::BasicBlock::Create(llvmContext, "unhandled", function);
-        irBuilder.CreateCondBr(isUserExceptionType, catchBlock, unhandledBlock);
-        catchContext.nextHandlerBlock = unhandledBlock;
-        irBuilder.SetInsertPoint(catchBlock);
-    }
+    auto catchBlock = llvm::BasicBlock::Create(llvmContext, "catch", function);
+    auto unhandledBlock = llvm::BasicBlock::Create(llvmContext, "unhandled", function);
+    irBuilder.CreateCondBr(isUserExceptionType, catchBlock, unhandledBlock);
+    catchContext.nextHandlerBlock = unhandledBlock;
+    irBuilder.SetInsertPoint(catchBlock);
 
     // Change the top of the control stack to a catch clause.
     controlContext.type = ControlContext::Type::catch_;

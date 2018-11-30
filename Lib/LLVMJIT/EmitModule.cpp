@@ -42,9 +42,8 @@ EmitModuleContext::EmitModuleContext(const IR::Module &inIRModule, LLVMContext &
 
     tryPrologueDummyFunction = nullptr;
     cxaBeginCatchFunction = nullptr;
-    if (!USE_WINDOWS_SEH) {
-        cxaBeginCatchFunction = llvm::Function::Create(llvm::FunctionType::get(llvmContext.i8PtrType, {llvmContext.i8PtrType}, false), llvm::GlobalValue::LinkageTypes::ExternalLinkage, "__cxa_begin_catch", llvmModule);
-    }
+
+    cxaBeginCatchFunction = llvm::Function::Create(llvm::FunctionType::get(llvmContext.i8PtrType, {llvmContext.i8PtrType}, false), llvm::GlobalValue::LinkageTypes::ExternalLinkage, "__cxa_begin_catch", llvmModule);
 }
 
 static llvm::Constant *createImportedConstant(llvm::Module &llvmModule, llvm::Twine externalName) {
@@ -55,7 +54,7 @@ void LLVMJIT::emitModule(const IR::Module &irModule, LLVMContext &llvmContext, l
     EmitModuleContext moduleContext(irModule, llvmContext, &outLLVMModule);
 
     // Create an external reference to the appropriate exception personality function.
-    auto personalityFunction = llvm::Function::Create(llvm::FunctionType::get(llvmContext.i32Type, {}, false), llvm::GlobalValue::LinkageTypes::ExternalLinkage, USE_WINDOWS_SEH ? "__C_specific_handler" : "__gxx_personality_v0", &outLLVMModule);
+    auto personalityFunction = llvm::Function::Create(llvm::FunctionType::get(llvmContext.i32Type, {}, false), llvm::GlobalValue::LinkageTypes::ExternalLinkage, "__gxx_personality_v0", &outLLVMModule);
 
     // Create LLVM external globals corresponding to the encoded function types for the module's
     // indexed function types.
@@ -103,11 +102,7 @@ void LLVMJIT::emitModule(const IR::Module &irModule, LLVMContext &llvmContext, l
     // Create a LLVM external global that will be a bias applied to all references in a table.
     moduleContext.tableReferenceBias = llvm::ConstantExpr::getPtrToInt(createImportedConstant(outLLVMModule, "tableReferenceBias"), llvmContext.iptrType);
 
-    if (USE_WINDOWS_SEH) {
-        moduleContext.userExceptionTypeInfo = nullptr;
-    } else {
-        moduleContext.userExceptionTypeInfo = llvm::ConstantExpr::getPointerCast(createImportedConstant(outLLVMModule, "userExceptionTypeInfo"), llvmContext.i8PtrType);
-    }
+    moduleContext.userExceptionTypeInfo = llvm::ConstantExpr::getPointerCast(createImportedConstant(outLLVMModule, "userExceptionTypeInfo"), llvmContext.i8PtrType);
 
     // Create the LLVM functions.
     moduleContext.functions.resize(irModule.functions.size());

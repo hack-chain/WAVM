@@ -63,12 +63,10 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
     }
 
     void registerEHFrames(U8 *addr, U64 loadAddr, uintptr_t numBytes) override {
-        if (!USE_WINDOWS_SEH) {
-            Platform::registerEHFrames(imageBaseAddress, addr, numBytes);
-            hasRegisteredEHFrames = true;
-            ehFramesAddr = addr;
-            ehFramesNumBytes = numBytes;
-        }
+        Platform::registerEHFrames(imageBaseAddress, addr, numBytes);
+        hasRegisteredEHFrames = true;
+        ehFramesAddr = addr;
+        ehFramesNumBytes = numBytes;
     }
 
     void registerFixedSEHFrames(U8 *addr, Uptr numBytes) {
@@ -90,11 +88,6 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
     }
 
     virtual void reserveAllocationSpace(uintptr_t numCodeBytes, U32 codeAlignment, uintptr_t numReadOnlyBytes, U32 readOnlyAlignment, uintptr_t numReadWriteBytes, U32 readWriteAlignment) override {
-        if (USE_WINDOWS_SEH) {
-            // Pad the code section to allow for the SEH trampoline.
-            numCodeBytes += 32;
-        }
-
         // Calculate the number of pages to be used by each section.
         codeSection.numPages = shrAndRoundUp(numCodeBytes, Platform::getPageSizeLog2());
         readOnlySection.numPages = shrAndRoundUp(numReadOnlyBytes, Platform::getPageSizeLog2());
@@ -313,23 +306,21 @@ Module::Module(const std::vector<U8> &inObjectBytes, const HashMap<std::string, 
     Uptr pdataNumBytes = 0;
     llvm::object::SectionRef xdataSection;
     U8 *xdataCopy = nullptr;
-    if (USE_WINDOWS_SEH) {
-        for (auto section : object->sections()) {
-            llvm::StringRef sectionName;
-            if (!section.getName(sectionName)) {
-                llvm::StringRef sectionContents;
-                if (!section.getContents(sectionContents)) {
-                    const U8 *loadedSection = (const U8 *) sectionContents.data();
-                    if (sectionName == ".pdata") {
-                        pdataCopy = new U8[section.getSize()];
-                        pdataNumBytes = section.getSize();
-                        pdataSection = section;
-                        memcpy(pdataCopy, loadedSection, section.getSize());
-                    } else if (sectionName == ".xdata") {
-                        xdataCopy = new U8[section.getSize()];
-                        xdataSection = section;
-                        memcpy(xdataCopy, loadedSection, section.getSize());
-                    }
+    for (auto section : object->sections()) {
+        llvm::StringRef sectionName;
+        if (!section.getName(sectionName)) {
+            llvm::StringRef sectionContents;
+            if (!section.getContents(sectionContents)) {
+                const U8 *loadedSection = (const U8 *) sectionContents.data();
+                if (sectionName == ".pdata") {
+                    pdataCopy = new U8[section.getSize()];
+                    pdataNumBytes = section.getSize();
+                    pdataSection = section;
+                    memcpy(pdataCopy, loadedSection, section.getSize());
+                } else if (sectionName == ".xdata") {
+                    xdataCopy = new U8[section.getSize()];
+                    xdataSection = section;
+                    memcpy(xdataCopy, loadedSection, section.getSize());
                 }
             }
         }
@@ -340,25 +331,6 @@ Module::Module(const std::vector<U8> &inObjectBytes, const HashMap<std::string, 
     loader.finalizeWithMemoryManagerLocking();
     if (loader.hasError()) {
         Errors::fatalf("RuntimeDyld failed: %s", loader.getErrorString().data());
-    }
-
-    if (USE_WINDOWS_SEH && pdataCopy) {
-        // Lookup the real address of __C_specific_handler.
-        const llvm::JITEvaluatedSymbol sehHandlerSymbol = resolveJITImport("__C_specific_handler");
-        errorUnless(sehHandlerSymbol);
-        const U64 sehHandlerAddress = U64(sehHandlerSymbol.getAddress());
-
-        // Create a trampoline within the image's 2GB address space that jumps to
-        // __C_specific_handler. jmp [rip+0] <64-bit address>
-        U8 *trampolineBytes = memoryManager->allocateCodeSection(16, 16, 0, "seh_trampoline");
-        trampolineBytes[0] = 0xff;
-        trampolineBytes[1] = 0x25;
-        memset(trampolineBytes + 2, 0, 4);
-        memcpy(trampolineBytes + 6, &sehHandlerAddress, sizeof(U64));
-
-        processSEHTables(memoryManager->getImageBaseAddress(), *loadedObject, pdataSection, pdataCopy, pdataNumBytes, xdataSection, xdataCopy, reinterpret_cast<Uptr>(trampolineBytes));
-
-        memoryManager->registerFixedSEHFrames(reinterpret_cast<U8 *>(Uptr(loadedObject->getSectionLoadAddress(pdataSection))), pdataNumBytes);
     }
 
     // Free the copies of the Windows SEH sections created above.

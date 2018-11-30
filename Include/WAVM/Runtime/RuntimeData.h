@@ -1,9 +1,5 @@
 #pragma once
 
-//
-// Data structures that are used to share data between WAVM C++ code and the compiled WASM code.
-//
-
 #include <atomic>
 #include <map>
 
@@ -18,7 +14,6 @@ namespace WAVM {
 
 namespace WAVM {
     namespace Runtime {
-        // Forward declarations
         struct Compartment;
         struct Context;
         struct ExceptionType;
@@ -26,13 +21,8 @@ namespace WAVM {
         struct Table;
         struct Memory;
 
-        // Runtime object types. This must be a superset of IR::ExternKind, with IR::ExternKind
-        // values having the same representation in Runtime::ObjectKind.
         enum class ObjectKind : U8 {
-            // Standard object kinds that may be imported/exported from WebAssembly modules.
                     function = 0, table = 1, memory = 2, global = 3, exceptionType = 4,
-
-            // Runtime-specific object kinds that are only used by transient runtime objects.
                     moduleInstance = 5, context = 6, compartment = 7,
 
             invalid = 0xff,
@@ -56,8 +46,7 @@ namespace WAVM {
             maxMutableGlobals = maxGlobalBytes / sizeof(IR::UntaggedValue),
             maxMemories = 255,
             maxTables = (4096 - maxMemories * sizeof(void *) - sizeof(Compartment *)) / sizeof(void *),
-            compartmentRuntimeDataAlignmentLog2 = 32,
-            contextRuntimeDataAlignment = 4096
+            compartmentRuntimeDataAlignmentLog2 = 32
         };
 
         static_assert(sizeof(IR::UntaggedValue) * IR::maxReturnValues <=
@@ -75,8 +64,7 @@ namespace WAVM {
             Compartment *compartment;
             void *memoryBases[maxMemories];
             void *tableBases[maxTables];
-            ContextRuntimeData contexts[1]; // Actually [maxContexts], but at least MSVC doesn't allow
-            // declaring arrays that large.
+            ContextRuntimeData contexts[1];
         };
 
         enum {
@@ -103,8 +91,6 @@ namespace WAVM {
             const ObjectKind kind;
         };
 
-        // Metadata about a function, used to hold data that can't be emitted directly in an object
-        // file, or must be mutable.
         struct FunctionMutableData {
             LLVMJIT::Module *jitModule = nullptr;
             Runtime::Function *function = nullptr;
