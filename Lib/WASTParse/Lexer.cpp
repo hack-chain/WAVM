@@ -7,9 +7,6 @@
 #include "WAVM/NFA/NFA.h"
 #include "WAVM/RegExp/RegExp.h"
 
-#define DUMP_NFA_GRAPH 0
-#define DUMP_DFA_GRAPH 0
-
 using namespace WAVM;
 using namespace WAVM::WAST;
 
@@ -25,8 +22,6 @@ namespace WAVM {
 const char *WAST::describeToken(TokenType tokenType) {
     wavmAssert(tokenType < numTokenTypes);
     static const char *tokenDescriptions[] = {
-// This ENUM_TOKENS must come before the literalTokenPairs definition that redefines
-// VISIT_OPERATOR_TOKEN.
 #define VISIT_TOKEN(name, description, _) description,
             ENUM_TOKENS()
 #undef VISIT_TOKEN
@@ -57,8 +52,6 @@ static NFA::StateIndex createTokenSeparatorPeekState(NFA::Builder *builder, NFA:
 }
 
 static void addLiteralToNFA(const char *string, NFA::Builder *builder, NFA::StateIndex initialState, NFA::StateIndex finalState) {
-    // Add the literal to the NFA, one character at a time, reusing existing states that are
-    // reachable by the same string.
     for (const char *nextChar = string; *nextChar; ++nextChar) {
         NFA::StateIndex nextState = NFA::getNonTerminalEdge(builder, initialState, *nextChar);
         if (nextState < 0 || nextChar[1] == 0) {
@@ -70,7 +63,6 @@ static void addLiteralToNFA(const char *string, NFA::Builder *builder, NFA::Stat
 }
 
 StaticData::StaticData() {
-    // clang-format off
     static const std::pair<TokenType, const char *> regexpTokenPairs[] = {{t_decimalInt,   "[+\\-]?\\d+(_\\d+)*"},
                                                                           {t_decimalFloat, "[+\\-]?\\d+(_\\d+)*\\.(\\d+(_\\d+)*)*([eE][+\\-]?\\d+(_\\d+)*)?"},
                                                                           {t_decimalFloat, "[+\\-]?\\d+(_\\d+)*[eE][+\\-]?\\d+(_\\d+)*"},
@@ -86,8 +78,6 @@ StaticData::StaticData() {
 
                                                                           {t_name,         "\\$[a-zA-Z0-9\'_+*/~=<>!?@#$%&|:`.\\-\\^\\\\]+"},
                                                                           {t_quotedName,   "\\$\"([^\"\n\\\\]*(\\\\([^0-9a-fA-Fu]|[0-9a-fA-F][0-9a-fA-F]|u\\{[0-9a-fA-F]+})))*\""},};
-    // clang-format on
-
     static const std::tuple<TokenType, const char *, bool> literalTokenTuples[] = {std::make_tuple(t_leftParenthesis, "(", true), std::make_tuple(t_rightParenthesis, ")", true), std::make_tuple(t_equals, "=", true),
 
 #define VISIT_TOKEN(name, _, literalString) std::make_tuple(t_##name, literalString, false),
@@ -121,20 +111,11 @@ StaticData::StaticData() {
         addLiteralToNFA(literalString, nfaBuilder, 0, finalState);
     }
 
-    if (DUMP_NFA_GRAPH) {
-        std::string nfaGraphVizString = NFA::dumpNFAGraphViz(nfaBuilder);
-    }
-
     nfaMachine = NFA::Machine(nfaBuilder);
-
-    if (DUMP_DFA_GRAPH) {
-        std::string dfaGraphVizString = nfaMachine.dumpDFAGraphViz().c_str();
-    }
 }
 
 inline bool isRecoveryPointChar(char c) {
     switch (c) {
-        // Recover lexing at the next whitespace or parenthesis.
         case ' ':
         case '\t':
         case '\r':
@@ -158,8 +139,6 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
         Errors::fatalf("cannot lex strings with more than %u characters", UINT32_MAX);
     }
 
-    // Allocate enough memory up front for a token and newline for each character in the input
-    // string.
     Token *tokens = (Token *) malloc(sizeof(Token) * (stringLength + 1));
     U32 *lineStarts = (U32 *) malloc(sizeof(U32) * (stringLength + 2));
 
@@ -169,10 +148,8 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
 
     const char *nextChar = string;
     while (true) {
-        // Skip whitespace and comments (keeping track of newlines).
         while (true) {
             switch (*nextChar) {
-                // Single line comments.
                 case ';':
                     if (nextChar[1] != ';') {
                         goto doneSkippingWhitespace;
@@ -180,7 +157,6 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
                         nextChar += 2;
                         while (*nextChar) {
                             if (*nextChar == '\n') {
-                                // Emit a line start for the newline.
                                 *nextLineStart++ = U32(nextChar - string + 1);
                                 ++nextChar;
                                 break;
@@ -189,7 +165,6 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
                         };
                     }
                     break;
-                    // Delimited (possibly multi-line) comments.
                 case '(':
                     if (nextChar[1] != ';') {
                         goto doneSkippingWhitespace;
@@ -205,14 +180,12 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
                                 ++commentDepth;
                                 nextChar += 2;
                             } else if (nextChar == string + stringLength - 1) {
-                                // Emit an unterminated comment token.
                                 nextToken->type = t_unterminatedComment;
                                 nextToken->begin = U32(firstCommentChar - string);
                                 ++nextToken;
                                 goto doneSkippingWhitespace;
                             } else {
                                 if (*nextChar == '\n') {
-                                    // Emit a line start for the newline.
                                     *nextLineStart++ = U32(nextChar - string);
                                 }
                                 ++nextChar;
@@ -220,7 +193,6 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
                         };
                     }
                     break;
-                    // Whitespace.
                 case '\n':
                     *nextLineStart++ = U32(nextChar - string + 1);
                     ++nextChar;
@@ -233,12 +205,10 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
                     break;
                 default:
                     goto doneSkippingWhitespace;
-            };
+            }
         }
         doneSkippingWhitespace:
 
-        // Once we reach a non-whitespace, non-comment character, feed characters into the NFA
-        // until it reaches a terminal state.
         nextToken->begin = U32(nextChar - string);
         NFA::StateIndex terminalState = staticData.nfaMachine.feed(nextChar);
         if (terminalState != NFA::unmatchedCharacterTerminal) {
@@ -246,11 +216,9 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
             ++nextToken;
         } else {
             if (nextToken->begin < stringLength - 1) {
-                // Emit an unrecognized token.
                 nextToken->type = t_unrecognized;
                 ++nextToken;
 
-                // Advance until a recovery point or the end of the string.
                 const char *stringEnd = string + stringLength - 1;
                 while (nextChar < stringEnd && !isRecoveryPointChar(*nextChar)) {
                     ++nextChar;
@@ -261,21 +229,16 @@ Token *WAST::lex(const char *string, Uptr stringLength, LineInfo *&outLineInfo) 
         }
     }
 
-    // Emit an end token to mark the end of the token stream.
     nextToken->type = t_eof;
     ++nextToken;
 
-    // Emit an extra line start for the end of the file, so you can find the end of a line with
-    // lineStarts[line + 1].
     *nextLineStart++ = U32(nextChar - string) + 1;
 
-    // Shrink the line start and token arrays to the final number of tokens/lines.
     const Uptr numLineStarts = nextLineStart - lineStarts;
     const Uptr numTokens = nextToken - tokens;
     lineStarts = (U32 *) realloc(lineStarts, sizeof(U32) * numLineStarts);
     tokens = (Token *) realloc(tokens, sizeof(Token) * numTokens);
 
-    // Create the LineInfo object that encapsulates the line start information.
     outLineInfo = new LineInfo{lineStarts, U32(numLineStarts)};
 
     return tokens;
@@ -290,18 +253,7 @@ void WAST::freeLineInfo(LineInfo *lineInfo) {
     delete lineInfo;
 }
 
-static Uptr getLineOffset(const LineInfo *lineInfo, Uptr lineIndex) {
-    errorUnless(lineIndex < lineInfo->numLineStarts);
-    return lineInfo->lineStarts[lineIndex];
-}
-
 TextFileLocus WAST::calcLocusFromOffset(const char *string, const LineInfo *lineInfo, Uptr charOffset) {
-    // The last line start is at the end of the string, so use it to sanity check that the
-    // charOffset isn't past the end of the string.
-    const Uptr numChars = lineInfo->lineStarts[lineInfo->numLineStarts - 1];
-    wavmAssert(charOffset <= numChars);
-
-    // Binary search the line starts for the last one before charIndex.
     Uptr minLineIndex = 0;
     Uptr maxLineIndex = lineInfo->numLineStarts - 1;
     while (maxLineIndex > minLineIndex) {
@@ -317,7 +269,6 @@ TextFileLocus WAST::calcLocusFromOffset(const char *string, const LineInfo *line
     TextFileLocus result;
     result.newlines = (U32) minLineIndex;
 
-    // Count tabs and and spaces from the beginning of the line to charIndex.
     for (U32 index = lineInfo->lineStarts[result.newlines]; index < charOffset; ++index) {
         if (string[index] == '\t') {
             ++result.tabs;
@@ -325,11 +276,5 @@ TextFileLocus WAST::calcLocusFromOffset(const char *string, const LineInfo *line
             ++result.characters;
         }
     }
-
-    // Copy the full source line into the TextFileLocus for context.
-    const Uptr lineStartOffset = getLineOffset(lineInfo, result.newlines);
-    Uptr lineEndOffset = getLineOffset(lineInfo, result.newlines + 1) - 1;
-    result.sourceLine = std::string(string + lineStartOffset, lineEndOffset - lineStartOffset);
-
     return result;
 }

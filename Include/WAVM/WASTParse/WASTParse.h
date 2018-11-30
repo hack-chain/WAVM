@@ -13,9 +13,7 @@ namespace WAVM {
 
 namespace WAVM {
     namespace WAST {
-        // A location in a text file.
         struct TextFileLocus {
-            std::string sourceLine;
             U32 newlines;
             U32 tabs;
             U32 characters;
@@ -36,14 +34,6 @@ namespace WAVM {
             }
         };
 
-        // A WAST parse error.
-        struct Error {
-            TextFileLocus locus;
-            std::string message;
-        };
-
-        // Parse a module from a string. Returns true if it succeeds, and writes the module to
-        // outModule. If it fails, returns false and appends a list of errors to outErrors.
         WASTPARSE_API bool parseModule(const char *string, Uptr stringLength, IR::Module &outModule);
     }
 }
