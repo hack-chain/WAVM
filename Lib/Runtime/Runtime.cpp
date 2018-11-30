@@ -39,6 +39,50 @@ Runtime::Context::~Context() {
     compartment->contexts.removeOrFail(id);
 }
 
+Global *Runtime::createGlobal(Compartment *compartment, GlobalType type, Value initialValue) {
+    errorUnless(isSubtype(initialValue.type, type.valueType));
+    errorUnless(!isReferenceType(type.valueType) || !initialValue.object
+                || isInCompartment(initialValue.object, compartment));
+
+    U32 mutableGlobalIndex = UINT32_MAX;
+    if (type.isMutable) {
+        mutableGlobalIndex = compartment->globalDataAllocationMask.getSmallestNonMember();
+        if (mutableGlobalIndex == maxMutableGlobals) { return nullptr; }
+        compartment->globalDataAllocationMask.add(mutableGlobalIndex);
+
+        // Initialize the global value for each context, and the data used to initialize new
+        // contexts.
+        compartment->initialContextMutableGlobals[mutableGlobalIndex] = initialValue;
+        for (Context *context : compartment->contexts) { context->runtimeData->mutableGlobals[mutableGlobalIndex] = initialValue; }
+    }
+
+    // Create the global and add it to the compartment's list of globals.
+    Global *global = new Global(compartment, type, mutableGlobalIndex, initialValue);
+    {
+        Lock<Platform::Mutex> compartmentLock(compartment->mutex);
+        global->id = compartment->globals.add(UINTPTR_MAX, global);
+        if (global->id == UINTPTR_MAX) {
+            delete global;
+            return nullptr;
+        }
+    }
+
+    return global;
+}
+
+Runtime::Global::~Global() {
+    if (id != UINTPTR_MAX) {
+        wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
+        compartment->globals.removeOrFail(id);
+    }
+
+    if (type.isMutable) {
+        wavmAssert(mutableGlobalIndex < maxMutableGlobals);
+        wavmAssert(compartment->globalDataAllocationMask.contains(mutableGlobalIndex));
+        compartment->globalDataAllocationMask.remove(mutableGlobalIndex);
+    }
+}
+
 #define DEFINE_OBJECT_TYPE(kindId, kindName, Type)                                                 \
     Runtime::Type* Runtime::as##kindName(Object* object)                                           \
     {                                                                                              \
