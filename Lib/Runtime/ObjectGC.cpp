@@ -192,13 +192,3 @@ static bool collectGarbageImpl(Compartment *compartment) {
 
     return wasCompartmentUnreferenced;
 }
-
-void Runtime::collectCompartmentGarbage(Compartment *compartment) {
-    collectGarbageImpl(compartment);
-}
-
-bool Runtime::tryCollectCompartment(GCPointer<Compartment> &&compartmentRootRef) {
-    Compartment *compartment = &*compartmentRootRef;
-    compartmentRootRef = nullptr;
-    return collectGarbageImpl(compartment);
-}

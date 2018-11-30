@@ -137,44 +137,6 @@ Table *Runtime::createTable(Compartment *compartment, IR::TableType type, std::s
     return table;
 }
 
-Table *Runtime::cloneTable(Table *table, Compartment *newCompartment) {
-    Lock<Platform::Mutex> resizingLock(table->resizingMutex);
-
-    // Create the new table.
-    const Uptr numElements = table->numElements.load(std::memory_order_acquire);
-    std::string debugName = table->debugName;
-    Table *newTable = createTableImpl(newCompartment, table->type, std::move(debugName));
-    if (!newTable) { return nullptr; }
-
-    // Grow the table to the same size as the original, without initializing the new elements since
-    // they will be written immediately following this.
-    if (growTableImpl(newTable, numElements, false) == -1) {
-        delete newTable;
-        return nullptr;
-    }
-
-    // Copy the original table's elements to the new table.
-    for (Uptr elementIndex = 0; elementIndex < numElements; ++elementIndex) {
-        newTable->elements[elementIndex].biasedValue.store(
-                table->elements[elementIndex].biasedValue.load(std::memory_order_acquire),
-                std::memory_order_release);
-    }
-
-    resizingLock.unlock();
-
-    // Insert the table in the new compartment's tables array with the same index as it had in the
-    // original compartment's tables IndexMap.
-    {
-        Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-
-        newTable->id = table->id;
-        newCompartment->tables.insertOrFail(newTable->id, newTable);
-        newCompartment->runtimeData->tableBases[newTable->id] = newTable->elements;
-    }
-
-    return newTable;
-}
-
 Table::~Table() {
     if (id != UINTPTR_MAX) {
         wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
@@ -205,22 +167,6 @@ Table::~Table() {
     }
     elements = nullptr;
     numElements = numReservedBytes = numReservedElements = 0;
-}
-
-bool Runtime::isAddressOwnedByTable(U8 *address, Table *&outTable, Uptr &outTableIndex) {
-    // Iterate over all tables and check if the address is within the reserved address space for
-    // each.
-    Lock<Platform::Mutex> tablesLock(tablesMutex);
-    for (auto table : tables) {
-        U8 *startAddress = (U8 *) table->elements;
-        U8 *endAddress = ((U8 *) table->elements) + table->numReservedBytes;
-        if (address >= startAddress && address < endAddress) {
-            outTable = table;
-            outTableIndex = (address - startAddress) / sizeof(Table::Element);
-            return true;
-        }
-    }
-    return false;
 }
 
 static Object *setTableElementNonNull(Table *table, Uptr index, Object *object) {
@@ -286,50 +232,6 @@ Uptr Runtime::getTableNumElements(Table *table) {
     return table->numElements.load(std::memory_order_acquire);
 }
 
-Iptr Runtime::growTable(Table *table, Uptr numNewElements) {
-    return growTableImpl(table, numNewElements, true);
-}
-
-Iptr Runtime::shrinkTable(Table *table, Uptr numElementsToShrink) {
-    if (!numElementsToShrink) { return table->numElements.load(std::memory_order_acquire); }
-
-    Lock<Platform::Mutex> resizingLock(table->resizingMutex);
-
-    const Uptr previousNumElements = table->numElements.load(std::memory_order_acquire);
-
-    // If the number of elements to shrink would cause the table's size to drop below its minimum,
-    // return -1.
-    if (numElementsToShrink > previousNumElements
-        || previousNumElements - numElementsToShrink < table->type.size.min) { return -1; }
-
-    // Decommit the pages that were shrunk off the end of the table's indirect function call data.
-    const Uptr newNumElements = previousNumElements - numElementsToShrink;
-    const Uptr previousNumPlatformPages
-            = getNumPlatformPages(previousNumElements * sizeof(Table::Element));
-    const Uptr newNumPlatformPages = getNumPlatformPages(newNumElements * sizeof(Table::Element));
-    if (newNumPlatformPages != previousNumPlatformPages) {
-        Platform::decommitVirtualPages(
-                (U8 *) table->elements + (newNumPlatformPages << Platform::getPageSizeLog2()),
-                (previousNumPlatformPages - newNumPlatformPages) << Platform::getPageSizeLog2());
-    }
-
-    // Write the out-of-bounds sentinel value to any removed elements that are between the new end
-    // of the table and the first decommitted page.
-    const Uptr numCommittedIndices
-            = (newNumPlatformPages << Platform::getPageSizeLog2()) / sizeof(Table::Element);
-    if (numCommittedIndices > newNumElements) {
-        for (Uptr elementIndex = numCommittedIndices - 1; elementIndex > newNumElements;
-             --elementIndex) {
-            table->elements[elementIndex].biasedValue.store(
-                    objectToBiasedTableElementValue(getOutOfBoundsElement()),
-                    std::memory_order_release);
-        }
-    }
-
-    table->numElements.store(newNumElements, std::memory_order_release);
-    return previousNumElements;
-}
-
 DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics, "table.get", Object*, table_get, U32 index, Uptr tableId) {
     Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
     return getTableElement(table, index);
@@ -379,70 +281,5 @@ DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
             setTableElement(
                     table, Uptr(destIndex), asObject((*passiveElemSegmentObjects)[sourceIndex]));
         }
-    }
-}
-
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "table.drop",
-                          void,
-                          table_drop,
-                          Uptr moduleInstanceId,
-                          Uptr elemSegmentIndex) {
-    ModuleInstance *moduleInstance
-            = getModuleInstanceFromRuntimeData(contextRuntimeData, moduleInstanceId);
-    Lock<Platform::Mutex> passiveElemSegmentsLock(moduleInstance->passiveElemSegmentsMutex);
-
-    if (!moduleInstance->passiveElemSegments.contains(elemSegmentIndex)) {
-        passiveElemSegmentsLock.unlock();
-    } else {
-        moduleInstance->passiveElemSegments.removeOrFail(elemSegmentIndex);
-    }
-}
-
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "table.copy",
-                          void,
-                          table_copy,
-                          U32 destOffset,
-                          U32 sourceOffset,
-                          U32 numElements,
-                          Uptr tableId) {
-    Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
-
-    if (sourceOffset != destOffset) {
-        const Uptr numNonOverlappingElements
-                = sourceOffset < destOffset && U64(sourceOffset) + U64(numElements) > destOffset
-                  ? destOffset - sourceOffset
-                  : numElements;
-
-        // If the end of the source overlaps the beginning of the destination, copy those elements
-        // before they are overwritten by the second part of the copy below.
-        for (Uptr index = numNonOverlappingElements; index < numElements; ++index) {
-            setTableElementNonNull(table,
-                                   U64(destOffset) + U64(index),
-                                   getTableElementNonNull(table, U64(sourceOffset) + U64(index)));
-        }
-
-        for (Uptr index = 0; index < numNonOverlappingElements; ++index) {
-            setTableElementNonNull(table,
-                                   U64(destOffset) + U64(index),
-                                   getTableElementNonNull(table, U64(sourceOffset) + U64(index)));
-        }
-    }
-}
-
-DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
-                          "callIndirectFail",
-                          void,
-                          callIndirectFail,
-                          U32 index,
-                          Uptr tableId,
-                          Function *function,
-                          Uptr expectedTypeEncoding) {
-    Table *table = getTableFromRuntimeData(contextRuntimeData, tableId);
-    if (asObject(function) == getOutOfBoundsElement()) {
-        std::cout << "call_indirect: index %u is out-of-bounds\n" << index;
-    } else if (asObject(function) == getUninitializedElement()) {
-        std::cout << "call_indirect: index %u is uninitialized\n" << index;
     }
 }

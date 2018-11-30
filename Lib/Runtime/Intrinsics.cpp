@@ -20,7 +20,9 @@ using namespace WAVM;
 using namespace WAVM::Runtime;
 
 Intrinsics::Module::~Module() {
-    if (impl) { delete impl; }
+    if (impl) {
+        delete impl;
+    }
 }
 
 static void initializeModule(Intrinsics::Module &moduleRef) {

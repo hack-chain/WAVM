@@ -43,13 +43,6 @@ ModuleRef Runtime::compileModule(const IR::Module &irModule) {
     return std::make_shared<Module>(IR::Module(irModule), std::move(objectCode));
 }
 
-std::vector<U8> Runtime::getObjectCode(ModuleConstRefParam module) { return module->objectCode; }
-
-ModuleRef Runtime::loadPrecompiledModule(const IR::Module &irModule,
-                                         const std::vector<U8> &objectCode) {
-    return std::make_shared<Module>(IR::Module(irModule), std::vector<U8>(objectCode));
-}
-
 ModuleInstance::~ModuleInstance() {
     if (id != UINTPTR_MAX) {
         wavmAssertMutexIsLockedByCurrentThread(compartment->mutex);
@@ -336,89 +329,8 @@ ModuleInstance *Runtime::instantiateModule(Compartment *compartment,
     return moduleInstance;
 }
 
-ModuleInstance *Runtime::cloneModuleInstance(ModuleInstance *moduleInstance,
-                                             Compartment *newCompartment) {
-    // Remap the module's references to the cloned compartment.
-    HashMap<std::string, Object *> newExportMap;
-    for (const auto &pair : moduleInstance->exportMap) {
-        newExportMap.add(pair.key, remapToClonedCompartment(pair.value, newCompartment));
-    }
-
-    std::vector<Function *> newFunctions = moduleInstance->functions;
-
-    std::vector<Table *> newTables;
-    for (Table *table : moduleInstance->tables) {
-        newTables.push_back(remapToClonedCompartment(table, newCompartment));
-    }
-
-    std::vector<Memory *> newMemories;
-    for (Memory *memory : moduleInstance->memories) {
-        newMemories.push_back(remapToClonedCompartment(memory, newCompartment));
-    }
-
-    std::vector<Global *> newGlobals;
-    for (Global *global : moduleInstance->globals) {
-        newGlobals.push_back(remapToClonedCompartment(global, newCompartment));
-    }
-
-    std::vector<ExceptionType *> newExceptionTypes;
-    for (ExceptionType *exceptionType : moduleInstance->exceptionTypes) {
-        newExceptionTypes.push_back(remapToClonedCompartment(exceptionType, newCompartment));
-    }
-
-    Function *newStartFunction
-            = remapToClonedCompartment(moduleInstance->startFunction, newCompartment);
-
-    PassiveDataSegmentMap newPassiveDataSegments;
-    {
-        Lock<Platform::Mutex> passiveDataSegmentsLock(moduleInstance->passiveDataSegmentsMutex);
-        newPassiveDataSegments = moduleInstance->passiveDataSegments;
-    }
-
-    PassiveElemSegmentMap newPassiveElemSegments;
-    {
-        Lock<Platform::Mutex> passiveDataSegmentsLock(moduleInstance->passiveDataSegmentsMutex);
-        newPassiveDataSegments = moduleInstance->passiveDataSegments;
-    }
-    for (const auto &pair : newPassiveElemSegments) {
-        for (Uptr index = 0; index < pair.value->size(); ++index) {
-            (*pair.value)[index] = remapToClonedCompartment((*pair.value)[index], newCompartment);
-        }
-    }
-
-    // Create the new ModuleInstance in the cloned compartment, but with the same ID as the old one.
-    std::shared_ptr<LLVMJIT::Module> jitModuleCopy = moduleInstance->jitModule;
-    ModuleInstance *newModuleInstance = new ModuleInstance(newCompartment,
-                                                           moduleInstance->id,
-                                                           std::move(newExportMap),
-                                                           std::move(newFunctions),
-                                                           std::move(newTables),
-                                                           std::move(newMemories),
-                                                           std::move(newGlobals),
-                                                           std::move(newExceptionTypes),
-                                                           std::move(newStartFunction),
-                                                           std::move(newPassiveDataSegments),
-                                                           std::move(newPassiveElemSegments),
-                                                           std::move(jitModuleCopy),
-                                                           std::string(moduleInstance->debugName));
-    {
-        Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-        newCompartment->moduleInstances.insertOrFail(moduleInstance->id, newModuleInstance);
-    }
-
-    return newModuleInstance;
-}
-
 Function *Runtime::getStartFunction(ModuleInstance *moduleInstance) {
     return moduleInstance->startFunction;
-}
-
-Memory *Runtime::getDefaultMemory(ModuleInstance *moduleInstance) {
-    return moduleInstance->memories.size() ? moduleInstance->memories[0] : nullptr;
-}
-
-Table *Runtime::getDefaultTable(ModuleInstance *moduleInstance) {
-    return moduleInstance->tables.size() ? moduleInstance->tables[0] : nullptr;
 }
 
 Object *Runtime::getInstanceExport(ModuleInstance *moduleInstance, const std::string &name) {
