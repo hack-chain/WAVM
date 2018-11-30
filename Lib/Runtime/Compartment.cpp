@@ -46,42 +46,6 @@ Runtime::Compartment::~Compartment() {
 
 Compartment *Runtime::createCompartment() { return new Compartment; }
 
-Compartment *Runtime::cloneCompartment(const Compartment *compartment) {
-    Compartment *newCompartment = new Compartment;
-    Lock<Platform::Mutex> compartmentLock(compartment->mutex);
-
-    // Clone tables.
-    for (Table *table : compartment->tables) {
-        Table *newTable = cloneTable(table, newCompartment);
-        wavmAssert(newTable->id == table->id);
-    }
-
-    // Clone memories.
-    for (Memory *memory : compartment->memories) {
-        Memory *newMemory = cloneMemory(memory, newCompartment);
-        wavmAssert(newMemory->id == memory->id);
-    }
-
-    // Clone globals.
-    newCompartment->globalDataAllocationMask = compartment->globalDataAllocationMask;
-    memcpy(newCompartment->initialContextMutableGlobals,
-           compartment->initialContextMutableGlobals,
-           sizeof(newCompartment->initialContextMutableGlobals));
-    for (Global *global : compartment->globals) {
-        Global *newGlobal = cloneGlobal(global, newCompartment);
-        wavmAssert(newGlobal->id == global->id);
-        wavmAssert(newGlobal->mutableGlobalIndex == global->mutableGlobalIndex);
-    }
-
-    // Clone module instances.
-    for (ModuleInstance *moduleInstance : compartment->moduleInstances) {
-        ModuleInstance *newModuleInstance = cloneModuleInstance(moduleInstance, newCompartment);
-        wavmAssert(newModuleInstance->id == moduleInstance->id);
-    }
-
-    return newCompartment;
-}
-
 Object *Runtime::remapToClonedCompartment(Object *object, const Compartment *newCompartment) {
     switch (object->kind) {
         case ObjectKind::function:
@@ -126,12 +90,6 @@ ExceptionType *Runtime::remapToClonedCompartment(ExceptionType *exceptionType,
     return newCompartment->exceptionTypes[exceptionType->id];
 }
 
-ModuleInstance *Runtime::remapToClonedCompartment(ModuleInstance *moduleInstance,
-                                                  const Compartment *newCompartment) {
-    Lock<Platform::Mutex> compartmentLock(newCompartment->mutex);
-    return newCompartment->moduleInstances[moduleInstance->id];
-}
-
 bool Runtime::isInCompartment(Object *object, const Compartment *compartment) {
     if (object->kind == ObjectKind::function) {
         // The function may be in multiple compartments, but if this compartment maps the function's
@@ -148,13 +106,5 @@ bool Runtime::isInCompartment(Object *object, const Compartment *compartment) {
     } else {
         GCObject *gcObject = (GCObject *) object;
         return gcObject->compartment == compartment;
-    }
-}
-
-Compartment *Runtime::getCompartment(Object *object) {
-    if (object->kind == ObjectKind::function) { return nullptr; }
-    else {
-        GCObject *gcObject = (GCObject *) object;
-        return gcObject->compartment;
     }
 }
