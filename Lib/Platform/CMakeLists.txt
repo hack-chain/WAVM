@@ -1,7 +1,6 @@
 set(POSIXSources
         POSIX/Diagnostics.cpp
         POSIX/Event.cpp
-        POSIX/Exception.cpp
         POSIX/Memory.cpp
         POSIX/Mutex.cpp
         POSIX/POSIX.S

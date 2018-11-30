@@ -8,7 +8,6 @@
 
 #include "LLVMJITPrivate.h"
 #include "WAVM/Inline/Lock.h"
-#include "WAVM/Platform/Exception.h"
 #include "WAVM/Platform/Memory.h"
 #include "WAVM/Platform/Mutex.h"
 #include <iostream>
@@ -63,14 +62,6 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
     }
 
     void registerEHFrames(U8 *addr, U64 loadAddr, uintptr_t numBytes) override {
-        Platform::registerEHFrames(imageBaseAddress, addr, numBytes);
-        hasRegisteredEHFrames = true;
-        ehFramesAddr = addr;
-        ehFramesNumBytes = numBytes;
-    }
-
-    void registerFixedSEHFrames(U8 *addr, Uptr numBytes) {
-        Platform::registerEHFrames(imageBaseAddress, addr, numBytes);
         hasRegisteredEHFrames = true;
         ehFramesAddr = addr;
         ehFramesNumBytes = numBytes;
@@ -79,7 +70,6 @@ struct LLVMJIT::ModuleMemoryManager : llvm::RTDyldMemoryManager {
     void deregisterEHFrames() override {
         if (hasRegisteredEHFrames) {
             hasRegisteredEHFrames = false;
-            Platform::deregisterEHFrames(imageBaseAddress, ehFramesAddr, ehFramesNumBytes);
         }
     }
 
@@ -507,8 +497,6 @@ std::shared_ptr<LLVMJIT::Module> LLVMJIT::loadModule(const std::vector<U8> &obje
 
     // Bind the tableReferenceBias symbol to the tableReferenceBias.
     importedSymbolMap.addOrFail("tableReferenceBias", tableReferenceBias);
-
-    importedSymbolMap.addOrFail("userExceptionTypeInfo", reinterpret_cast<Uptr>(Platform::getUserExceptionTypeInfo()));
 
     // Load the module.
     return std::make_shared<Module>(objectFileBytes, importedSymbolMap, true);

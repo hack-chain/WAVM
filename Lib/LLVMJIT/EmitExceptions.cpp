@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "EmitFunctionContext.h"
-#include "WAVM/Platform/Exception.h"
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
@@ -110,8 +109,6 @@ static llvm::Function *createSEHFilterFunction(LLVMContext &llvmContext, EmitFun
     auto nonWebAssemblyExceptionBlock = llvm::BasicBlock::Create(llvmContext, "nonWebAssemblyException", filterFunction);
     auto exceptionTypeCheckBlock = llvm::BasicBlock::Create(llvmContext, "exceptionTypeCheck", filterFunction);
     auto exceptionCode = filterIRBuilder.CreateLoad(filterIRBuilder.CreateInBoundsGEP(exceptionRecordPointer, {emitLiteral(llvmContext, U32(0)), emitLiteral(llvmContext, U32(0))}));
-    auto isWebAssemblyException = filterIRBuilder.CreateICmpEQ(exceptionCode, emitLiteral(llvmContext, I32(Platform::SEH_WAVM_EXCEPTION)));
-    filterIRBuilder.CreateCondBr(isWebAssemblyException, exceptionTypeCheckBlock, nonWebAssemblyExceptionBlock);
     filterIRBuilder.SetInsertPoint(nonWebAssemblyExceptionBlock);
     filterIRBuilder.CreateRet(emitLiteral(llvmContext, I32(0)));
     filterIRBuilder.SetInsertPoint(exceptionTypeCheckBlock);

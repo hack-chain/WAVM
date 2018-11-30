@@ -5,7 +5,6 @@
 
 #include "WAVM/Inline/BasicTypes.h"
 #include "WAVM/Inline/Errors.h"
-#include "WAVM/Platform/Exception.h"
 
 struct ExecutionContext {
     U64 rbx;
@@ -74,13 +73,6 @@ namespace WAVM {
     namespace Platform {
 
         struct CallStack;
-
-        struct SignalContext {
-            SignalContext *outerContext;
-            jmp_buf catchJump;
-            std::function<bool(Platform::Signal, const Platform::CallStack &)> filter;
-        };
-        extern thread_local SignalContext *innermostSignalContext;
 
         void dumpErrorCallStack(Uptr numOmittedFramesFromTop);
     }
